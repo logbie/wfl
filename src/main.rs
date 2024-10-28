@@ -1,4 +1,4 @@
-
+use wfl::Lexer;
 fn main() {
     let source = r#"
 define action called greet does

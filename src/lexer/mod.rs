@@ -137,7 +137,7 @@ impl Lexer {
     fn create_token(&self, token_type: TokenType, value: String) -> Token {
         Token {
             token_type,
-            value,
+            value: value.clone(), // Clone value so we can use it again
             line: self.line,
             column: self.column - value.len(),
         }
@@ -254,18 +254,28 @@ impl Lexer {
 
     pub fn tokenize(&mut self) -> Vec<Token> {
         let mut tokens = Vec::new();
+        
         loop {
-            let token = self.next_token();
-            if token.token_type == TokenType::Newline {
-                tokens.push(token);
+            // Handle indentation after newlines
+            if tokens.last().map_or(true, |t: &Token| t.token_type == TokenType::Newline) {
                 tokens.extend(self.handle_indentation());
-            } else {
-                tokens.push(token);
             }
+    
+            let token = self.next_token();
+            
             if token.token_type == TokenType::EOF {
+                // Handle any remaining dedents
+                while self.indent_stack.len() > 1 {
+                    self.indent_stack.pop();
+                    tokens.push(self.create_token(TokenType::Dedent, "dedent".to_string()));
+                }
+                tokens.push(token);
                 break;
             }
+            
+            tokens.push(token);
         }
+        
         tokens
     }
 }
