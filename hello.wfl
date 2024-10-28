@@ -1,0 +1,96 @@
+// Interactive Hello World Program
+create module Hello World:
+    // Store our greetings in different languages
+    private create map greetings:
+        English is "Hello"
+        Spanish is "Hola"
+        French is "Bonjour"
+        Japanese is "こんにちは"
+        German is "Hallo"
+    end map
+    
+    // Keep track of how many times we've said hello
+    private store greeting count as 0
+    
+    // Action to generate a random greeting
+    private define action get random greeting:
+        store languages as list from greetings keys
+        store random index as random number between 0 and languages length minus 1
+        store language as languages at random index
+        give back:
+            text is greetings at language
+            language is language
+        end back
+    end action
+    
+    // Main greeting action
+    public define action say hello:
+        needs:
+            name as text with default "World"
+            use random as truth with default no
+        do:
+            // Increment our counter
+            add 1 to greeting count
+            
+            // Choose greeting based on user preference
+            store greeting as if use random:
+                perform get random greeting
+            otherwise:
+                text is "Hello"
+                language is "English"
+            end if
+            
+            // Display greeting with some flair
+            display "==================================="
+            display greeting's text with ", " with name with "!"
+            display "This greeting was in " with greeting's language
+            display "You've been greeted " with greeting count with " times!"
+            display "==================================="
+            
+            // Add some fun interactions
+            check if greeting count:
+                when is 1:
+                    display "Welcome to your first greeting!"
+                when is 10:
+                    display "Wow, you really like greetings!"
+                when is above 20:
+                    display "You're a greeting enthusiast!"
+            end check
+            
+        catch any error:
+            display "Oops! Something went wrong with the greeting."
+            display "Error: " with error message
+    end action
+    
+    // Interactive demo
+    public define action run demo:
+        display "Welcome to the WFL Hello World Demo!"
+        display "Let's try some greetings..."
+        
+        // Basic greeting
+        perform say hello
+        
+        // Personal greeting
+        display "What's your name?"
+        store user name as input from user
+        perform say hello with:
+            name as user name
+        end with
+        
+        // Random greeting
+        display "Would you like a random greeting? (yes/no)"
+        store want random as input from user
+        check if want random matches "yes":
+            perform say hello with:
+                name as user name
+                use random as yes
+            end with
+        end check
+        
+        // Finale
+        display "Thanks for trying out WFL!"
+    end action
+end module
+
+// Run the demo
+perform Hello World run demo
