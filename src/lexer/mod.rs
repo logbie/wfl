@@ -135,11 +135,17 @@ impl Lexer {
     }
 
     fn create_token(&self, token_type: TokenType, value: String) -> Token {
+        let column = if self.column >= value.len() {
+            self.column - value.len()
+        } else {
+            self.column
+        };
+
         Token {
             token_type,
-            value: value.clone(), // Clone value so we can use it again
+            value: value.clone(),
             line: self.line,
-            column: self.column - value.len(),
+            column,
         }
     }
 
