@@ -26,6 +26,13 @@ pub enum TokenType {
     Try,
     Catch,
     Finally,
+    Public,
+    Private,
+    Protected,
+    Container,
+    From,
+    Interface,
+    Implements,
 
     // Data Types
     Number,
@@ -35,6 +42,9 @@ pub enum TokenType {
     Map,
     Set,
     Record,
+    Any,
+    Of,
+    Type,
 
     // Literals
     StringLiteral,     // "hello"
@@ -54,6 +64,13 @@ pub enum TokenType {
     Multiply,          // times, *
     Divide,            // divided by, /
     Modulo,            // modulo, %
+    Join,              // join
+    To,               // to
+    Into,             // into
+    At,               // at
+    Where,            // where
+    Contains,         // contains
+    Matches,          // matches
 
     // Comparison Operators
     Equals,            // is, =
@@ -62,6 +79,8 @@ pub enum TokenType {
     Less,              // is less than, <
     GreaterEquals,     // is at least, ≥
     LessEquals,        // is at most, ≤
+    Between,           // is between
+    OneOf,            // is one of
 
     // Logical Operators
     And,
@@ -73,6 +92,12 @@ pub enum TokenType {
     Comma,             // ,
     Dot,               // .
     Quotes,            // "
+    LeftBrace,         // {
+    RightBrace,        // }
+    LeftBracket,       // [
+    RightBracket,      // ]
+    LeftParen,         // (
+    RightParen,        // )
 
     // Special
     Comment,           // // Single line comment
@@ -80,12 +105,51 @@ pub enum TokenType {
     Indent,
     Dedent,
     EOF,
+    Error,            // For lexical errors
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Token {
     pub token_type: TokenType,
     pub value: String,
     pub line: usize,
     pub column: usize,
+    pub span: std::ops::Range<usize>,
+    pub error: Option<String>,  // For storing error messages
+}
+
+impl Token {
+    pub fn new(token_type: TokenType, value: String, line: usize, column: usize, span: std::ops::Range<usize>) -> Self {
+        Self {
+            token_type,
+            value,
+            line,
+            column,
+            span,
+            error: None,
+        }
+    }
+
+    pub fn error(message: String, line: usize, column: usize, span: std::ops::Range<usize>) -> Self {
+        Self {
+            token_type: TokenType::Error,
+            value: String::new(),
+            line,
+            column,
+            span,
+            error: Some(message),
+        }
+    }
+
+    pub fn is_error(&self) -> bool {
+        self.token_type == TokenType::Error
+    }
+
+    pub fn location(&self) -> String {
+        format!("line {}, column {}", self.line, self.column)
+    }
+
+    pub fn span(&self) -> std::ops::Range<usize> {
+        self.span.clone()
+    }
 }
