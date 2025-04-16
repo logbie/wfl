@@ -1,0 +1,11 @@
+// Nested collection test
+
+// Create a nested collection
+set data to:
+    "values" is [10, 20, 30]
+    "labels" is ["x", "y", "z"]
+end set
+
+// Access through at keyword
+store first_value as data at "values" at 0
+store y_label as data at "labels" at 1 

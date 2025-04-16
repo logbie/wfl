@@ -1,0 +1,11 @@
+// Variable collection test
+
+// Assign a collection to a variable
+store fruit as set to:
+    "apple"
+    "banana"
+    "orange"
+end set
+
+// Access the collection
+store second_fruit as fruit at 1 

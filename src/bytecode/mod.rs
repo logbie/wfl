@@ -150,11 +150,12 @@ pub struct BytecodeCompiler {
     pub enclosing: Option<Box<BytecodeCompiler>>,
     pub globals: HashMap<String, usize>,
     pub functions: Vec<Function>,
+    pub is_container_method: bool, // Flag to track if we're compiling a container method
 }
 
 impl BytecodeCompiler {
     pub fn new(name: &str) -> Self {
-        BytecodeCompiler {
+        Self {
             function: Function::new(name, false),
             locals: Vec::new(),
             scope_depth: 0,
@@ -162,6 +163,7 @@ impl BytecodeCompiler {
             enclosing: None,
             globals: HashMap::new(),
             functions: Vec::new(),
+            is_container_method: false,
         }
     }
     
@@ -267,12 +269,12 @@ impl BytecodeCompiler {
     /// Add or get a global variable index
     pub fn add_or_get_global(&mut self, name: String) -> usize {
         if let Some(idx) = self.globals.get(&name) {
-            *idx
-        } else {
-            let idx = self.globals.len();
-            self.globals.insert(name, idx);
-            idx
+            return *idx;
         }
+        
+        let idx = self.globals.len();
+        self.globals.insert(name, idx);
+        idx
     }
     
     /// Find a variable (local or global)
@@ -418,56 +420,190 @@ impl BytecodeCompiler {
     /// Compile an expression
     pub fn compile_expression(&mut self, expr: Expression) -> Result<(), CompileError> {
         match expr {
-            Expression::StringLiteral(s) => {
-                self.emit_constant(Value::String(s))?;
-                Ok(())
+            Expression::StringLiteral(value) => {
+                self.emit_constant(Value::String(value))?;
+                return Ok(());
             },
-            Expression::NumberLiteral(n) => {
-                self.emit_constant(Value::Number(n))?;
-                Ok(())
+            Expression::NumberLiteral(value) => {
+                self.emit_constant(Value::Number(value))?;
+                return Ok(());
             },
-            Expression::BooleanLiteral(b) => {
-                self.emit_constant(Value::Boolean(b))?;
-                Ok(())
+            Expression::BooleanLiteral(value) => {
+                self.emit_constant(Value::Boolean(value))?;
+                return Ok(());
             },
             Expression::NothingLiteral => {
                 self.emit(OpCode::Null);
-                Ok(())
+                return Ok(());
             },
             Expression::Variable(name) => {
-                // Resolve variable (locals first, then globals)
-                for (i, local) in self.locals.iter().enumerate() {
-                    if local.name == name {
-                        if local.depth == usize::MAX {
-                            return Err(CompileError::InvalidOperation(
-                                format!("Cannot read local variable '{}' in its own initializer", name)
-                            ));
-                        }
-                        self.emit(OpCode::GetLocal(i));
+                // Check if this is a local variable
+                if let Some(idx) = self.resolve_local(&name) {
+                    self.emit(OpCode::GetLocal(idx));
+                    return Ok(());
+                }
+
+                // If we're in a container method, check if this is a field access
+                if self.is_container_method {
+                    // Check if it's the "self" parameter (which should be the first parameter)
+                    if self.locals.len() > 0 {
+                        // Load "self"
+                        self.emit(OpCode::GetLocal(0));
+                        
+                        // Push field name
+                        self.emit_constant(Value::String(name.clone()))?;
+                        
+                        // Get property
+                        self.emit(OpCode::GetProperty);
+                        
                         return Ok(());
                     }
                 }
-                
-                // If not a local, try globals
+
+                // Check if it's a global variable
                 if let Some(idx) = self.globals.get(&name) {
                     self.emit(OpCode::GetGlobal(*idx));
-                    Ok(())
-                } else {
-                    Err(CompileError::UndefinedVariable(name))
+                    return Ok(());
                 }
+
+                // Not found
+                return Err(CompileError::UndefinedVariable(name));
             },
-            // Add more expression types
-            Expression::Binary { left: _left, operator: _operator, right: _right } => {
-                Err(CompileError::NotImplemented("Binary expressions not fully implemented in BytecodeCompiler".to_string()))
+            Expression::Binary { left, operator, right } => {
+                match operator {
+                    BinaryOperator::Assign => {
+                        // We handle assignment differently - right side first, then left side target
+                        // Compile the right side of the assignment
+                        self.compile_expression(*right)?;
+                        
+                        match *left {
+                            Expression::Variable(name) => {
+                                // Check if this is a local variable
+                                if let Some(idx) = self.resolve_local(&name) {
+                                    self.emit(OpCode::SetLocal(idx));
+                                    return Ok(());
+                                }
+                                
+                                // Assign to global variable
+                                let global_idx = self.add_or_get_global(name);
+                                self.emit(OpCode::DefineGlobal(global_idx));
+                                return Ok(());
+                            },
+                            Expression::MemberAccess { object, name } => {
+                                // Compile the object
+                                self.compile_expression(*object)?;
+                                
+                                // Push property name
+                                self.emit_constant(Value::String(name))?;
+                                
+                                // Set property
+                                self.emit(OpCode::SetProperty);
+                                return Ok(());
+                            },
+                            Expression::Index { collection, index } => {
+                                // Compile collection
+                                self.compile_expression(*collection)?;
+                                
+                                // Compile index
+                                self.compile_expression(*index)?;
+                                
+                                // Set index
+                                self.emit(OpCode::SetIndex);
+                                return Ok(());
+                            },
+                            _ => return Err(CompileError::InvalidOperation("Invalid assignment target".to_string())),
+                        }
+                    },
+                    // For normal binary operations, compile both sides first
+                    _ => {
+                        self.compile_expression(*left)?;
+                        self.compile_expression(*right)?;
+                        
+                        match operator {
+                            BinaryOperator::Add => self.emit(OpCode::Add),
+                            BinaryOperator::Subtract => self.emit(OpCode::Subtract),
+                            BinaryOperator::Multiply => self.emit(OpCode::Multiply),
+                            BinaryOperator::Divide => self.emit(OpCode::Divide),
+                            BinaryOperator::Modulo => self.emit(OpCode::Modulo),
+                            BinaryOperator::Equal => self.emit(OpCode::Equal),
+                            BinaryOperator::NotEqual => {
+                                self.emit(OpCode::Equal);
+                                self.emit(OpCode::Not);
+                            },
+                            BinaryOperator::Greater => self.emit(OpCode::Greater),
+                            BinaryOperator::Less => self.emit(OpCode::Less),
+                            BinaryOperator::GreaterEqual => self.emit(OpCode::GreaterEqual),
+                            BinaryOperator::LessEqual => self.emit(OpCode::LessEqual),
+                            BinaryOperator::And => self.emit(OpCode::And),
+                            BinaryOperator::Or => self.emit(OpCode::Or),
+                            BinaryOperator::Join => self.emit(OpCode::Join),
+                            BinaryOperator::Assign => unreachable!(), // Handled above
+                        }
+                        
+                        return Ok(());
+                    }
+                }
             },
             Expression::Unary { operator: _operator, right: _right } => {
                 Err(CompileError::NotImplemented("Unary expressions not fully implemented in BytecodeCompiler".to_string()))
             },
-            Expression::Call { callee: _callee, arguments: _arguments } => {
-                Err(CompileError::NotImplemented("Call expressions not fully implemented in BytecodeCompiler".to_string()))
+            Expression::Call { callee, arguments } => {
+                // Compile the function
+                self.compile_expression(*callee)?;
+                
+                // Split positional and named arguments
+                let mut positional_args = Vec::new();
+                let mut named_args = Vec::new();
+                
+                for arg in arguments {
+                    if arg.name.is_none() {
+                        positional_args.push(arg.value);
+                    } else {
+                        named_args.push(arg);
+                    }
+                }
+                
+                // If we have named arguments, create a map for them
+                if !named_args.is_empty() {
+                    self.emit(OpCode::NewMap(named_args.len()));
+                    
+                    for arg in named_args {
+                        if let Some(name) = arg.name {
+                            // Push the name
+                            self.emit_constant(Value::String(name))?;
+                            
+                            // Push the value
+                            self.compile_expression(arg.value)?;
+                            
+                            // Set in map
+                            self.emit(OpCode::SetProperty);
+                        }
+                    }
+                    
+                    // Compile positional arguments
+                    for arg in &positional_args {
+                        self.compile_expression(arg.clone())?;
+                    }
+                    
+                    // Call with positional args + 1 for named args map
+                    self.emit(OpCode::Call(positional_args.len() + 1));
+                } else {
+                    // Compile all arguments
+                    for arg in &positional_args {
+                        self.compile_expression(arg.clone())?;
+                    }
+                    
+                    // Call function
+                    self.emit(OpCode::Call(positional_args.len()));
+                }
+                
+                return Ok(());
             },
-            Expression::MemberAccess { object: _object, name: _name } => {
-                Err(CompileError::NotImplemented("Member access not fully implemented in BytecodeCompiler".to_string()))
+            Expression::MemberAccess { object, name } => {
+                self.compile_expression(*object)?;
+                self.emit_constant(Value::String(name))?;
+                self.emit(OpCode::GetProperty);
+                return Ok(());
             },
             Expression::Index { collection: _collection, index: _index } => {
                 Err(CompileError::NotImplemented("Index access not fully implemented in BytecodeCompiler".to_string()))
@@ -492,6 +628,77 @@ impl BytecodeCompiler {
             }
         }
     }
+
+    /// Find a local variable by name
+    fn resolve_local(&self, name: &str) -> Option<usize> {
+        for (i, local) in self.locals.iter().enumerate() {
+            if local.name == name {
+                if local.depth == usize::MAX {
+                    // Variable is being used in its own initializer
+                    return None;
+                }
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    // Compile container methods in the BytecodeCompiler implementation
+    fn compile_container_methods(&mut self, methods: &[Statement]) -> Result<(), CompileError> {
+        for method in methods {
+            if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = method {
+                // Duplicate container reference
+                self.emit(OpCode::Duplicate);
+                
+                // Push method name
+                self.emit_constant(Value::String(name.clone()))?;
+                
+                // Create a new compiler for this method
+                let mut method_compiler = BytecodeCompiler::new(&name);
+                method_compiler.current_line = self.current_line;
+                method_compiler.is_container_method = true;
+                
+                // Begin scope for parameters
+                method_compiler.begin_scope();
+                
+                // Add 'self' as the first parameter
+                method_compiler.add_parameter("self".to_string())?;
+                
+                // Add method parameters
+                for param in parameters {
+                    method_compiler.add_parameter(param.name.clone())?;
+                }
+                
+                // Compile method body
+                for stmt in body {
+                    method_compiler.compile_statement(stmt.clone())?;
+                }
+                
+                // Add implicit return if needed
+                if !method_compiler.last_instruction_is_return() {
+                    method_compiler.emit(OpCode::Null);
+                    method_compiler.emit(OpCode::Return);
+                }
+                
+                // End scope
+                method_compiler.end_scope();
+                
+                // Get the compiled method
+                let function = method_compiler.end();
+                
+                // Add to constants
+                let function_idx = self.add_constant(Constant::Function(Box::new(function)));
+                
+                // Create closure
+                self.emit(OpCode::Closure(function_idx));
+                
+                // Define the method on the container
+                self.emit(OpCode::DefineMethod);
+            }
+        }
+        
+        Ok(())
+    }
 }
 
 /// The bytecode compiler
@@ -507,12 +714,13 @@ pub struct Compiler {
     globals: HashMap<String, usize>,
     #[allow(dead_code)]
     functions: Vec<Function>,
+    is_container_method: bool, // Flag to track if we're compiling a container method
 }
 
 impl Compiler {
     /// Create a new compiler
     pub fn new() -> Self {
-        Compiler {
+        Self {
             chunk: Chunk::new(),
             locals: Vec::new(),
             scope_depth: 0,
@@ -521,6 +729,7 @@ impl Compiler {
             current_line: 0,
             globals: HashMap::new(),
             functions: Vec::new(),
+            is_container_method: false,
         }
     }
 
@@ -861,7 +1070,7 @@ impl Compiler {
                 
                 Ok(())
             },
-            Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } => {
+            Statement::ActionDefinition { name, parameters, return_type, body, is_async, is_private } => {
                 // Create a new compiler for the function
                 let mut function_compiler = BytecodeCompiler::new(&name);
                 function_compiler.current_line = self.current_line;
@@ -925,50 +1134,8 @@ impl Compiler {
                     self.emit(OpCode::DefineField);
                 }
                 
-                // Add methods
-                for method in methods {
-                    if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = method {
-                        // Duplicate container reference
-                        self.emit(OpCode::Duplicate);
-                        
-                        // Push method name
-                        self.emit_constant(Value::String(name.clone()))?;
-                        
-                        // Create a compiler for the method
-                        let mut method_compiler = BytecodeCompiler::new(&name);
-                        method_compiler.current_line = self.current_line;
-                        
-                        // Set arity and async flag
-                        method_compiler.function.arity = parameters.len();
-                        method_compiler.function.is_async = is_async;
-                        
-                        // Add 'self' as first parameter implicitly
-                        method_compiler.begin_scope();
-                        method_compiler.add_parameter("self".to_string())?;
-                        
-                        // Add method parameters
-                        for param in parameters {
-                            method_compiler.add_parameter(param.name)?;
-                        }
-                        
-                        // Compile method body
-                        for stmt in body {
-                            method_compiler.compile_statement(stmt)?;
-                        }
-                        
-                        // Get the compiled method
-                        let method_function = method_compiler.end();
-                        
-                        // Add method to constants
-                        let function_idx = self.add_constant(Constant::Function(Box::new(method_function)));
-                        
-                        // Create closure
-                        self.emit(OpCode::Closure(function_idx));
-                        
-                        // Define the method
-                        self.emit(OpCode::DefineMethod);
-                    }
-                }
+                // Compile container methods
+                self.compile_container_methods(&methods)?;
                 
                 // Compile constructor if present
                 if let Some(ctor_body) = constructor {
@@ -1035,58 +1202,128 @@ impl Compiler {
     /// Compile an expression to bytecode
     fn compile_expression(&mut self, expr: Expression) -> Result<(), CompileError> {
         match expr {
-            Expression::StringLiteral(s) => {
-                self.emit_constant(Value::String(s))?;
+            Expression::StringLiteral(value) => {
+                self.emit_constant(Value::String(value))?;
+                return Ok(());
             },
-            Expression::NumberLiteral(n) => {
-                self.emit_constant(Value::Number(n))?;
+            Expression::NumberLiteral(value) => {
+                self.emit_constant(Value::Number(value))?;
+                return Ok(());
             },
-            Expression::BooleanLiteral(b) => {
-                self.emit_constant(Value::Boolean(b))?;
+            Expression::BooleanLiteral(value) => {
+                self.emit_constant(Value::Boolean(value))?;
+                return Ok(());
             },
             Expression::NothingLiteral => {
                 self.emit(OpCode::Null);
+                return Ok(());
             },
             Expression::Variable(name) => {
-                match self.resolve_variable(&name) {
-                    Ok(idx) => {
-                        if idx < self.locals.len() {
-                            // Local variable
-                            self.emit(OpCode::GetLocal(idx));
-                        } else {
-                            // Global variable
-                            self.emit(OpCode::GetGlobal(idx - self.locals.len()));
-                        }
-                    },
-                    Err(e) => return Err(e),
+                // Check if this is a local variable
+                if let Some(idx) = self.resolve_local(&name) {
+                    self.emit(OpCode::GetLocal(idx));
+                    return Ok(());
                 }
+
+                // If we're in a container method, check if this is a field access
+                if self.is_container_method {
+                    // Check if it's the "self" parameter (which should be the first parameter)
+                    if self.locals.len() > 0 {
+                        // Load "self"
+                        self.emit(OpCode::GetLocal(0));
+                        
+                        // Push field name
+                        self.emit_constant(Value::String(name.clone()))?;
+                        
+                        // Get property
+                        self.emit(OpCode::GetProperty);
+                        
+                        return Ok(());
+                    }
+                }
+
+                // Check if it's a global variable
+                if let Some(idx) = self.globals.get(&name) {
+                    self.emit(OpCode::GetGlobal(*idx));
+                    return Ok(());
+                }
+
+                // Not found
+                return Err(CompileError::UndefinedVariable(name));
             },
             Expression::Binary { left, operator, right } => {
-                self.compile_expression(*left)?;
-                self.compile_expression(*right)?;
-                
                 match operator {
-                    BinaryOperator::Add => self.emit(OpCode::Add),
-                    BinaryOperator::Subtract => self.emit(OpCode::Subtract),
-                    BinaryOperator::Multiply => self.emit(OpCode::Multiply),
-                    BinaryOperator::Divide => self.emit(OpCode::Divide),
-                    BinaryOperator::Modulo => self.emit(OpCode::Modulo),
-                    BinaryOperator::Equal => self.emit(OpCode::Equal),
-                    BinaryOperator::NotEqual => {
-                        self.emit(OpCode::Equal);
-                        self.emit(OpCode::Not);
-                    },
-                    BinaryOperator::Greater => self.emit(OpCode::Greater),
-                    BinaryOperator::Less => self.emit(OpCode::Less),
-                    BinaryOperator::GreaterEqual => self.emit(OpCode::GreaterEqual),
-                    BinaryOperator::LessEqual => self.emit(OpCode::LessEqual),
-                    BinaryOperator::And => self.emit(OpCode::And),
-                    BinaryOperator::Or => self.emit(OpCode::Or),
-                    BinaryOperator::Join => self.emit(OpCode::Join),
                     BinaryOperator::Assign => {
-                        // This should be handled elsewhere as an assignment expression
-                        return Err(CompileError::new("Assignment not handled as binary operation"));
+                        // We handle assignment differently - right side first, then left side target
+                        // Compile the right side of the assignment
+                        self.compile_expression(*right)?;
+                        
+                        match *left {
+                            Expression::Variable(name) => {
+                                // Check if this is a local variable
+                                if let Some(idx) = self.resolve_local(&name) {
+                                    self.emit(OpCode::SetLocal(idx));
+                                    return Ok(());
+                                }
+                                
+                                // Assign to global variable
+                                let global_idx = self.add_or_get_global(name);
+                                self.emit(OpCode::DefineGlobal(global_idx));
+                                return Ok(());
+                            },
+                            Expression::MemberAccess { object, name } => {
+                                // Compile the object
+                                self.compile_expression(*object)?;
+                                
+                                // Push property name
+                                self.emit_constant(Value::String(name))?;
+                                
+                                // Set property
+                                self.emit(OpCode::SetProperty);
+                                return Ok(());
+                            },
+                            Expression::Index { collection, index } => {
+                                // Compile collection
+                                self.compile_expression(*collection)?;
+                                
+                                // Compile index
+                                self.compile_expression(*index)?;
+                                
+                                // Set index
+                                self.emit(OpCode::SetIndex);
+                                return Ok(());
+                            },
+                            _ => return Err(CompileError::InvalidOperation("Invalid assignment target".to_string())),
+                        }
                     },
+                    // For normal binary operations, compile both sides first
+                    _ => {
+                        self.compile_expression(*left)?;
+                        self.compile_expression(*right)?;
+                        
+                        match operator {
+                            BinaryOperator::Add => self.emit(OpCode::Add),
+                            BinaryOperator::Subtract => self.emit(OpCode::Subtract),
+                            BinaryOperator::Multiply => self.emit(OpCode::Multiply),
+                            BinaryOperator::Divide => self.emit(OpCode::Divide),
+                            BinaryOperator::Modulo => self.emit(OpCode::Modulo),
+                            BinaryOperator::Equal => self.emit(OpCode::Equal),
+                            BinaryOperator::NotEqual => {
+                                self.emit(OpCode::Equal);
+                                self.emit(OpCode::Not);
+                            },
+                            BinaryOperator::Greater => self.emit(OpCode::Greater),
+                            BinaryOperator::Less => self.emit(OpCode::Less),
+                            BinaryOperator::GreaterEqual => self.emit(OpCode::GreaterEqual),
+                            BinaryOperator::LessEqual => self.emit(OpCode::LessEqual),
+                            BinaryOperator::And => self.emit(OpCode::And),
+                            BinaryOperator::Or => self.emit(OpCode::Or),
+                            BinaryOperator::Join => self.emit(OpCode::Join),
+                            BinaryOperator::Assign => unreachable!(), // Handled above
+                        }
+                        
+                        return Ok(());
+                    }
                 }
             },
             Expression::Unary { operator, right } => {
@@ -1146,16 +1383,20 @@ impl Compiler {
                     // Call function
                     self.emit(OpCode::Call(positional_args.len()));
                 }
+                
+                return Ok(());
             },
             Expression::MemberAccess { object, name } => {
                 self.compile_expression(*object)?;
                 self.emit_constant(Value::String(name))?;
                 self.emit(OpCode::GetProperty);
+                return Ok(());
             },
             Expression::Index { collection, index } => {
                 self.compile_expression(*collection)?;
                 self.compile_expression(*index)?;
                 self.emit(OpCode::GetIndex);
+                return Ok(());
             },
             Expression::ListExpression(items) => {
                 // Create a new list
@@ -1175,6 +1416,7 @@ impl Compiler {
                     // Set item
                     self.emit(OpCode::SetIndex);
                 }
+                return Ok(());
             },
             Expression::MapExpression(entries) => {
                 // Create a new map
@@ -1194,6 +1436,7 @@ impl Compiler {
                     // Set property
                     self.emit(OpCode::SetProperty);
                 }
+                return Ok(());
             },
             Expression::Await(expr) => {
                 // Compile the expression
@@ -1233,6 +1476,7 @@ impl Compiler {
                     // Set in map
                     self.emit(OpCode::SetProperty);
                 }
+                return Ok(());
             },
             Expression::RecordExpression(fields) => {
                 // Record is just a map with string keys
@@ -1252,6 +1496,7 @@ impl Compiler {
                     // Set in map
                     self.emit(OpCode::SetProperty);
                 }
+                return Ok(());
             },
         }
         
@@ -1346,12 +1591,12 @@ impl Compiler {
     /// Add or get a global variable
     fn add_or_get_global(&mut self, name: String) -> usize {
         if let Some(idx) = self.globals.get(&name) {
-            *idx
-        } else {
-            let idx = self.globals.len();
-            self.globals.insert(name, idx);
-            idx
+            return *idx;
         }
+        
+        let idx = self.globals.len();
+        self.globals.insert(name, idx);
+        idx
     }
     
     /// Define a variable
@@ -1415,6 +1660,111 @@ impl Compiler {
             Ok(*idx)
         } else {
             Err(CompileError::UndefinedVariable(name.to_string()))
+        }
+    }
+
+    /// Find a local variable by name
+    fn resolve_local(&self, name: &str) -> Option<usize> {
+        for (i, local) in self.locals.iter().enumerate() {
+            if local.name == name {
+                if local.depth == usize::MAX {
+                    // Variable is being used in its own initializer
+                    return None;
+                }
+                return Some(i);
+            }
+        }
+        None
+    }
+
+    // Compile container methods
+    fn compile_container_methods(&mut self, methods: &[Statement]) -> Result<(), CompileError> {
+        for method in methods {
+            if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private } = method {
+                // Duplicate container reference
+                self.emit(OpCode::Duplicate);
+                
+                // Push method name
+                self.emit_constant(Value::String(name.clone()))?;
+                
+                // Create a new compiler for this method
+                let mut method_compiler = BytecodeCompiler::new(&name);
+                method_compiler.current_line = self.current_line;
+                method_compiler.is_container_method = true;
+                
+                // Begin scope for parameters
+                method_compiler.begin_scope();
+                
+                // Add 'self' as the first parameter
+                method_compiler.add_parameter("self".to_string())?;
+                
+                // Add method parameters
+                for param in parameters {
+                    method_compiler.add_parameter(param.name.clone())?;
+                }
+                
+                // Compile method body
+                for stmt in body {
+                    method_compiler.compile_statement(stmt.clone())?;
+                }
+                
+                // End scope
+                method_compiler.end_scope();
+                
+                // Get the compiled method
+                let function = method_compiler.end();
+                
+                // Add to constants
+                let function_idx = self.add_constant(Constant::Function(Box::new(function)));
+                
+                // Create closure
+                self.emit(OpCode::Closure(function_idx));
+                
+                // Define the method on the container
+                self.emit(OpCode::DefineMethod);
+            }
+        }
+        
+        Ok(())
+    }
+
+    // Compile action (function) definition
+    fn compile_action_definition(&mut self, action: Statement) -> Result<(), CompileError> {
+        if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = action {
+            // Create a compiler for the function
+            let mut function_compiler = BytecodeCompiler::new(&name);
+            function_compiler.current_line = self.current_line;
+            
+            // Set arity and async flag
+            function_compiler.function.arity = parameters.len();
+            function_compiler.function.is_async = is_async;
+            
+            // Add parameters
+            function_compiler.begin_scope();
+            for param in parameters {
+                function_compiler.add_parameter(param.name)?;
+            }
+            
+            // Compile body
+            for stmt in body {
+                function_compiler.compile_statement(stmt)?;
+            }
+            
+            // Get the compiled function
+            let function = function_compiler.end();
+            
+            // Add to constants
+            let function_idx = self.add_constant(Constant::Function(Box::new(function)));
+            
+            // Create closure
+            self.emit(OpCode::Closure(function_idx));
+            
+            // Define function name
+            self.define_variable(&name)?;
+            
+            Ok(())
+        } else {
+            unreachable!("compile_action_definition called with non-action statement");
         }
     }
 } 

@@ -197,6 +197,58 @@ impl Parser {
         // Consume 'as' keyword
         self.consume(TokenType::As, "Expected 'as' keyword after variable name")?;
         
+        // Special case for "store X as set to:" - direct collection initialization
+        if self.check(TokenType::Set) {
+            self.advance(); // Consume 'set'
+            
+            // Check for 'to' and ':' keywords
+            if self.match_token(&[TokenType::To]) {
+                self.consume(TokenType::Colon, "Expected ':' after 'to'")?;
+                
+                // Consume any newlines or indentation
+                while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                
+                // Parse collection items
+                let mut items = Vec::new();
+                
+                while !self.is_at_end() && !self.check(TokenType::End) {
+                    // Consume any newlines or indentation
+                    while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                    
+                    // Check if we've reached the end
+                    if self.check(TokenType::End) {
+                        break;
+                    }
+                    
+                    // Parse collection item
+                    let item = self.parse_expression()?;
+                    items.push(item);
+                    
+                    // Consume any newlines or indentation
+                    while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                }
+                
+                // Consume 'end' token
+                self.consume(TokenType::End, "Expected 'end' to close collection declaration")?;
+                
+                // Consume 'set' token
+                self.match_token(&[TokenType::Set]);
+                
+                // Create a list expression and use it as initializer
+                let initializer = Expression::ListExpression(items);
+                
+                // Consume optional newline
+                self.match_token(&[TokenType::Newline]);
+                
+                return Ok(Statement::VariableDeclaration {
+                    name,
+                    value_type: Some("list".to_string()),
+                    initializer: Some(initializer),
+                });
+            }
+        }
+        
+        // Normal variable declaration
         // Parse the variable type (optional)
         let value_type = if self.match_token(&[TokenType::Number, TokenType::Text, TokenType::Truth, TokenType::List, TokenType::Map, TokenType::Record]) {
             Some(self.previous().value.clone())
@@ -204,7 +256,7 @@ impl Parser {
             None
         };
         
-        // Parse the initializer expression
+        // Parse the initializer expression (optional)
         let initializer = if !self.is_at_end() && self.peek().token_type != TokenType::Newline {
             Some(self.parse_expression()?)
         } else {
@@ -391,6 +443,23 @@ impl Parser {
                     expr = self.parse_function_call(name)?;
                 } else {
                     return Err(ParseError::Custom("Function call target must be a variable".to_string()));
+                }
+            } else if self.check(TokenType::Dot) {
+                // Member access (dot notation)
+                self.advance(); // Consume the dot
+                
+                // Member name should be an identifier
+                if self.check(TokenType::Identifier) {
+                    let member_name = self.advance().value.clone();
+                    expr = Expression::MemberAccess {
+                        object: Box::new(expr),
+                        name: member_name,
+                    };
+                } else {
+                    return Err(ParseError::Expected {
+                        expected: "member name (identifier)".to_string(),
+                        found: Some(self.peek().clone()),
+                    });
                 }
             } else {
                 // No more chained operations
@@ -1228,26 +1297,25 @@ impl Parser {
             let name = self.peek().value.clone();
             self.advance();
             
+            // Consume 'to' keyword
+            self.consume(TokenType::To, "Expected 'to' keyword after variable name")?;
+            
             Some(name)
         } else {
             None
         };
         
-        // Consume 'to' keyword
-        self.consume(TokenType::To, "Expected 'to' keyword after 'set'")?;
-        
-        // Consume colon
+        // Consume ':' after to
         self.consume(TokenType::Colon, "Expected ':' after 'to'")?;
         
-        // Consume newline and indentation
+        // Consume any newlines or indentation
         while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
         
-        // Determine the type of collection based on the contents
-        let mut collection_type = CollectionType::Map; // Default to map
+        // Initialize collections
         let mut items = Vec::new();
         let mut key_value_pairs = HashMap::new();
+        let mut collection_type = CollectionType::List; // Default to list
         
-        // Process collection items
         while !self.is_at_end() && !self.check(TokenType::End) {
             // Consume any newlines or indentation
             while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
@@ -1270,8 +1338,89 @@ impl Parser {
                     // This is a map entry ("key is value")
                     collection_type = CollectionType::Map;
                     
-                    // Parse the value
-                    let value = self.parse_expression()?;
+                    // Check for nested collection with "set to:" syntax
+                    let value = if self.check(TokenType::Set) {
+                        // Handle nested collection with the special "set to:" syntax
+                        
+                        // Consume 'set' keyword
+                        self.advance();
+                        
+                        // Consume 'to' keyword
+                        self.consume(TokenType::To, "Expected 'to' keyword after 'set'")?;
+                        
+                        // Consume ':' after 'to'
+                        self.consume(TokenType::Colon, "Expected ':' after 'to'")?;
+                        
+                        // Consume any newlines or indentation
+                        while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                        
+                        // Initialize collections for the nested set
+                        let mut nested_items = Vec::new();
+                        let mut nested_key_value_pairs = HashMap::new();
+                        let mut nested_collection_type = CollectionType::List; // Default to list
+                        
+                        while !self.is_at_end() && !self.check(TokenType::End) {
+                            // Consume any newlines or indentation
+                            while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                            
+                            // Check if we've reached the end
+                            if self.check(TokenType::End) {
+                                break;
+                            }
+                            
+                            // Parse collection entry
+                            if self.check(TokenType::StringLiteral) || self.check(TokenType::Identifier) || 
+                               self.check(TokenType::NumberLiteral) {
+                                
+                                // Parse the key or value
+                                let nested_expr = self.parse_expression()?;
+                                
+                                // Check if this is a key-value pair
+                                if self.match_token(&[TokenType::Is]) {
+                                    // This is a map entry
+                                    nested_collection_type = CollectionType::Map;
+                                    
+                                    // Parse the value
+                                    let nested_value = self.parse_expression()?;
+                                    
+                                    // For map entries, the key must be convertible to a string
+                                    let nested_key = match &nested_expr {
+                                        Expression::StringLiteral(s) => s.clone(),
+                                        Expression::NumberLiteral(n) => n.to_string(),
+                                        Expression::Variable(v) => v.clone(),
+                                        _ => return Err(ParseError::Custom("Map keys must be string literals, numbers, or identifiers".to_string())),
+                                    };
+                                    
+                                    // Add to the map
+                                    nested_key_value_pairs.insert(nested_key, nested_value);
+                                } else {
+                                    // This is a list entry
+                                    nested_collection_type = CollectionType::List;
+                                    nested_items.push(nested_expr);
+                                }
+                            } else {
+                                return Err(ParseError::UnexpectedToken(self.peek().clone()));
+                            }
+                            
+                            // Consume any newlines or indentation
+                            while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
+                        }
+                        
+                        // Consume 'end' token
+                        self.consume(TokenType::End, "Expected 'end' to close nested collection declaration")?;
+                        
+                        // Consume 'set' token after end
+                        self.match_token(&[TokenType::Set]);
+                        
+                        // Create appropriate collection expression
+                        match nested_collection_type {
+                            CollectionType::List => Expression::ListExpression(nested_items),
+                            CollectionType::Map => Expression::MapExpression(nested_key_value_pairs),
+                        }
+                    } else {
+                        // Normal value
+                        self.parse_expression()?
+                    };
                     
                     // For map entries, the key must be convertible to a string
                     let key = match &first_expr {
