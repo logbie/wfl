@@ -190,10 +190,64 @@ impl Parser {
         // Consume 'store' keyword
         self.consume(TokenType::Store, "Expected 'store' keyword")?;
         
-        // Parse the variable name
+        // Parse the variable name - first part is an identifier
         let name_token = self.consume(TokenType::Identifier, "Expected variable name")?;
-        let name = name_token.value.clone();
+        let mut name = name_token.value.clone();
         
+        // Handle multi-word identifiers (like "current language")
+        // Keep adding identifiers as long as they aren't keywords
+        while self.check(TokenType::Identifier) {
+            // Check if the next token is a known type token or keyword
+            if self.peek().token_type == TokenType::As || 
+               self.peek().token_type == TokenType::In || 
+               self.peek().token_type == TokenType::Number || 
+               self.peek().token_type == TokenType::Text || 
+               self.peek().token_type == TokenType::Truth || 
+               self.peek().token_type == TokenType::List || 
+               self.peek().token_type == TokenType::Map || 
+               self.peek().token_type == TokenType::Record {
+                break;
+            }
+            
+            // Add the next word to the name with a space
+            name.push(' ');
+            name.push_str(&self.advance().value);
+        }
+        
+        // Check for "store X in Y at Z" syntax (storing in collections)
+        if self.match_token(&[TokenType::In]) {
+            // This is a collection storage operation
+            let collection_name = self.consume(TokenType::Identifier, "Expected collection name after 'in'")?
+                .value.clone();
+                
+            // Check for "at" keyword
+            self.consume(TokenType::At, "Expected 'at' after collection name")?;
+            
+            // Parse the index/key expression
+            let index_expr = self.parse_expression()?;
+            
+            // Parse the value expression
+            let value_expr = self.parse_expression()?;
+            
+            // Create assignment expression with index access
+            let index_access = Expression::Index {
+                collection: Box::new(Expression::Variable(collection_name)),
+                index: Box::new(index_expr),
+            };
+            
+            let assignment = Expression::Binary {
+                left: Box::new(index_access),
+                operator: BinaryOperator::Assign,
+                right: Box::new(value_expr),
+            };
+            
+            // Consume optional newline
+            self.match_token(&[TokenType::Newline]);
+            
+            return Ok(Statement::ExpressionStatement(assignment));
+        }
+        
+        // Normal variable declaration: "store X as Y"
         // Consume 'as' keyword
         self.consume(TokenType::As, "Expected 'as' keyword after variable name")?;
         
@@ -913,6 +967,9 @@ impl Parser {
         let mut methods = Vec::new();
         let mut constructor = None;
         
+        // Current visibility mode for parsing sections
+        let mut current_visibility_is_private = false;
+        
         while !self.is_at_end() && !self.check(TokenType::End) {
             // Consume all indentation tokens
             while self.match_token(&[TokenType::Newline, TokenType::Indent, TokenType::Dedent]) {}
@@ -924,7 +981,7 @@ impl Parser {
             
             // Check for visibility modifiers
             if self.match_token(&[TokenType::Private, TokenType::Public]) {
-                let is_private = self.previous().token_type == TokenType::Private;
+                current_visibility_is_private = self.previous().token_type == TokenType::Private;
                 
                 // Consume the colon
                 self.consume(TokenType::Colon, "Expected ':' after visibility modifier")?;
@@ -952,12 +1009,28 @@ impl Parser {
                     
                     if self.check(TokenType::Store) {
                         // Parse a field declaration
-                        let field = self.parse_field_declaration(is_private)?;
+                        let field = self.parse_field_declaration(current_visibility_is_private)?;
                         fields.push(field);
                     } else if self.check(TokenType::Define) {
                         // Parse a method definition
                         let method = self.parse_action_definition()?;
-                        methods.push(method);
+                        
+                        // If method is an ActionDefinition statement, extract its fields
+                        if let Statement::ActionDefinition { name, parameters, return_type, body, is_async, is_private } = method {
+                            // Update privacy based on current section
+                            let updated_method = Statement::ActionDefinition {
+                                name,
+                                parameters,
+                                return_type,
+                                body,
+                                is_async,
+                                is_private: current_visibility_is_private, // Override with section privacy
+                            };
+                            methods.push(updated_method);
+                        } else {
+                            // This should never happen if parse_action_definition returns the right type
+                            return Err(ParseError::Custom("Expected action definition".to_string()));
+                        }
                     } else {
                         return Err(ParseError::UnexpectedToken(self.peek().clone()));
                     }
@@ -1040,9 +1113,29 @@ impl Parser {
         // Consume 'store' keyword
         self.consume(TokenType::Store, "Expected 'store' keyword")?;
         
-        // Parse field name
-        let name = self.consume(TokenType::Identifier, "Expected field name")?
+        // Parse field name - first part is an identifier
+        let mut name = self.consume(TokenType::Identifier, "Expected field name")?
             .value.clone();
+        
+        // Handle multi-word identifiers (like "current language")
+        // Keep adding identifiers as long as they aren't keywords
+        while self.check(TokenType::Identifier) {
+            // Check if the next token is a known type token or keyword
+            if self.peek().token_type == TokenType::As || 
+               self.peek().token_type == TokenType::In || 
+               self.peek().token_type == TokenType::Number || 
+               self.peek().token_type == TokenType::Text || 
+               self.peek().token_type == TokenType::Truth || 
+               self.peek().token_type == TokenType::List || 
+               self.peek().token_type == TokenType::Map || 
+               self.peek().token_type == TokenType::Record {
+                break;
+            }
+            
+            // Add the next word to the name with a space
+            name.push(' ');
+            name.push_str(&self.advance().value);
+        }
         
         // Consume 'as' keyword
         self.consume(TokenType::As, "Expected 'as' after field name")?;
@@ -1084,8 +1177,41 @@ impl Parser {
     
     // Parse object creation (instantiation)
     fn parse_object_creation(&mut self) -> Result<Statement, ParseError> {
-        // For now, just return a placeholder
-        Err(ParseError::Custom("Object creation not implemented yet".to_string()))
+        // Get variable name where we'll store the object
+        let var_name = self.consume(TokenType::Identifier, "Expected variable name")?
+            .value.clone();
+            
+        // Consume 'as' keyword
+        self.consume(TokenType::As, "Expected 'as' after variable name")?;
+        
+        // Consume 'new' keyword
+        self.consume(TokenType::New, "Expected 'new' keyword")?;
+        
+        // Parse container type (string literal)
+        let container_name = if self.match_token(&[TokenType::StringLiteral]) {
+            self.previous().value.clone()
+        } else {
+            return Err(ParseError::Expected { 
+                expected: "container name as string literal".to_string(), 
+                found: Some(self.peek().clone()) 
+            });
+        };
+        
+        // Create a call to the constructor
+        let constructor_call = Expression::Call {
+            callee: Box::new(Expression::MemberAccess {
+                object: Box::new(Expression::Variable(container_name.clone())),
+                name: "constructor".to_string(),
+            }),
+            arguments: Vec::new(),  // For now, no constructor arguments
+        };
+        
+        // Create a variable declaration with the constructor call as initializer
+        Ok(Statement::VariableDeclaration {
+            name: var_name,
+            value_type: Some(container_name),  // Container name is the type
+            initializer: Some(constructor_call),
+        })
     }
 
     fn parse_check(&mut self) -> Result<Statement, ParseError> {

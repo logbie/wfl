@@ -10,3 +10,4 @@ alwaysApply: true
 - all componets must be documented (ex parder, lexar, bytecode etc)
 - Read the todo.md and implementation_progress_{Todays_date}.md files to see where we are at. this is a living document and should be updated as needed. thease will be located in the Docs folder as well
 - all test programs in the "test programs" test directory must pass without any errors or warnings, any issues must be fixed (and documented) regardless off weather or not they are in scope
+-if we implement something in the parser also update the bytecode as well

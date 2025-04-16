@@ -405,8 +405,9 @@ impl BytecodeCompiler {
             Statement::ActionDefinition { name: _, parameters: _, return_type: _, body: _, is_async: _, is_private: _ } => {
                 Err(CompileError::NotImplemented("Action definitions not fully implemented in BytecodeCompiler".to_string()))
             },
-            Statement::ContainerDefinition { name: _, fields: _, methods: _, constructor: _ } => {
-                Err(CompileError::NotImplemented("Container definitions not fully implemented in BytecodeCompiler".to_string()))
+            Statement::ContainerDefinition { name, fields, methods, constructor } => {
+                self.compile_container_definition(&name, &fields, &methods, &constructor)?;
+                Ok(())
             },
             Statement::BreakStatement(_) => {
                 Err(CompileError::NotImplemented("Break statements not fully implemented in BytecodeCompiler".to_string()))
@@ -643,10 +644,10 @@ impl BytecodeCompiler {
         None
     }
 
-    // Compile container methods in the BytecodeCompiler implementation
+    // Compile container methods
     fn compile_container_methods(&mut self, methods: &[Statement]) -> Result<(), CompileError> {
         for method in methods {
-            if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = method {
+            if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private } = method {
                 // Duplicate container reference
                 self.emit(OpCode::Duplicate);
                 
@@ -656,7 +657,7 @@ impl BytecodeCompiler {
                 // Create a new compiler for this method
                 let mut method_compiler = BytecodeCompiler::new(&name);
                 method_compiler.current_line = self.current_line;
-                method_compiler.is_container_method = true;
+                method_compiler.is_container_method = true;  // Mark as container method
                 
                 // Begin scope for parameters
                 method_compiler.begin_scope();
@@ -698,6 +699,123 @@ impl BytecodeCompiler {
         }
         
         Ok(())
+    }
+
+    fn compile_container_definition(&mut self, name: &str, fields: &[VariableField], methods: &[Statement], constructor: &Option<Vec<Statement>>) -> Result<(), CompileError> {
+        // Create a new container
+        self.emit(OpCode::NewContainer);
+        
+        // Define container variable
+        let global_idx = self.add_or_get_global(name.to_string());
+        self.emit(OpCode::DefineGlobal(global_idx));
+        
+        // Get the container back
+        self.emit(OpCode::GetGlobal(global_idx));
+        
+        // Add fields
+        for field in fields {
+            // Duplicate container reference
+            self.emit(OpCode::Duplicate);
+            
+            // Push field name
+            self.emit_constant(Value::String(field.name.clone()))?;
+            
+            // Add initializer if present
+            if let Some(expr) = &field.initializer {
+                self.compile_expression(expr.clone())?;
+            } else {
+                self.emit(OpCode::Null);
+            }
+            
+            // Define the field
+            self.emit(OpCode::DefineField);
+        }
+        
+        // Compile container methods
+        self.compile_container_methods(methods)?;
+        
+        // Compile constructor if present
+        if let Some(ctor_body) = constructor {
+            // Duplicate container reference
+            self.emit(OpCode::Duplicate);
+            
+            // Push constructor name
+            self.emit_constant(Value::String("constructor".to_string()))?;
+            
+            // Create a compiler for the constructor
+            let mut ctor_compiler = BytecodeCompiler::new("constructor");
+            ctor_compiler.current_line = self.current_line;
+            ctor_compiler.is_container_method = true;  // Mark as container method
+            
+            // Add 'self' as parameter
+            ctor_compiler.begin_scope();
+            ctor_compiler.add_parameter("self".to_string())?;
+            
+            // Compile constructor body
+            for stmt in ctor_body {
+                ctor_compiler.compile_statement(stmt.clone())?;
+            }
+            
+            // End scope
+            ctor_compiler.end_scope();
+            
+            // Get the compiled constructor
+            let ctor_function = ctor_compiler.end();
+            
+            // Add constructor to constants
+            let function_idx = self.add_constant(Constant::Function(Box::new(ctor_function)));
+            
+            // Create closure
+            self.emit(OpCode::Closure(function_idx));
+            
+            // Define the constructor
+            self.emit(OpCode::DefineMethod);
+        }
+        
+        // Pop container reference
+        self.emit(OpCode::Pop);
+        
+        Ok(())
+    }
+
+    // Compile action (function) definition
+    fn compile_action_definition(&mut self, action: Statement) -> Result<(), CompileError> {
+        if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = action {
+            // Create a compiler for the function
+            let mut function_compiler = BytecodeCompiler::new(&name);
+            function_compiler.current_line = self.current_line;
+            
+            // Set arity and async flag
+            function_compiler.function.arity = parameters.len();
+            function_compiler.function.is_async = is_async;
+            
+            // Add parameters
+            function_compiler.begin_scope();
+            for param in parameters {
+                function_compiler.add_parameter(param.name.clone())?;
+            }
+            
+            // Compile body
+            for stmt in body {
+                function_compiler.compile_statement(stmt.clone())?;
+            }
+            
+            // Get the compiled function
+            let function = function_compiler.end();
+            
+            // Add to constants
+            let function_idx = self.add_constant(Constant::Function(Box::new(function)));
+            
+            // Create closure
+            self.emit(OpCode::Closure(function_idx));
+            
+            // Define function name
+            self.define_variable(&name)?;
+            
+            Ok(())
+        } else {
+            unreachable!("compile_action_definition called with non-action statement");
+        }
     }
 }
 
@@ -1105,75 +1223,7 @@ impl Compiler {
                 Ok(())
             },
             Statement::ContainerDefinition { name, fields, methods, constructor } => {
-                // Create a new container
-                self.emit(OpCode::NewContainer);
-                
-                // Define container variable
-                let global_idx = self.add_or_get_global(name.clone());
-                self.emit(OpCode::DefineGlobal(global_idx));
-                
-                // Get the container back
-                self.emit(OpCode::GetGlobal(global_idx));
-                
-                // Add fields
-                for field in fields {
-                    // Duplicate container reference
-                    self.emit(OpCode::Duplicate);
-                    
-                    // Push field name
-                    self.emit_constant(Value::String(field.name.clone()))?;
-                    
-                    // Add initializer if present
-                    if let Some(expr) = field.initializer {
-                        self.compile_expression(expr)?;
-                    } else {
-                        self.emit(OpCode::Null);
-                    }
-                    
-                    // Define the field
-                    self.emit(OpCode::DefineField);
-                }
-                
-                // Compile container methods
-                self.compile_container_methods(&methods)?;
-                
-                // Compile constructor if present
-                if let Some(ctor_body) = constructor {
-                    // Duplicate container reference
-                    self.emit(OpCode::Duplicate);
-                    
-                    // Push constructor name
-                    self.emit_constant(Value::String("constructor".to_string()))?;
-                    
-                    // Create a compiler for the constructor
-                    let mut ctor_compiler = BytecodeCompiler::new("constructor");
-                    ctor_compiler.current_line = self.current_line;
-                    
-                    // Add 'self' as parameter
-                    ctor_compiler.begin_scope();
-                    ctor_compiler.add_parameter("self".to_string())?;
-                    
-                    // Compile constructor body
-                    for stmt in ctor_body {
-                        ctor_compiler.compile_statement(stmt)?;
-                    }
-                    
-                    // Get the compiled constructor
-                    let ctor_function = ctor_compiler.end();
-                    
-                    // Add constructor to constants
-                    let function_idx = self.add_constant(Constant::Function(Box::new(ctor_function)));
-                    
-                    // Create closure
-                    self.emit(OpCode::Closure(function_idx));
-                    
-                    // Define the constructor
-                    self.emit(OpCode::DefineMethod);
-                }
-                
-                // Pop container reference
-                self.emit(OpCode::Pop);
-                
+                self.compile_container_definition(&name, &fields, &methods, &constructor)?;
                 Ok(())
             },
             Statement::ReturnStatement(expr) => {
@@ -1690,7 +1740,7 @@ impl Compiler {
                 // Create a new compiler for this method
                 let mut method_compiler = BytecodeCompiler::new(&name);
                 method_compiler.current_line = self.current_line;
-                method_compiler.is_container_method = true;
+                method_compiler.is_container_method = true;  // Mark as container method
                 
                 // Begin scope for parameters
                 method_compiler.begin_scope();
@@ -1728,43 +1778,80 @@ impl Compiler {
         Ok(())
     }
 
-    // Compile action (function) definition
-    fn compile_action_definition(&mut self, action: Statement) -> Result<(), CompileError> {
-        if let Statement::ActionDefinition { name, parameters, return_type: _, body, is_async, is_private: _ } = action {
-            // Create a compiler for the function
-            let mut function_compiler = BytecodeCompiler::new(&name);
-            function_compiler.current_line = self.current_line;
+    fn compile_container_definition(&mut self, name: &str, fields: &[VariableField], methods: &[Statement], constructor: &Option<Vec<Statement>>) -> Result<(), CompileError> {
+        // Create a new container
+        self.emit(OpCode::NewContainer);
+        
+        // Define container variable
+        let global_idx = self.add_or_get_global(name.to_string());
+        self.emit(OpCode::DefineGlobal(global_idx));
+        
+        // Get the container back
+        self.emit(OpCode::GetGlobal(global_idx));
+        
+        // Add fields
+        for field in fields {
+            // Duplicate container reference
+            self.emit(OpCode::Duplicate);
             
-            // Set arity and async flag
-            function_compiler.function.arity = parameters.len();
-            function_compiler.function.is_async = is_async;
+            // Push field name
+            self.emit_constant(Value::String(field.name.clone()))?;
             
-            // Add parameters
-            function_compiler.begin_scope();
-            for param in parameters {
-                function_compiler.add_parameter(param.name)?;
+            // Add initializer if present
+            if let Some(expr) = &field.initializer {
+                self.compile_expression(expr.clone())?;
+            } else {
+                self.emit(OpCode::Null);
             }
             
-            // Compile body
-            for stmt in body {
-                function_compiler.compile_statement(stmt)?;
+            // Define the field
+            self.emit(OpCode::DefineField);
+        }
+        
+        // Compile container methods
+        self.compile_container_methods(methods)?;
+        
+        // Compile constructor if present
+        if let Some(ctor_body) = constructor {
+            // Duplicate container reference
+            self.emit(OpCode::Duplicate);
+            
+            // Push constructor name
+            self.emit_constant(Value::String("constructor".to_string()))?;
+            
+            // Create a compiler for the constructor
+            let mut ctor_compiler = BytecodeCompiler::new("constructor");
+            ctor_compiler.current_line = self.current_line;
+            ctor_compiler.is_container_method = true;  // Mark as container method
+            
+            // Add 'self' as parameter
+            ctor_compiler.begin_scope();
+            ctor_compiler.add_parameter("self".to_string())?;
+            
+            // Compile constructor body
+            for stmt in ctor_body {
+                ctor_compiler.compile_statement(stmt.clone())?;
             }
             
-            // Get the compiled function
-            let function = function_compiler.end();
+            // End scope
+            ctor_compiler.end_scope();
             
-            // Add to constants
-            let function_idx = self.add_constant(Constant::Function(Box::new(function)));
+            // Get the compiled constructor
+            let ctor_function = ctor_compiler.end();
+            
+            // Add constructor to constants
+            let function_idx = self.add_constant(Constant::Function(Box::new(ctor_function)));
             
             // Create closure
             self.emit(OpCode::Closure(function_idx));
             
-            // Define function name
-            self.define_variable(&name)?;
-            
-            Ok(())
-        } else {
-            unreachable!("compile_action_definition called with non-action statement");
+            // Define the constructor
+            self.emit(OpCode::DefineMethod);
         }
+        
+        // Pop container reference
+        self.emit(OpCode::Pop);
+        
+        Ok(())
     }
 } 

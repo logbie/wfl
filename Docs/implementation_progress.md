@@ -121,3 +121,16 @@ end while
 ### Pending:
 - Testing the changes with container member access
 - Ensuring method calls work on member access expressions
+
+## Container and Object-Oriented Features
+
+- [x] Basic container definition parsing (2023-07-26)
+- [x] Container field declarations (2023-07-26)
+- [x] Container method declarations (2023-07-26)
+- [x] Container constructor parsing support (2023-08-03)
+- [x] Object instantiation syntax with 'new' keyword (2023-08-03)
+- [x] Container field access through 'self' inside methods (2023-08-03)
+- [x] Multi-word field name support (2023-08-03)
+- [x] Proper scoping inside container methods (2023-08-03)
+- [ ] Advanced constructor handling with inheritance
+- [ ] Container interface implementation

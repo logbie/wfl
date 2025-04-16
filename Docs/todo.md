@@ -12,7 +12,7 @@
 ## Current Focus
 
 ### Parser Improvements
-- [ ] Implement container definition parsing
+- [x] Implement container definition parsing
 - [ ] Implement action definition parsing
 - [ ] Add support for collection literals (lists, maps)
 - [ ] Implement collection access expressions
@@ -163,7 +163,7 @@ See also:
 - [x] Bytecode Compiler: Add support for function calls with named parameters
 - [ ] Virtual Machine: Create basic VM for executing bytecode
 - [ ] Parser: Fix handling of action (function) definitions
-- [ ] Parser: Improve container creation syntax parsing
+- [x] Parser: Improve container creation syntax parsing
 
 ## Medium Priority
 - [x] Bytecode Compiler: Add support for list and map operations
@@ -284,3 +284,90 @@ See also:
 3. Implement collection parsing and handling
 4. Test fixes against failing test files
 5. Address any remaining parser issues 
+
+# WFL hello.wfl Program Implementation Tasks
+
+This section outlines the specific features needed to make the hello.wfl example program run successfully.
+
+## Parsing Features Needed
+
+- [~] Multi-word identifiers for variable names
+  - [x] Support for `current language` and `display count` style field names
+  - [ ] Update parser to handle spaces in identifiers for specific contexts
+
+- [~] Object creation and instantiation
+  - [x] Implement `create X as new "ContainerName"` syntax
+  - [ ] Add instance creation operator
+
+- [~] Container constructor implementation
+  - [x] `when created:` block parsing
+  - [x] Constructor body compilation
+
+- [ ] Multi-property validation syntax
+  - [ ] Support for `check language and greeting:` syntax
+  - [ ] Implement validators like `must not be empty` and `must be at most X characters`
+
+- [ ] String manipulation functions
+  - [ ] Implement `join` keyword for string concatenation
+  - [ ] Support for the `and` operator in string joining operations
+
+- [~] Complex container field access
+  - [x] Support for implicit `self` reference in container methods
+  - [~] Fix field references within containers
+
+- [ ] Collection membership testing
+  - [ ] Implement `is in` operator for collections
+  - [ ] Support for `check if X is in Y:` syntax
+
+- [ ] Try-catch exception handling
+  - [ ] Parse `try:` / `catch any error:` blocks
+  - [ ] Support nested error handling
+
+- [ ] Array literal syntax
+  - [ ] Support for inline array literals like `["Spanish", "French", "Japanese"]`
+
+- [ ] Variable manipulation operations
+  - [ ] Support for `increase X by Y` syntax
+  - [ ] Implement counter increment operations
+
+## Bytecode Features Needed
+
+- [ ] Add display/print functionality
+  - [ ] Implement `display` keyword for console output
+  - [ ] Support for string interpolation in display commands
+
+- [ ] Collection operation bytecode
+  - [ ] Support for storing values into collections at specific keys
+  - [ ] Implement `store X in Y at Z` operations
+
+- [ ] Exception handling
+  - [ ] Bytecode support for try-catch blocks
+  - [ ] Error propagation mechanics
+
+- [ ] Method invocation on objects
+  - [ ] Support for `perform object "method name"` syntax
+  - [ ] Proper method resolution and binding
+
+- [ ] Validation bytecode
+  - [ ] Implement validation checks (empty strings, length limits)
+  - [ ] Validation error generation
+
+## VM Runtime Features
+
+- [ ] Object instantiation runtime
+  - [ ] Constructor invocation
+  - [ ] Instance creation mechanics
+
+- [ ] String concatenation operations
+  - [ ] Optimize string joining operations
+
+- [ ] Advanced collection operations
+  - [ ] Membership testing
+  - [ ] Collection iteration
+
+## Testing Strategy
+
+1. Create simplified versions of each feature
+2. Test individual features in isolation
+3. Gradually combine features to build up to the full hello.wfl program
+4. Create regression tests for each implemented feature 
