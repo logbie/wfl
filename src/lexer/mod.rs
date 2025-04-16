@@ -23,6 +23,7 @@ impl Lexer {
         keywords.insert("does".to_string(), TokenType::Does);
         keywords.insert("end".to_string(), TokenType::End);
         keywords.insert("give".to_string(), TokenType::Give);
+        keywords.insert("gives".to_string(), TokenType::Give);
         keywords.insert("back".to_string(), TokenType::Back);
         keywords.insert("store".to_string(), TokenType::Store);
         keywords.insert("as".to_string(), TokenType::As);
@@ -40,6 +41,42 @@ impl Lexer {
         keywords.insert("missing".to_string(), TokenType::Missing);
         keywords.insert("undefined".to_string(), TokenType::Undefined);
         keywords.insert("empty".to_string(), TokenType::Empty);
+        
+        // Add new keywords
+        keywords.insert("set".to_string(), TokenType::Set);
+        keywords.insert("to".to_string(), TokenType::To);
+        keywords.insert("is".to_string(), TokenType::Is);
+        keywords.insert("increase".to_string(), TokenType::Increase);
+        keywords.insert("by".to_string(), TokenType::By);
+        keywords.insert("at".to_string(), TokenType::At);
+        keywords.insert("must".to_string(), TokenType::Must);
+        keywords.insert("display".to_string(), TokenType::Display);
+        keywords.insert("new".to_string(), TokenType::New);
+        keywords.insert("container".to_string(), TokenType::Container);
+        keywords.insert("private".to_string(), TokenType::Private);
+        keywords.insert("public".to_string(), TokenType::Public);
+        keywords.insert("join".to_string(), TokenType::Join);
+        keywords.insert("and".to_string(), TokenType::And);
+        keywords.insert("default".to_string(), TokenType::Default);
+        keywords.insert("created".to_string(), TokenType::Created);
+        keywords.insert("perform".to_string(), TokenType::Perform);
+        keywords.insert("for".to_string(), TokenType::For);
+        keywords.insert("each".to_string(), TokenType::Each);
+        keywords.insert("in".to_string(), TokenType::In);
+        keywords.insert("repeat".to_string(), TokenType::Repeat);
+        keywords.insert("while".to_string(), TokenType::While);
+        keywords.insert("until".to_string(), TokenType::Until);
+        keywords.insert("try".to_string(), TokenType::Try);
+        keywords.insert("catch".to_string(), TokenType::Catch);
+        keywords.insert("finally".to_string(), TokenType::Finally);
+
+        // Add data types
+        keywords.insert("number".to_string(), TokenType::Number);
+        keywords.insert("text".to_string(), TokenType::Text);
+        keywords.insert("truth".to_string(), TokenType::Truth);
+        keywords.insert("list".to_string(), TokenType::List);
+        keywords.insert("map".to_string(), TokenType::Map);
+        keywords.insert("record".to_string(), TokenType::Record);
 
         let source_chars: Vec<char> = source.chars().collect();
 
@@ -246,6 +283,10 @@ impl Lexer {
                     '*' => TokenType::Multiply,
                     '/' => TokenType::Divide,
                     '%' => TokenType::Modulo,
+                    '(' => TokenType::LeftParen,
+                    ')' => TokenType::RightParen,
+                    '[' => TokenType::LeftBracket,
+                    ']' => TokenType::RightBracket,
                     _ => {
                         self.advance(); // Skip unknown character
                         return self.next_token();

@@ -26,6 +26,25 @@ pub enum TokenType {
     Try,
     Catch,
     Finally,
+    
+    // New keywords
+    Set,
+    To,
+    Is,
+    Increase,
+    By,
+    At,
+    Must,
+    Display,
+    New,
+    Container,
+    Private,
+    Public,
+    Join,
+    Default,
+    Created,
+    And,
+    Perform,
 
     // Data Types
     Number,
@@ -33,7 +52,6 @@ pub enum TokenType {
     Truth,
     List,
     Map,
-    Set,
     Record,
 
     // Literals
@@ -64,7 +82,6 @@ pub enum TokenType {
     LessEquals,        // is at most, ≤
 
     // Logical Operators
-    And,
     Or,
     Not,
 
@@ -73,7 +90,11 @@ pub enum TokenType {
     Comma,             // ,
     Dot,               // .
     Quotes,            // "
-
+    LeftParen,         // (
+    RightParen,        // )
+    LeftBracket,       // [
+    RightBracket,      // ]
+    
     // Special
     Comment,           // // Single line comment
     Newline,

@@ -1,0 +1,45 @@
+// Simple test file for WFL compiler
+
+// Variable declarations
+store count as 10
+store message as "Hello, WFL!"
+store active as yes
+
+// Basic arithmetic - simple form for now
+store result as 15
+
+// Return statement
+give back message 
+
+// Testing function definition
+define action called "simple function":
+    needs:
+        name as text
+        age as number with default 30
+    gives back:
+        message as text
+    does:
+        store greeting as "Hello "
+        give back greeting
+end action
+
+// Testing container creation
+create container called "Person":
+    private:
+        store name as text
+        store age as number
+
+    public:
+        when created:
+            does:
+                store name as "Unknown"
+                store age as 0
+        end when
+
+        define action called "get name":
+            gives back:
+                result as text
+            does:
+                give back name
+        end action
+end container 

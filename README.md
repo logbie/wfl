@@ -12,11 +12,25 @@ WFL is a programming language designed to be readable and intuitive, using natur
 
 ### Project Structure
 - `src/` - Source code for the WFL compiler/interpreter
+  - `lexer/` - Tokenizes source code
+  - `parser/` - Builds AST from tokens
+  - `bytecode/` - Compiles AST to bytecode
 - `benches/` - Performance benchmarks
 - Documentation:
   - `wfl spec.md` - Complete language specification
   - `wfl todo.md` - Development roadmap
   - `wfl.md` - Additional documentation
+  - `implementation_progress.md` - Current implementation status
+
+### Implementation Status
+
+The WFL interpreter is under active development. Currently:
+- ✅ Lexer (complete)
+- 🟨 Parser (partial implementation)
+- 🟨 Bytecode Compiler (partial implementation) 
+- ❌ Virtual Machine (not started)
+
+See [implementation_progress.md](implementation_progress.md) for detailed information about the current state of the project.
 
 ### Built With
 - Rust
