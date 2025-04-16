@@ -1,6 +1,7 @@
 {
   "scanSettings": {
-    "baseBranches": []
+    "baseBranches": [],
+    "excludes": ["**/*.sh"]
   },
   "checkRunSettings": {
     "vulnerableCheckRunConclusionLevel": "failure",
