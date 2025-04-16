@@ -18,19 +18,33 @@ WFL is a programming language designed to be readable and intuitive, using natur
 - `benches/` - Performance benchmarks
 - Documentation:
   - `wfl spec.md` - Complete language specification
-  - `wfl todo.md` - Development roadmap
-  - `wfl.md` - Additional documentation
+  - `todo.md` - Development roadmap
   - `implementation_progress.md` - Current implementation status
+  - `missing_parser_functions.md` - Detailed analysis of parser gaps
+  - `missing_bytecode_features.md` - Required bytecode compiler features
+  - `wfl_compatibility_issues.md` - Integration issues between components
 
 ### Implementation Status
 
 The WFL interpreter is under active development. Currently:
 - ✅ Lexer (complete)
-- 🟨 Parser (partial implementation)
-- 🟨 Bytecode Compiler (partial implementation) 
-- ❌ Virtual Machine (not started)
+- 🟡 Parser (partial implementation)
+- 🟡 Bytecode Compiler (partial implementation) 
+- 🔴 Virtual Machine (not started)
 
 See [implementation_progress.md](implementation_progress.md) for detailed information about the current state of the project.
+
+### Implementation Documentation
+
+We maintain several specialized documents to track development progress:
+
+| Document | Purpose | Status |
+|----------|---------|--------|
+| [Implementation Progress](implementation_progress.md) | Overall status of each component | Updated |
+| [Missing Parser Functions](missing_parser_functions.md) | Detailed analysis of parser features to implement | Updated |
+| [Missing Bytecode Features](missing_bytecode_features.md) | Required bytecode compiler components | Updated |
+| [Compatibility Issues](wfl_compatibility_issues.md) | Integration challenges between components | Updated |
+| [Todo List](todo.md) | Comprehensive task list by priority | Updated |
 
 ### Built With
 - Rust
