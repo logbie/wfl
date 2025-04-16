@@ -21,3 +21,7 @@ test-case = "3.3"       # For parameterized tests
 [[bin]]
 name = "test_runner"
 path = "tests/test_runner.rs"
+
+[[bin]]
+name = "syntax_checker"
+path = "src/bin/syntax_checker.rs"
