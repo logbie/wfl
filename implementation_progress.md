@@ -50,6 +50,15 @@ Current Bytecode Compiler Features:
 - ❌ Collection operations
 - ❌ Advanced function calls
 
+### Recent Progress (Bytecode Compiler)
+- ✅ Added missing OpCodes to support container operations
+- ✅ Implemented scope and variable management functions
+- ✅ Improved function call compilation with support for named parameters
+- ✅ Added collection operations (lists, maps)
+- ✅ Implemented indexing expressions for collections
+- ✅ Completed container definition compilation
+- ✅ Added action definition compilation
+
 ### Virtual Machine (❌ Not Started)
 The virtual machine implementation has not yet begun. This will include:
 - Instruction execution loop
@@ -86,9 +95,9 @@ end while
 
 ## Next Steps
 
-1. Complete the parser to handle container and action definitions
-2. Update the bytecode compiler for these new constructs
-3. Begin VM implementation
-4. Implement basic standard library functionality
+1. Begin VM implementation
+2. Implement basic standard library functionality
+3. Add type checking to bytecode compiler
+4. Add optimization passes to bytecode compiler
 
 For more detailed task information, see [todo.md](todo.md).
