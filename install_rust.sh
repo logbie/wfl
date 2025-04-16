@@ -1,4 +1,7 @@
+#!/bin/bash
 
+# install_rust.sh - Script to install Rust for the WFL (WebFirst Language) project
+# Created: April 16, 2025
 
 echo "Installing Rust for WFL development..."
 
