@@ -95,8 +95,10 @@ impl Lexer {
         c.is_whitespace()
     }
 
+    // Check if a character is alphabetic (a-z, A-Z, or _)
+    #[allow(dead_code)]
     fn is_alpha(c: char) -> bool {
-        c.is_alphabetic()
+        c.is_alphabetic() || c == '_'
     }
 
     fn is_digit(c: char) -> bool {

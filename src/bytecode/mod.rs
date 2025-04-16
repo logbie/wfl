@@ -385,8 +385,33 @@ impl BytecodeCompiler {
                 self.emit(OpCode::Return);
                 Ok(())
             },
-            // Other statement types can be added as needed
-            _ => Err(CompileError::NotImplemented(format!("Statement type not implemented in BytecodeCompiler: {:?}", stmt))),
+            Statement::CheckStatement { condition: _condition, then_branch: _then_branch, else_branch: _else_branch } => {
+                Err(CompileError::NotImplemented("Check statements not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::ForEachLoop { item_name: _, index_name: _, collection: _, body: _ } => {
+                Err(CompileError::NotImplemented("ForEach loops not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::RepeatLoop { is_while: _, condition: _, body: _ } => {
+                Err(CompileError::NotImplemented("Repeat loops not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::CountLoop { counter_name: _, start: _, end: _, step: _, body: _ } => {
+                Err(CompileError::NotImplemented("Count loops not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::TryCatch { try_block: _, catch_variable: _, catch_block: _, finally_block: _ } => {
+                Err(CompileError::NotImplemented("Try-catch not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::ActionDefinition { name: _, parameters: _, return_type: _, body: _, is_async: _, is_private: _ } => {
+                Err(CompileError::NotImplemented("Action definitions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::ContainerDefinition { name: _, fields: _, methods: _, constructor: _ } => {
+                Err(CompileError::NotImplemented("Container definitions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::BreakStatement(_) => {
+                Err(CompileError::NotImplemented("Break statements not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Statement::ContinueStatement(_) => {
+                Err(CompileError::NotImplemented("Continue statements not fully implemented in BytecodeCompiler".to_string()))
+            }
         }
     }
     
@@ -431,8 +456,40 @@ impl BytecodeCompiler {
                     Err(CompileError::UndefinedVariable(name))
                 }
             },
-            // Other expression types can be added as needed
-            _ => Err(CompileError::NotImplemented(format!("Expression type not implemented in BytecodeCompiler: {:?}", expr))),
+            // Add more expression types
+            Expression::Binary { left: _left, operator: _operator, right: _right } => {
+                Err(CompileError::NotImplemented("Binary expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::Unary { operator: _operator, right: _right } => {
+                Err(CompileError::NotImplemented("Unary expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::Call { callee: _callee, arguments: _arguments } => {
+                Err(CompileError::NotImplemented("Call expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::MemberAccess { object: _object, name: _name } => {
+                Err(CompileError::NotImplemented("Member access not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::Index { collection: _collection, index: _index } => {
+                Err(CompileError::NotImplemented("Index access not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::ListExpression(_) => {
+                Err(CompileError::NotImplemented("List expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::MapExpression(_) => {
+                Err(CompileError::NotImplemented("Map expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::SetExpression(_) => {
+                Err(CompileError::NotImplemented("Set expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::RecordExpression(_) => {
+                Err(CompileError::NotImplemented("Record expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::Await(_) => {
+                Err(CompileError::NotImplemented("Await expressions not fully implemented in BytecodeCompiler".to_string()))
+            },
+            Expression::Try(_) => {
+                Err(CompileError::NotImplemented("Try expressions not fully implemented in BytecodeCompiler".to_string()))
+            }
         }
     }
 }
@@ -442,10 +499,13 @@ pub struct Compiler {
     chunk: Chunk,
     locals: Vec<Local>,
     scope_depth: usize,
+    #[allow(dead_code)]
     label_counter: usize,
+    #[allow(dead_code)]
     enclosing: Option<Box<Compiler>>,
     current_line: usize,
     globals: HashMap<String, usize>,
+    #[allow(dead_code)]
     functions: Vec<Function>,
 }
 
@@ -969,7 +1029,6 @@ impl Compiler {
                 // Note: Labels not fully implemented
                 Err(CompileError::NotImplemented("Continue statements not fully implemented".to_string()))
             },
-            _ => Err(CompileError::NotImplemented(format!("Unsupported statement type"))),
         }
     }
 
@@ -1194,7 +1253,6 @@ impl Compiler {
                     self.emit(OpCode::SetProperty);
                 }
             },
-            _ => return Err(CompileError::new(&format!("Unsupported expression: {:?}", expr))),
         }
         
         Ok(())
@@ -1232,6 +1290,7 @@ impl Compiler {
     }
     
     /// Get a mutable reference to the current chunk
+    #[allow(dead_code)]
     fn current_chunk_mut(&mut self) -> &mut Chunk {
         &mut self.chunk
     }
