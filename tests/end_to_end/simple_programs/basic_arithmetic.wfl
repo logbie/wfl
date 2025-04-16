@@ -1,0 +1,24 @@
+# Basic arithmetic operations test
+
+define variable a = 10
+define variable b = 5
+
+# Addition
+define variable sum = a + b
+print sum  # Expected: 15
+
+# Subtraction
+define variable difference = a - b
+print difference  # Expected: 5
+
+# Multiplication
+define variable product = a * b
+print product  # Expected: 50
+
+# Division
+define variable quotient = a / b
+print quotient  # Expected: 2
+
+# Combined operations
+define variable result = (a + b) * (a - b) / 2
+print result  # Expected: 25 

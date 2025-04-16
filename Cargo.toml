@@ -17,3 +17,7 @@ yansi = "1.0.1"
 [dev-dependencies]
 criterion = "0.5"       # For benchmarking
 test-case = "3.3"       # For parameterized tests
+
+[[bin]]
+name = "test_runner"
+path = "tests/test_runner.rs"
