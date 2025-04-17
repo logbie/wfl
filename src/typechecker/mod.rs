@@ -180,7 +180,20 @@ impl TypeChecker {
                     }
                 }
             }
-            Statement::ActionDefinition { name: _, parameters: _, body, return_type, line, column } => {
+            Statement::ActionDefinition { name, parameters, body, return_type, line, column } => {
+                let param_types = parameters.iter()
+                    .map(|p| p.param_type.clone().unwrap_or(Type::Unknown))
+                    .collect::<Vec<Type>>();
+                
+                let return_type_value = return_type.clone().unwrap_or(Type::Nothing);
+                
+                if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
+                    symbol.symbol_type = Some(Type::Function {
+                        parameters: param_types,
+                        return_type: Box::new(return_type_value),
+                    });
+                }
+                
                 for stmt in body {
                     self.check_statement_types(stmt);
                 }
@@ -638,20 +651,26 @@ impl TypeChecker {
                             return Type::Error;
                         }
                         
+                        let mut has_type_error = false;
                         for (i, (arg, param_type)) in arguments.iter().zip(parameters.iter()).enumerate() {
                             let arg_type = self.infer_expression_type(&arg.value);
                             if !self.are_types_compatible(param_type, &arg_type) {
                                 self.type_error(
-                                    format!("Argument {} has incorrect type", i + 1),
+                                    format!("Argument {} has incorrect type: expected {}, found {}", i + 1, param_type, arg_type),
                                     Some(param_type.clone()),
                                     Some(arg_type),
                                     *line,
                                     *column,
                                 );
+                                has_type_error = true;
                             }
                         }
                         
-                        *return_type
+                        if has_type_error {
+                            Type::Error
+                        } else {
+                            *return_type
+                        }
                     },
                     Type::Unknown | Type::Error => {
                         Type::Unknown
