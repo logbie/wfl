@@ -1,87 +1,147 @@
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"(?:[ \t\n\f]+|//[^\n]*)")]  // Skip whitespace and line comments
+#[logos(skip r"(?:[ \t\n\f]+|//[^\n]*)")] // Skip whitespace and line comments
 pub enum Token {
-    #[token("store")]      KeywordStore,
-    #[token("create")]     KeywordCreate,
-    #[token("display")]    KeywordDisplay,
-    #[token("change")]     KeywordChange,
-    #[token("if")]         KeywordIf,
-    #[token("check")]      KeywordCheck,
-    #[token("otherwise")]  KeywordOtherwise,
-    #[token("then")]       KeywordThen,
-    #[token("end")]        KeywordEnd,
-    #[token("as")]         KeywordAs,
-    #[token("to")]         KeywordTo,
-    #[token("from")]       KeywordFrom,
-    #[token("with")]       KeywordWith,
-    #[token("and")]        KeywordAnd,
-    #[token("or")]         KeywordOr,
-    #[token("count")]      KeywordCount,
-    #[token("for")]        KeywordFor,
-    #[token("each")]       KeywordEach,
-    #[token("in")]         KeywordIn,
-    #[token("reversed")]   KeywordReversed,
-    #[token("repeat")]     KeywordRepeat,
-    #[token("while")]      KeywordWhile,
-    #[token("until")]      KeywordUntil,
-    #[token("forever")]    KeywordForever,
-    #[token("skip")]       KeywordSkip,      // equivalent to 'continue'
-    #[token("continue")]   KeywordContinue,
-    #[token("break")]      KeywordBreak,
-    #[token("exit")]       KeywordExit,      // for "exit loop"
-    #[token("loop")]       KeywordLoop,
-    #[token("define")]     KeywordDefine,
-    #[token("action")]     KeywordAction,
-    #[token("called")]     KeywordCalled,
-    #[token("needs")]      KeywordNeeds,
-    #[token("give")]       KeywordGive,
-    #[token("back")]       KeywordBack,      // used in "give back" (return)
-    #[token("return")]     KeywordReturn,    // synonym for "give back"
-    #[token("open")]       KeywordOpen,
-    #[token("close")]      KeywordClose,
-    #[token("file")]       KeywordFile,
-    #[token("url")]        KeywordUrl,
-    #[token("database")]   KeywordDatabase,
-    #[token("at")]         KeywordAt,
-    #[token("read")]       KeywordRead,
-    #[token("write")]      KeywordWrite,
-    #[token("content")]    KeywordContent,
-    #[token("into")]       KeywordInto,      // (if needed for phrasing like "into variable")
-    #[token("plus")]       KeywordPlus,      // arithmetic operators in word form
-    #[token("minus")]      KeywordMinus,
-    #[token("times")]      KeywordTimes,
-    #[token("divided")]    KeywordDivided,   // e.g., "divided by"
-    #[token("by")]         KeywordBy,
-    #[token("contains")]   KeywordContains,
-    #[token("above")]      KeywordAbove,     // e.g., "is above 100"
-    #[token("below")]      KeywordBelow,
-    #[token("equal")]      KeywordEqual,     // e.g., "is equal to"
-    #[token("greater")]    KeywordGreater,
-    #[token("less")]       KeywordLess,
-    #[token("not")]        KeywordNot,
-    #[token("is")]         KeywordIs,
-    
-    #[token(":")]          Colon,
+    #[token("store")]
+    KeywordStore,
+    #[token("create")]
+    KeywordCreate,
+    #[token("display")]
+    KeywordDisplay,
+    #[token("change")]
+    KeywordChange,
+    #[token("if")]
+    KeywordIf,
+    #[token("check")]
+    KeywordCheck,
+    #[token("otherwise")]
+    KeywordOtherwise,
+    #[token("then")]
+    KeywordThen,
+    #[token("end")]
+    KeywordEnd,
+    #[token("as")]
+    KeywordAs,
+    #[token("to")]
+    KeywordTo,
+    #[token("from")]
+    KeywordFrom,
+    #[token("with")]
+    KeywordWith,
+    #[token("and")]
+    KeywordAnd,
+    #[token("or")]
+    KeywordOr,
+    #[token("count")]
+    KeywordCount,
+    #[token("for")]
+    KeywordFor,
+    #[token("each")]
+    KeywordEach,
+    #[token("in")]
+    KeywordIn,
+    #[token("reversed")]
+    KeywordReversed,
+    #[token("repeat")]
+    KeywordRepeat,
+    #[token("while")]
+    KeywordWhile,
+    #[token("until")]
+    KeywordUntil,
+    #[token("forever")]
+    KeywordForever,
+    #[token("skip")]
+    KeywordSkip, // equivalent to 'continue'
+    #[token("continue")]
+    KeywordContinue,
+    #[token("break")]
+    KeywordBreak,
+    #[token("exit")]
+    KeywordExit, // for "exit loop"
+    #[token("loop")]
+    KeywordLoop,
+    #[token("define")]
+    KeywordDefine,
+    #[token("action")]
+    KeywordAction,
+    #[token("called")]
+    KeywordCalled,
+    #[token("needs")]
+    KeywordNeeds,
+    #[token("give")]
+    KeywordGive,
+    #[token("back")]
+    KeywordBack, // used in "give back" (return)
+    #[token("return")]
+    KeywordReturn, // synonym for "give back"
+    #[token("open")]
+    KeywordOpen,
+    #[token("close")]
+    KeywordClose,
+    #[token("file")]
+    KeywordFile,
+    #[token("url")]
+    KeywordUrl,
+    #[token("database")]
+    KeywordDatabase,
+    #[token("at")]
+    KeywordAt,
+    #[token("read")]
+    KeywordRead,
+    #[token("write")]
+    KeywordWrite,
+    #[token("content")]
+    KeywordContent,
+    #[token("into")]
+    KeywordInto, // (if needed for phrasing like "into variable")
+    #[token("plus")]
+    KeywordPlus, // arithmetic operators in word form
+    #[token("minus")]
+    KeywordMinus,
+    #[token("times")]
+    KeywordTimes,
+    #[token("divided")]
+    KeywordDivided, // e.g., "divided by"
+    #[token("by")]
+    KeywordBy,
+    #[token("contains")]
+    KeywordContains,
+    #[token("above")]
+    KeywordAbove, // e.g., "is above 100"
+    #[token("below")]
+    KeywordBelow,
+    #[token("equal")]
+    KeywordEqual, // e.g., "is equal to"
+    #[token("greater")]
+    KeywordGreater,
+    #[token("less")]
+    KeywordLess,
+    #[token("not")]
+    KeywordNot,
+    #[token("is")]
+    KeywordIs,
+
+    #[token(":")]
+    Colon,
 
     #[regex("(?:yes|no|true|false)", |lex| {
         let text = lex.slice().to_ascii_lowercase();
         text == "yes" || text == "true"
     })]
     BooleanLiteral(bool),
-    
+
     #[token("nothing")]
     #[token("missing")]
     #[token("undefined")]
     NothingLiteral,
-    
-    #[regex(r#""([^"\\]|\\.)*""#, |lex| parse_string(lex))]   // captures content inside quotes
+
+    #[regex(r#""([^"\\]|\\.)*""#, |lex| parse_string(lex))] // captures content inside quotes
     StringLiteral(String),
-    
+
     #[regex("[0-9]+\\.[0-9]+", |lex| lex.slice().parse::<f64>().unwrap())]
     FloatLiteral(f64),
-    
+
     #[regex("[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLiteral(i64),
 
@@ -92,8 +152,8 @@ pub enum Token {
 }
 
 fn parse_string(lex: &mut logos::Lexer<Token>) -> String {
-    let quoted = lex.slice();               // e.g. "\"Alice\""
-    let inner = &quoted[1..quoted.len()-1]; // strip the surrounding quotes
+    let quoted = lex.slice(); // e.g. "\"Alice\""
+    let inner = &quoted[1..quoted.len() - 1]; // strip the surrounding quotes
     inner.replace(r#"\""#, "\"")
 }
 

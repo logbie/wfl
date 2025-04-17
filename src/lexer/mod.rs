@@ -11,8 +11,11 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
     while let Some(token_result) = lexer.next() {
         match token_result {
             Ok(Token::Error) => {
-                eprintln!("Lexing error at position {}: unexpected input `{}`", 
-                          lexer.span().start, lexer.slice());
+                eprintln!(
+                    "Lexing error at position {}: unexpected input `{}`",
+                    lexer.span().start,
+                    lexer.slice()
+                );
                 break;
             }
             Ok(Token::Identifier(word)) => {
@@ -30,8 +33,11 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                 tokens.push(other);
             }
             Err(_) => {
-                eprintln!("Lexing error at position {}: unexpected input `{}`", 
-                          lexer.span().start, lexer.slice());
+                eprintln!(
+                    "Lexing error at position {}: unexpected input `{}`",
+                    lexer.span().start,
+                    lexer.slice()
+                );
                 break;
             }
         }
@@ -50,11 +56,11 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
     let mut current_id_start_line = 0;
     let mut current_id_start_column = 0;
     let mut current_id_length = 0;
-    
+
     let mut _line = 1;
     let mut _column = 1;
     let mut line_starts = vec![0];
-    
+
     for (i, c) in input.char_indices() {
         if c == '\n' {
             _line += 1;
@@ -64,7 +70,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
             _column += 1;
         }
     }
-    
+
     let position = |offset: usize| -> (usize, usize) {
         let line_idx = line_starts.binary_search(&offset).unwrap_or_else(|i| i - 1);
         let line = line_idx + 1;
@@ -76,11 +82,14 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
         let span = lexer.span();
         let (token_line, token_column) = position(span.start);
         let token_length = span.end - span.start;
-        
+
         match token_result {
             Ok(Token::Error) => {
-                eprintln!("Lexing error at position {}: unexpected input `{}`", 
-                          span.start, lexer.slice());
+                eprintln!(
+                    "Lexing error at position {}: unexpected input `{}`",
+                    span.start,
+                    lexer.slice()
+                );
                 break;
             }
             Ok(Token::Identifier(word)) => {
@@ -101,19 +110,22 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                         Token::Identifier(id),
                         current_id_start_line,
                         current_id_start_column,
-                        current_id_length
+                        current_id_length,
                     ));
                 }
                 tokens.push(TokenWithPosition::new(
                     other,
                     token_line,
                     token_column,
-                    token_length
+                    token_length,
                 ));
             }
             Err(_) => {
-                eprintln!("Lexing error at position {}: unexpected input `{}`", 
-                          span.start, lexer.slice());
+                eprintln!(
+                    "Lexing error at position {}: unexpected input `{}`",
+                    span.start,
+                    lexer.slice()
+                );
                 break;
             }
         }
@@ -124,7 +136,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
             Token::Identifier(id),
             current_id_start_line,
             current_id_start_column,
-            current_id_length
+            current_id_length,
         ));
     }
     tokens
@@ -133,7 +145,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_multi_word_identifier() {
         let input = r#"
@@ -141,16 +153,19 @@ mod tests {
             display user name with " is logged in."
         "#;
         let tokens = lex_wfl(input);
-        assert_eq!(tokens, vec![
-            Token::KeywordStore,
-            Token::Identifier("user name".to_string()),
-            Token::KeywordAs,
-            Token::StringLiteral("Alice".to_string()),
-            Token::KeywordDisplay,
-            Token::Identifier("user name".to_string()),
-            Token::KeywordWith,
-            Token::StringLiteral(" is logged in.".to_string()),
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordStore,
+                Token::Identifier("user name".to_string()),
+                Token::KeywordAs,
+                Token::StringLiteral("Alice".to_string()),
+                Token::KeywordDisplay,
+                Token::Identifier("user name".to_string()),
+                Token::KeywordWith,
+                Token::StringLiteral(" is logged in.".to_string()),
+            ]
+        );
     }
 
     #[test]
@@ -164,21 +179,21 @@ mod tests {
             display file handle
             "#;
         let tokens = lex_wfl(input);
-        
+
         println!("Tokens: {:?}", tokens);
-        
+
         assert!(tokens.contains(&Token::KeywordCreate));
         assert!(tokens.contains(&Token::KeywordCount)); // "count" is recognized as a keyword
         assert!(tokens.contains(&Token::KeywordAs));
         assert!(tokens.contains(&Token::IntLiteral(42)));
-        
+
         assert!(tokens.contains(&Token::KeywordIs));
         assert!(tokens.contains(&Token::Identifier("active".to_string())));
-        
+
         assert!(tokens.contains(&Token::StringLiteral("Hello".to_string())));
         assert!(tokens.contains(&Token::KeywordWith));
         assert!(tokens.contains(&Token::StringLiteral(" world!".to_string())));
-        
+
         assert!(tokens.contains(&Token::KeywordOpen));
         assert!(tokens.contains(&Token::KeywordFile));
         assert!(tokens.contains(&Token::KeywordAt));
@@ -187,7 +202,7 @@ mod tests {
         assert!(tokens.contains(&Token::KeywordFile));
         assert!(tokens.contains(&Token::Identifier("handle".to_string())));
     }
-    
+
     #[test]
     fn test_hello_world_program() {
         let input = r#"
@@ -197,19 +212,22 @@ mod tests {
             end action
         "#;
         let tokens = lex_wfl(input);
-        assert_eq!(tokens, vec![
-            Token::KeywordDefine,
-            Token::KeywordAction,
-            Token::KeywordCalled,
-            Token::Identifier("main".to_string()),
-            Token::Colon,
-            Token::KeywordDisplay,
-            Token::StringLiteral("Hello, World!".to_string()),
-            Token::KeywordEnd,
-            Token::KeywordAction,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordDefine,
+                Token::KeywordAction,
+                Token::KeywordCalled,
+                Token::Identifier("main".to_string()),
+                Token::Colon,
+                Token::KeywordDisplay,
+                Token::StringLiteral("Hello, World!".to_string()),
+                Token::KeywordEnd,
+                Token::KeywordAction,
+            ]
+        );
     }
-    
+
     #[test]
     fn test_conditional_statement() {
         let input = r#"
@@ -220,26 +238,29 @@ mod tests {
             end check
         "#;
         let tokens = lex_wfl(input);
-        assert_eq!(tokens, vec![
-            Token::KeywordCheck,
-            Token::KeywordIf,
-            Token::Identifier("user name".to_string()),
-            Token::KeywordIs,
-            Token::StringLiteral("Alice".to_string()),
-            Token::Colon,
-            Token::KeywordDisplay,
-            Token::StringLiteral("Special greeting for Alice!".to_string()),
-            Token::KeywordOtherwise,
-            Token::Colon,
-            Token::KeywordDisplay,
-            Token::StringLiteral("Hello, ".to_string()),
-            Token::KeywordWith,
-            Token::Identifier("user name".to_string()),
-            Token::KeywordEnd,
-            Token::KeywordCheck,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordCheck,
+                Token::KeywordIf,
+                Token::Identifier("user name".to_string()),
+                Token::KeywordIs,
+                Token::StringLiteral("Alice".to_string()),
+                Token::Colon,
+                Token::KeywordDisplay,
+                Token::StringLiteral("Special greeting for Alice!".to_string()),
+                Token::KeywordOtherwise,
+                Token::Colon,
+                Token::KeywordDisplay,
+                Token::StringLiteral("Hello, ".to_string()),
+                Token::KeywordWith,
+                Token::Identifier("user name".to_string()),
+                Token::KeywordEnd,
+                Token::KeywordCheck,
+            ]
+        );
     }
-    
+
     #[test]
     fn test_loop_statement() {
         let input = r#"
@@ -248,19 +269,22 @@ mod tests {
             end count
         "#;
         let tokens = lex_wfl(input);
-        assert_eq!(tokens, vec![
-            Token::KeywordCount,
-            Token::KeywordFrom,
-            Token::IntLiteral(1),
-            Token::KeywordTo,
-            Token::IntLiteral(5),
-            Token::Colon,
-            Token::KeywordDisplay,
-            Token::StringLiteral("Count: ".to_string()),
-            Token::KeywordWith,
-            Token::KeywordCount,
-            Token::KeywordEnd,
-            Token::KeywordCount,
-        ]);
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordCount,
+                Token::KeywordFrom,
+                Token::IntLiteral(1),
+                Token::KeywordTo,
+                Token::IntLiteral(5),
+                Token::Colon,
+                Token::KeywordDisplay,
+                Token::StringLiteral("Count: ".to_string()),
+                Token::KeywordWith,
+                Token::KeywordCount,
+                Token::KeywordEnd,
+                Token::KeywordCount,
+            ]
+        );
     }
 }
