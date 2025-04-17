@@ -1,9 +1,9 @@
 use std::env;
 use std::fs;
 use std::io::{self, Read};
+use wfl::analyzer::Analyzer;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
-use wfl::analyzer::Analyzer;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -119,7 +119,7 @@ fn main() -> io::Result<()> {
     match parser.parse() {
         Ok(program) => {
             println!("AST:\n{:#?}", program);
-            
+
             let mut analyzer = Analyzer::new();
             match analyzer.analyze(&program) {
                 Ok(_) => println!("Semantic analysis passed."),
@@ -130,7 +130,7 @@ fn main() -> io::Result<()> {
                     }
                 }
             }
-        },
+        }
         Err(errors) => {
             for error in errors {
                 eprintln!("Error: {}", error);

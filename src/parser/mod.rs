@@ -123,8 +123,8 @@ impl<'a> Parser<'a> {
 
         let value = self.parse_expression()?;
 
-        Ok(Statement::VariableDeclaration { 
-            name, 
+        Ok(Statement::VariableDeclaration {
+            name,
             value,
             line: token_pos.line,
             column: token_pos.column,
@@ -338,23 +338,43 @@ impl<'a> Parser<'a> {
             let result = match &token.token {
                 Token::StringLiteral(s) => {
                     let token_pos = self.tokens.next().unwrap();
-                    Ok(Expression::Literal(Literal::String(s.clone()), token_pos.line, token_pos.column))
+                    Ok(Expression::Literal(
+                        Literal::String(s.clone()),
+                        token_pos.line,
+                        token_pos.column,
+                    ))
                 }
                 Token::IntLiteral(n) => {
                     let token_pos = self.tokens.next().unwrap();
-                    Ok(Expression::Literal(Literal::Integer(*n), token_pos.line, token_pos.column))
+                    Ok(Expression::Literal(
+                        Literal::Integer(*n),
+                        token_pos.line,
+                        token_pos.column,
+                    ))
                 }
                 Token::FloatLiteral(f) => {
                     let token_pos = self.tokens.next().unwrap();
-                    Ok(Expression::Literal(Literal::Float(*f), token_pos.line, token_pos.column))
+                    Ok(Expression::Literal(
+                        Literal::Float(*f),
+                        token_pos.line,
+                        token_pos.column,
+                    ))
                 }
                 Token::BooleanLiteral(b) => {
                     let token_pos = self.tokens.next().unwrap();
-                    Ok(Expression::Literal(Literal::Boolean(*b), token_pos.line, token_pos.column))
+                    Ok(Expression::Literal(
+                        Literal::Boolean(*b),
+                        token_pos.line,
+                        token_pos.column,
+                    ))
                 }
                 Token::NothingLiteral => {
                     let token_pos = self.tokens.next().unwrap();
-                    Ok(Expression::Literal(Literal::Nothing, token_pos.line, token_pos.column))
+                    Ok(Expression::Literal(
+                        Literal::Nothing,
+                        token_pos.line,
+                        token_pos.column,
+                    ))
                 }
                 Token::Identifier(name) => {
                     self.tokens.next();
@@ -413,7 +433,11 @@ impl<'a> Parser<'a> {
                                 let token_line = token.line;
                                 let token_column = token.column;
                                 return Ok(Expression::FunctionCall {
-                                    function: Box::new(Expression::Variable(name.clone(), token_line, token_column)),
+                                    function: Box::new(Expression::Variable(
+                                        name.clone(),
+                                        token_line,
+                                        token_column,
+                                    )),
                                     arguments,
                                     line: token_line,
                                     column: token_column,
@@ -518,7 +542,7 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expression()?;
 
         let token_pos = self.tokens.peek().unwrap();
-        Ok(Statement::DisplayStatement { 
+        Ok(Statement::DisplayStatement {
             value: expr,
             line: token_pos.line,
             column: token_pos.column,
@@ -614,12 +638,15 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordIf,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordIf,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
         Ok(Statement::SingleLineIf {
             condition,
             then_stmt,
@@ -686,12 +713,15 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::KeywordEnd, "Expected 'end' after for-each loop body")?;
         self.expect_token(Token::KeywordFor, "Expected 'for' after 'end'")?;
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordFor,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordFor,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
         Ok(Statement::ForEachLoop {
             item_name,
             collection,
@@ -774,12 +804,15 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::KeywordEnd, "Expected 'end' after count loop body")?;
         self.expect_token(Token::KeywordCount, "Expected 'count' after 'end'")?;
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordCount,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordCount,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
         Ok(Statement::CountLoop {
             start,
             end,
@@ -976,12 +1009,15 @@ impl<'a> Parser<'a> {
         self.expect_token(Token::KeywordEnd, "Expected 'end' after action body")?;
         self.expect_token(Token::KeywordAction, "Expected 'action' after 'end'")?;
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordDefine,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordDefine,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
         Ok(Statement::ActionDefinition {
             name,
             parameters,
@@ -1019,14 +1055,17 @@ impl<'a> Parser<'a> {
 
         let value = self.parse_expression()?;
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordChange,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
-        Ok(Statement::Assignment { 
-            name, 
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordChange,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
+        Ok(Statement::Assignment {
+            name,
             value,
             line: token_pos.line,
             column: token_pos.column,
@@ -1047,13 +1086,16 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordGive,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
-        Ok(Statement::ReturnStatement { 
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordGive,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
+        Ok(Statement::ReturnStatement {
             value,
             line: token_pos.line,
             column: token_pos.column,
@@ -1088,12 +1130,15 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        let token_pos = self.tokens.peek().map_or(&TokenWithPosition {
-            token: Token::KeywordOpen,
-            line: 0,
-            column: 0,
-            length: 0,
-        }, |v| v);
+        let token_pos = self.tokens.peek().map_or(
+            &TokenWithPosition {
+                token: Token::KeywordOpen,
+                line: 0,
+                column: 0,
+                length: 0,
+            },
+            |v| v,
+        );
         Ok(Statement::OpenFileStatement {
             path,
             variable_name,
@@ -1112,7 +1157,7 @@ impl<'a> Parser<'a> {
             length: 0,
         };
         let token_pos = self.tokens.peek().map_or(&default_token, |v| v);
-        Ok(Statement::ExpressionStatement { 
+        Ok(Statement::ExpressionStatement {
             expression: expr,
             line: token_pos.line,
             column: token_pos.column,

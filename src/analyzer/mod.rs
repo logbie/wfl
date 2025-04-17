@@ -1,11 +1,13 @@
+use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
 use std::collections::HashMap;
 use std::fmt;
-use crate::parser::ast::{Program, Statement, Expression, Type, Parameter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {
-    Variable { mutable: bool },
-    Function { 
+    Variable {
+        mutable: bool,
+    },
+    Function {
         parameters: Vec<Parameter>,
         return_type: Option<Type>,
     },
@@ -102,7 +104,7 @@ impl std::error::Error for SemanticError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::ast::{Program, Statement, Expression, Literal, Type, Parameter, Argument};
+    use crate::parser::ast::{Argument, Expression, Literal, Parameter, Program, Statement, Type};
 
     #[test]
     fn test_variable_declaration_and_usage() {
@@ -130,19 +132,20 @@ mod tests {
     #[test]
     fn test_undefined_variable() {
         let program = Program {
-            statements: vec![
-                Statement::DisplayStatement {
-                    value: Expression::Variable("x".to_string(), 1, 9),
-                    line: 1,
-                    column: 1,
-                },
-            ],
+            statements: vec![Statement::DisplayStatement {
+                value: Expression::Variable("x".to_string(), 1, 9),
+                line: 1,
+                column: 1,
+            }],
         };
 
         let mut analyzer = Analyzer::new();
         let result = analyzer.analyze(&program);
-        assert!(result.is_err(), "Expected semantic error for undefined variable");
-        
+        assert!(
+            result.is_err(),
+            "Expected semantic error for undefined variable"
+        );
+
         let errors = analyzer.get_errors();
         assert_eq!(errors.len(), 1);
         assert!(errors[0].message.contains("not defined"));
@@ -154,20 +157,16 @@ mod tests {
             statements: vec![
                 Statement::ActionDefinition {
                     name: "greet".to_string(),
-                    parameters: vec![
-                        Parameter {
-                            name: "name".to_string(),
-                            param_type: Some(Type::Text),
-                            default_value: None,
-                        },
-                    ],
-                    body: vec![
-                        Statement::DisplayStatement {
-                            value: Expression::Variable("name".to_string(), 2, 5),
-                            line: 2,
-                            column: 5,
-                        },
-                    ],
+                    parameters: vec![Parameter {
+                        name: "name".to_string(),
+                        param_type: Some(Type::Text),
+                        default_value: None,
+                    }],
+                    body: vec![Statement::DisplayStatement {
+                        value: Expression::Variable("name".to_string(), 2, 5),
+                        line: 2,
+                        column: 5,
+                    }],
                     return_type: None,
                     line: 1,
                     column: 1,
@@ -175,12 +174,10 @@ mod tests {
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
                         function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
-                        arguments: vec![
-                            Argument {
-                                name: None,
-                                value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
-                            },
-                        ],
+                        arguments: vec![Argument {
+                            name: None,
+                            value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
+                        }],
                         line: 3,
                         column: 1,
                     },
@@ -201,13 +198,11 @@ mod tests {
             statements: vec![
                 Statement::ActionDefinition {
                     name: "greet".to_string(),
-                    parameters: vec![
-                        Parameter {
-                            name: "name".to_string(),
-                            param_type: Some(Type::Text),
-                            default_value: None,
-                        },
-                    ],
+                    parameters: vec![Parameter {
+                        name: "name".to_string(),
+                        param_type: Some(Type::Text),
+                        default_value: None,
+                    }],
                     body: vec![],
                     return_type: None,
                     line: 1,
@@ -216,7 +211,7 @@ mod tests {
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
                         function: Box::new(Expression::Variable("greet".to_string(), 2, 1)),
-                        arguments: vec![],  // No arguments provided
+                        arguments: vec![], // No arguments provided
                         line: 2,
                         column: 1,
                     },
@@ -228,11 +223,18 @@ mod tests {
 
         let mut analyzer = Analyzer::new();
         let result = analyzer.analyze(&program);
-        assert!(result.is_err(), "Expected semantic error for wrong number of arguments");
-        
+        assert!(
+            result.is_err(),
+            "Expected semantic error for wrong number of arguments"
+        );
+
         let errors = analyzer.get_errors();
         assert_eq!(errors.len(), 1);
-        assert!(errors[0].message.contains("expects 1 arguments, but 0 were provided"));
+        assert!(
+            errors[0]
+                .message
+                .contains("expects 1 arguments, but 0 were provided")
+        );
     }
 }
 
@@ -250,8 +252,7 @@ impl Default for Analyzer {
 impl Analyzer {
     pub fn new() -> Self {
         let mut global_scope = Scope::new();
-        
-        
+
         let yes_symbol = Symbol {
             name: "yes".to_string(),
             kind: SymbolKind::Variable { mutable: false },
@@ -260,7 +261,7 @@ impl Analyzer {
             column: 0,
         };
         let _ = global_scope.define(yes_symbol);
-        
+
         let no_symbol = Symbol {
             name: "no".to_string(),
             kind: SymbolKind::Variable { mutable: false },
@@ -269,7 +270,7 @@ impl Analyzer {
             column: 0,
         };
         let _ = global_scope.define(no_symbol);
-        
+
         let nothing_symbol = Symbol {
             name: "nothing".to_string(),
             kind: SymbolKind::Variable { mutable: false },
@@ -278,7 +279,7 @@ impl Analyzer {
             column: 0,
         };
         let _ = global_scope.define(nothing_symbol);
-        
+
         let missing_symbol = Symbol {
             name: "missing".to_string(),
             kind: SymbolKind::Variable { mutable: false },
@@ -287,7 +288,7 @@ impl Analyzer {
             column: 0,
         };
         let _ = global_scope.define(missing_symbol);
-        
+
         let undefined_symbol = Symbol {
             name: "undefined".to_string(),
             kind: SymbolKind::Variable { mutable: false },
@@ -296,7 +297,7 @@ impl Analyzer {
             column: 0,
         };
         let _ = global_scope.define(undefined_symbol);
-        
+
         Analyzer {
             current_scope: global_scope,
             errors: Vec::new(),
@@ -327,7 +328,7 @@ impl Analyzer {
                 let symbol = Symbol {
                     name: name.clone(),
                     kind: SymbolKind::Variable { mutable: true }, // All variables are mutable by default
-                    symbol_type: None, // Type will be inferred later
+                    symbol_type: None,                            // Type will be inferred later
                     line: 0, // We need to add location info to AST nodes
                     column: 0,
                 };
@@ -335,7 +336,7 @@ impl Analyzer {
                 if let Err(error) = self.current_scope.define(symbol) {
                     self.errors.push(error);
                 }
-            },
+            }
             Statement::Assignment { name, value, .. } => {
                 if let Some(symbol) = self.current_scope.resolve(name) {
                     match &symbol.kind {
@@ -347,7 +348,7 @@ impl Analyzer {
                                     0,
                                 ));
                             }
-                        },
+                        }
                         _ => {
                             self.errors.push(SemanticError::new(
                                 format!("'{}' is not a variable", name),
@@ -365,8 +366,14 @@ impl Analyzer {
                 }
 
                 self.analyze_expression(value);
-            },
-            Statement::ActionDefinition { name, parameters, body, return_type, .. } => {
+            }
+            Statement::ActionDefinition {
+                name,
+                parameters,
+                body,
+                return_type,
+                ..
+            } => {
                 let symbol = Symbol {
                     name: name.clone(),
                     kind: SymbolKind::Function {
@@ -407,67 +414,82 @@ impl Analyzer {
                 if let Some(parent) = function_scope.parent {
                     self.current_scope = *parent;
                 }
-            },
-            Statement::IfStatement { condition, then_block, else_block, .. } => {
+            }
+            Statement::IfStatement {
+                condition,
+                then_block,
+                else_block,
+                ..
+            } => {
                 self.analyze_expression(condition);
-                
+
                 let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 self.current_scope = Scope::with_parent(outer_scope);
-                
+
                 for stmt in then_block {
                     self.analyze_statement(stmt);
                 }
-                
+
                 let then_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 if let Some(parent) = then_scope.parent {
                     self.current_scope = *parent;
                 }
-                
+
                 if let Some(else_stmts) = else_block {
                     let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                     self.current_scope = Scope::with_parent(outer_scope);
-                    
+
                     for stmt in else_stmts {
                         self.analyze_statement(stmt);
                     }
-                    
+
                     let else_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                     if let Some(parent) = else_scope.parent {
                         self.current_scope = *parent;
                     }
                 }
-            },
-            Statement::SingleLineIf { condition, then_stmt, else_stmt, .. } => {
+            }
+            Statement::SingleLineIf {
+                condition,
+                then_stmt,
+                else_stmt,
+                ..
+            } => {
                 self.analyze_expression(condition);
-                
+
                 let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 self.current_scope = Scope::with_parent(outer_scope);
-                
+
                 self.analyze_statement(then_stmt);
-                
+
                 let then_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 if let Some(parent) = then_scope.parent {
                     self.current_scope = *parent;
                 }
-                
+
                 if let Some(else_stmt) = else_stmt {
                     let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                     self.current_scope = Scope::with_parent(outer_scope);
-                    
+
                     self.analyze_statement(else_stmt);
-                    
+
                     let else_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                     if let Some(parent) = else_scope.parent {
                         self.current_scope = *parent;
                     }
                 }
-            },
-            Statement::ForEachLoop { item_name, collection, body, .. } => {
+            }
+            Statement::ForEachLoop {
+                item_name,
+                collection,
+                body,
+                ..
+            } => {
                 self.analyze_expression(collection);
-                
+
                 let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 self.current_scope = Scope::with_parent(outer_scope);
-                
+
                 let item_symbol = Symbol {
                     name: item_name.clone(),
                     kind: SymbolKind::Variable { mutable: false }, // Loop variables are immutable
@@ -475,30 +497,36 @@ impl Analyzer {
                     line: 0,
                     column: 0,
                 };
-                
+
                 if let Err(error) = self.current_scope.define(item_symbol) {
                     self.errors.push(error);
                 }
-                
+
                 for stmt in body {
                     self.analyze_statement(stmt);
                 }
-                
+
                 let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }
-            },
-            Statement::CountLoop { start, end, step, body, .. } => {
+            }
+            Statement::CountLoop {
+                start,
+                end,
+                step,
+                body,
+                ..
+            } => {
                 self.analyze_expression(start);
                 self.analyze_expression(end);
                 if let Some(step_expr) = step {
                     self.analyze_expression(step_expr);
                 }
-                
+
                 let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 self.current_scope = Scope::with_parent(outer_scope);
-                
+
                 let count_symbol = Symbol {
                     name: "count".to_string(), // The count variable is implicitly defined
                     kind: SymbolKind::Variable { mutable: false }, // Count variable is immutable
@@ -506,48 +534,50 @@ impl Analyzer {
                     line: 0,
                     column: 0,
                 };
-                
+
                 if let Err(error) = self.current_scope.define(count_symbol) {
                     self.errors.push(error);
                 }
-                
+
                 for stmt in body {
                     self.analyze_statement(stmt);
                 }
-                
+
                 let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }
-            },
-            Statement::WhileLoop { condition, body, .. } => {
+            }
+            Statement::WhileLoop {
+                condition, body, ..
+            } => {
                 self.analyze_expression(condition);
-                
+
                 let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 self.current_scope = Scope::with_parent(outer_scope);
-                
+
                 for stmt in body {
                     self.analyze_statement(stmt);
                 }
-                
+
                 let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }
-            },
+            }
             Statement::DisplayStatement { value, .. } => {
                 self.analyze_expression(value);
-            },
+            }
             Statement::ExpressionStatement { expression, .. } => {
                 self.analyze_expression(expression);
-            },
-            Statement::ReturnStatement { value: Some(expr), .. } => {
-                self.analyze_expression(expr);
-            },
-            Statement::ReturnStatement { value: None, .. } => {
-            },
-            _ => {
             }
+            Statement::ReturnStatement {
+                value: Some(expr), ..
+            } => {
+                self.analyze_expression(expr);
+            }
+            Statement::ReturnStatement { value: None, .. } => {}
+            _ => {}
         }
     }
 
@@ -561,10 +591,15 @@ impl Analyzer {
                         *column,
                     ));
                 }
-            },
-            Expression::FunctionCall { function, arguments, line, column } => {
+            }
+            Expression::FunctionCall {
+                function,
+                arguments,
+                line,
+                column,
+            } => {
                 self.analyze_expression(function);
-                
+
                 if let Expression::Variable(name, _, _) = &**function {
                     if let Some(symbol) = self.current_scope.resolve(name) {
                         match &symbol.kind {
@@ -577,11 +612,11 @@ impl Analyzer {
                                         *column,
                                     ));
                                 }
-                                
+
                                 for arg in arguments {
                                     self.analyze_expression(&arg.value);
                                 }
-                            },
+                            }
                             _ => {
                                 self.errors.push(SemanticError::new(
                                     format!("'{}' is not a function", name),
@@ -596,27 +631,52 @@ impl Analyzer {
                         self.analyze_expression(&arg.value);
                     }
                 }
-            },
-            Expression::BinaryOperation { left, operator: _, right, line: _, column: _ } => {
+            }
+            Expression::BinaryOperation {
+                left,
+                operator: _,
+                right,
+                line: _,
+                column: _,
+            } => {
                 self.analyze_expression(left);
                 self.analyze_expression(right);
-            },
-            Expression::UnaryOperation { operator: _, expression, line: _, column: _ } => {
+            }
+            Expression::UnaryOperation {
+                operator: _,
+                expression,
+                line: _,
+                column: _,
+            } => {
                 self.analyze_expression(expression);
-            },
-            Expression::MemberAccess { object, property: _, line: _, column: _ } => {
+            }
+            Expression::MemberAccess {
+                object,
+                property: _,
+                line: _,
+                column: _,
+            } => {
                 self.analyze_expression(object);
-            },
-            Expression::IndexAccess { collection, index, line: _, column: _ } => {
+            }
+            Expression::IndexAccess {
+                collection,
+                index,
+                line: _,
+                column: _,
+            } => {
                 self.analyze_expression(collection);
                 self.analyze_expression(index);
-            },
-            Expression::Concatenation { left, right, line: _, column: _ } => {
+            }
+            Expression::Concatenation {
+                left,
+                right,
+                line: _,
+                column: _,
+            } => {
                 self.analyze_expression(left);
                 self.analyze_expression(right);
-            },
-            Expression::Literal(_, _, _) => {
-            },
+            }
+            Expression::Literal(_, _, _) => {}
         }
     }
 }
