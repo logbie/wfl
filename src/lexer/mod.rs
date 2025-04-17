@@ -57,11 +57,11 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
     
     for (i, c) in input.char_indices() {
         if c == '\n' {
-            line += 1;
-            column = 1;
+            _line += 1;
+            _column = 1;
             line_starts.push(i + 1);
         } else {
-            column += 1;
+            _column += 1;
         }
     }
     
