@@ -1,7 +1,8 @@
 use std::env;
 use std::fs;
 use std::io::{self, Read};
-use wfl::lexer::{lex_wfl, token::Token};
+use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
+use wfl::parser::Parser;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -14,7 +15,9 @@ fn main() -> io::Result<()> {
     };
 
     let tokens = lex_wfl(&input);
+    let tokens_with_pos = lex_wfl_with_positions(&input);
 
+    println!("Lexer output:");
     for (i, token) in tokens.iter().enumerate() {
         println!("{}: {:?}", i, token);
     }
@@ -109,6 +112,17 @@ fn main() -> io::Result<()> {
         })
         .count();
     println!("Literals: {}", literal_count);
+
+    println!("\nParser output:");
+    let mut parser = Parser::new(&tokens_with_pos);
+    match parser.parse() {
+        Ok(program) => println!("{:#?}", program),
+        Err(errors) => {
+            for error in errors {
+                eprintln!("Error: {}", error);
+            }
+        }
+    }
 
     Ok(())
 }
