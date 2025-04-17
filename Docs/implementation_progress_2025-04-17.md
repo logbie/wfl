@@ -48,3 +48,13 @@ The lexer now successfully tokenizes WFL source code according to the language s
 
 Next steps:
 - Implement the bytecode compiler to convert the AST into bytecode
+
+## Semantic Analysis Implementation
+
+- Implemented a symbol table with nested scopes
+- Added semantic analysis for variable declarations and usage
+- Added semantic analysis for function definitions and calls
+- Implemented error reporting for undefined variables, wrong argument counts, etc.
+- Created tests for the semantic analyzer
+- Added built-in symbols like 'yes', 'no', 'nothing' to global scope
+- Updated AST nodes to include location information for better error reporting

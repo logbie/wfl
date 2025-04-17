@@ -10,9 +10,9 @@ fn test_parse_variable_declaration() {
     let result = parser.parse_statement();
     assert!(result.is_ok());
 
-    if let Ok(Statement::VariableDeclaration { name, value }) = result {
+    if let Ok(Statement::VariableDeclaration { name, value, .. }) = result {
         assert_eq!(name, "greeting");
-        if let Expression::Literal(Literal::String(s)) = value {
+        if let Expression::Literal(Literal::String(s), ..) = value {
             assert_eq!(s, "Hello, World!");
         } else {
             panic!("Expected string literal");
@@ -35,15 +35,17 @@ fn test_parse_if_statement() {
         condition,
         then_block,
         else_block,
+        ..
     }) = result
     {
         if let Expression::BinaryOperation {
             left,
             operator,
             right,
+            ..
         } = condition
         {
-            if let Expression::Variable(name) = *left {
+            if let Expression::Variable(name, ..) = *left {
                 assert_eq!(name, "x");
             } else {
                 panic!("Expected variable in condition");
@@ -51,7 +53,7 @@ fn test_parse_if_statement() {
 
             assert_eq!(operator, Operator::Equals);
 
-            if let Expression::Literal(Literal::Integer(n)) = *right {
+            if let Expression::Literal(Literal::Integer(n), ..) = *right {
                 assert_eq!(n, 10);
             } else {
                 panic!("Expected integer literal in condition");
@@ -61,8 +63,8 @@ fn test_parse_if_statement() {
         }
 
         assert_eq!(then_block.len(), 1);
-        if let Statement::DisplayStatement { value } = &then_block[0] {
-            if let Expression::Literal(Literal::String(s)) = value {
+        if let Statement::DisplayStatement { value, .. } = &then_block[0] {
+            if let Expression::Literal(Literal::String(s), ..) = value {
                 assert_eq!(s, "x is 10");
             } else {
                 panic!("Expected string literal in then block");
@@ -74,8 +76,8 @@ fn test_parse_if_statement() {
         assert!(else_block.is_some());
         let else_stmts = else_block.as_ref().unwrap();
         assert_eq!(else_stmts.len(), 1);
-        if let Statement::DisplayStatement { value } = &else_stmts[0] {
-            if let Expression::Literal(Literal::String(s)) = value {
+        if let Statement::DisplayStatement { value, .. } = &else_stmts[0] {
+            if let Expression::Literal(Literal::String(s), ..) = value {
                 assert_eq!(s, "x is not 10");
             } else {
                 panic!("Expected string literal in else block");
@@ -101,9 +103,10 @@ fn test_parse_expression() {
         left,
         operator,
         right,
+        ..
     }) = result
     {
-        if let Expression::Literal(Literal::Integer(n)) = *left {
+        if let Expression::Literal(Literal::Integer(n), ..) = *left {
             assert_eq!(n, 5);
         } else {
             panic!("Expected integer literal");
@@ -115,9 +118,10 @@ fn test_parse_expression() {
             left,
             operator,
             right,
+            ..
         } = *right
         {
-            if let Expression::Literal(Literal::Integer(n)) = *left {
+            if let Expression::Literal(Literal::Integer(n), ..) = *left {
                 assert_eq!(n, 3);
             } else {
                 panic!("Expected integer literal");
@@ -125,7 +129,7 @@ fn test_parse_expression() {
 
             assert_eq!(operator, Operator::Multiply);
 
-            if let Expression::Literal(Literal::Integer(n)) = *right {
+            if let Expression::Literal(Literal::Integer(n), ..) = *right {
                 assert_eq!(n, 2);
             } else {
                 panic!("Expected integer literal");
