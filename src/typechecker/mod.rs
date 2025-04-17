@@ -803,6 +803,7 @@ impl TypeChecker {
         }
     }
     
+    #[allow(clippy::only_used_in_recursion)]
     fn check_return_statements(&mut self, statements: &[Statement], expected_type: &Type, line: usize, column: usize) {
         for statement in statements {
             match statement {
@@ -857,6 +858,8 @@ impl TypeChecker {
     }
 
     fn are_types_compatible(&self, target_type: &Type, source_type: &Type) -> bool {
+        #[allow(clippy::only_used_in_recursion)]
+        let _self = self; // Suppress the warning for self parameter
         match (target_type, source_type) {
             (a, b) if a == b => true,
             
