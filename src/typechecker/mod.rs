@@ -79,6 +79,12 @@ pub struct TypeChecker {
     errors: Vec<TypeError>,
 }
 
+impl Default for TypeChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TypeChecker {
     pub fn new() -> Self {
         TypeChecker {
@@ -171,11 +177,9 @@ impl TypeChecker {
                                 *column,
                             );
                         }
-                    } else {
-                        if inferred_type != Type::Error && inferred_type != Type::Unknown {
-                            if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
-                                symbol.symbol_type = Some(inferred_type);
-                            }
+                    } else if inferred_type != Type::Error && inferred_type != Type::Unknown {
+                        if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
+                            symbol.symbol_type = Some(inferred_type);
                         }
                     }
                 }
@@ -475,22 +479,18 @@ impl TypeChecker {
                     Operator::Plus | Operator::Minus | Operator::Multiply | Operator::Divide => {
                         if left_type == Type::Number && right_type == Type::Number {
                             Type::Number
+                        } else if *operator == Operator::Plus && 
+                           (left_type == Type::Text || right_type == Type::Text) {
+                            Type::Text
                         } else {
-                            if *operator == Operator::Plus && 
-                               ((left_type == Type::Text && right_type == Type::Text) ||
-                                (left_type == Type::Text && right_type == Type::Number) ||
-                                (left_type == Type::Number && right_type == Type::Text)) {
-                                Type::Text
-                            } else {
-                                self.type_error(
-                                    format!("Cannot perform {:?} operation on {} and {}", operator, left_type, right_type),
-                                    Some(Type::Number),
-                                    Some(if left_type != Type::Number { left_type } else { right_type }),
-                                    *line,
-                                    *column,
-                                );
-                                Type::Error
-                            }
+                            self.type_error(
+                                format!("Cannot perform {:?} operation on {} and {}", operator, left_type, right_type),
+                                Some(Type::Number),
+                                Some(if left_type != Type::Number { left_type } else { right_type }),
+                                *line,
+                                *column,
+                            );
+                            Type::Error
                         }
                     },
                     Operator::Equals | Operator::NotEquals => {
