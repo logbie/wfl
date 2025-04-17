@@ -25,6 +25,26 @@ The lexer now successfully tokenizes WFL source code according to the language s
 - Nothing literals (nothing/missing/undefined)
 - Multi-word identifiers
 
+## Parser Implementation
+
+- Defined AST data structures for WFL language constructs:
+  - Program structure
+  - Statements (variable declarations, assignments, conditionals, loops, function definitions, etc.)
+  - Expressions (literals, variables, binary operations, function calls, etc.)
+  - Types and parameters
+- Implemented a recursive descent parser that converts tokens into an AST
+- Added error handling for syntax errors with line and column information
+- Implemented parsers for:
+  - Variable declarations
+  - Display statements
+  - If statements (both block form and single-line form)
+  - Loops (count loops and for-each loops)
+  - Function definitions
+  - Expressions (literals, variables, binary operations)
+  - Assignment statements
+  - Return statements
+  - File operations
+- Created tests for the parser
+
 Next steps:
-- Implement the parser to convert tokens into an Abstract Syntax Tree (AST)
 - Implement the bytecode compiler to convert the AST into bytecode
