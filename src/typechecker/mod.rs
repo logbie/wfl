@@ -117,38 +117,43 @@ impl TypeChecker {
             Statement::VariableDeclaration { name, value, line, column } => {
                 let inferred_type = self.infer_expression_type(value);
                 
+                if inferred_type == Type::Unknown {
+                    self.type_error(
+                        format!("Could not infer type for variable '{}'", name),
+                        None,
+                        None,
+                        *line,
+                        *column,
+                    );
+                }
+                
                 let symbol_type_option = if let Some(symbol) = self.analyzer.get_symbol(name) {
                     symbol.symbol_type.clone()
                 } else {
                     None
                 };
                 
-                if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
-                    if symbol.symbol_type.is_none() {
-                        if inferred_type == Type::Error {
-                        } else if inferred_type == Type::Unknown {
-                            self.type_error(
-                                format!("Could not infer type for variable '{}'", name),
-                                None,
-                                None,
-                                *line,
-                                *column,
-                            );
-                        } else {
-                            symbol.symbol_type = Some(inferred_type.clone());
-                        }
-                    }
+                let need_type_error = if let Some(declared_type) = &symbol_type_option {
+                    !self.are_types_compatible(declared_type, &inferred_type)
+                } else {
+                    false
+                };
+                
+                if need_type_error {
+                    self.type_error(
+                        format!("Cannot initialize variable '{}' with incompatible type", name),
+                        symbol_type_option.clone(),
+                        Some(inferred_type.clone()),
+                        *line,
+                        *column,
+                    );
                 }
                 
-                if let Some(declared_type) = symbol_type_option {
-                    if !self.are_types_compatible(&declared_type, &inferred_type) {
-                        self.type_error(
-                            format!("Cannot initialize variable '{}' with incompatible type", name),
-                            Some(declared_type),
-                            Some(inferred_type),
-                            *line,
-                            *column,
-                        );
+                if inferred_type != Type::Error && inferred_type != Type::Unknown {
+                    if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
+                        if symbol.symbol_type.is_none() {
+                            symbol.symbol_type = Some(inferred_type);
+                        }
                     }
                 }
             }
@@ -175,7 +180,7 @@ impl TypeChecker {
                     }
                 }
             }
-            Statement::ActionDefinition { name, parameters, body, return_type, line, column } => {
+            Statement::ActionDefinition { name: _, parameters: _, body, return_type, line, column } => {
                 for stmt in body {
                     self.check_statement_types(stmt);
                 }
@@ -334,7 +339,7 @@ impl TypeChecker {
             Statement::DisplayStatement { value, .. } => {
                 self.infer_expression_type(value);
             }
-            Statement::ReturnStatement { value, line, column } => {
+            Statement::ReturnStatement { value, line: _, column: _ } => {
                 if let Some(expr) = value {
                     self.infer_expression_type(expr);
                 }
