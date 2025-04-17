@@ -816,9 +816,9 @@ impl TypeChecker {
                     }
                 },
                 Statement::SingleLineIf { then_stmt, else_stmt, .. } => {
-                    self.check_return_statements(&[*then_stmt.clone()], expected_type, line, column);
+                    self.check_return_statements(&[(*then_stmt).clone()], expected_type, line, column);
                     if let Some(else_stmt) = else_stmt {
-                        self.check_return_statements(&[*else_stmt.clone()], expected_type, line, column);
+                        self.check_return_statements(&[(*else_stmt).clone()], expected_type, line, column);
                     }
                 },
                 Statement::ForEachLoop { body, .. } |
