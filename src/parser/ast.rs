@@ -16,26 +16,36 @@ pub enum Statement {
     VariableDeclaration {
         name: String,
         value: Expression,
+        line: usize,
+        column: usize,
     },
     Assignment {
         name: String,
         value: Expression,
+        line: usize,
+        column: usize,
     },
     IfStatement {
         condition: Expression,
         then_block: Vec<Statement>,
         else_block: Option<Vec<Statement>>,
+        line: usize,
+        column: usize,
     },
     SingleLineIf {
         condition: Expression,
         then_stmt: Box<Statement>,
         else_stmt: Option<Box<Statement>>,
+        line: usize,
+        column: usize,
     },
     ForEachLoop {
         item_name: String,
         collection: Expression,
         reversed: bool,
         body: Vec<Statement>,
+        line: usize,
+        column: usize,
     },
     CountLoop {
         start: Expression,
@@ -43,80 +53,122 @@ pub enum Statement {
         step: Option<Expression>,
         downward: bool,
         body: Vec<Statement>,
+        line: usize,
+        column: usize,
     },
     WhileLoop {
         condition: Expression,
         body: Vec<Statement>,
+        line: usize,
+        column: usize,
     },
     RepeatUntilLoop {
         condition: Expression,
         body: Vec<Statement>,
+        line: usize,
+        column: usize,
     },
     ForeverLoop {
         body: Vec<Statement>,
+        line: usize,
+        column: usize,
     },
     DisplayStatement {
         value: Expression,
+        line: usize,
+        column: usize,
     },
     ActionDefinition {
         name: String,
         parameters: Vec<Parameter>,
         body: Vec<Statement>,
         return_type: Option<Type>,
+        line: usize,
+        column: usize,
     },
     ReturnStatement {
         value: Option<Expression>,
+        line: usize,
+        column: usize,
     },
     ExpressionStatement {
         expression: Expression,
+        line: usize,
+        column: usize,
     },
-    BreakStatement,
-    ContinueStatement,
+    BreakStatement {
+        line: usize,
+        column: usize,
+    },
+    ContinueStatement {
+        line: usize,
+        column: usize,
+    },
     OpenFileStatement {
         path: Expression,
         variable_name: String,
+        line: usize,
+        column: usize,
     },
     ReadFileStatement {
         file: Expression,
         variable_name: String,
+        line: usize,
+        column: usize,
     },
     WriteFileStatement {
         file: Expression,
         content: Expression,
+        line: usize,
+        column: usize,
     },
     CloseFileStatement {
         file: Expression,
+        line: usize,
+        column: usize,
     },
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
-    Literal(Literal),
-    Variable(String),
+    Literal(Literal, usize, usize), // line, column
+    Variable(String, usize, usize), // line, column
     BinaryOperation {
         left: Box<Expression>,
         operator: Operator,
         right: Box<Expression>,
+        line: usize,
+        column: usize,
     },
     UnaryOperation {
         operator: UnaryOperator,
         expression: Box<Expression>,
+        line: usize,
+        column: usize,
     },
     FunctionCall {
         function: Box<Expression>,
         arguments: Vec<Argument>,
+        line: usize,
+        column: usize,
     },
     MemberAccess {
         object: Box<Expression>,
         property: String,
+        line: usize,
+        column: usize,
     },
     IndexAccess {
         collection: Box<Expression>,
         index: Box<Expression>,
+        line: usize,
+        column: usize,
     },
     Concatenation {
         left: Box<Expression>,
         right: Box<Expression>,
+        line: usize,
+        column: usize,
     },
 }
 

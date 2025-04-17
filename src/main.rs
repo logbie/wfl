@@ -1,6 +1,7 @@
 use std::env;
 use std::fs;
 use std::io::{self, Read};
+use wfl::analyzer::Analyzer;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 
@@ -116,7 +117,20 @@ fn main() -> io::Result<()> {
     println!("\nParser output:");
     let mut parser = Parser::new(&tokens_with_pos);
     match parser.parse() {
-        Ok(program) => println!("{:#?}", program),
+        Ok(program) => {
+            println!("AST:\n{:#?}", program);
+
+            let mut analyzer = Analyzer::new();
+            match analyzer.analyze(&program) {
+                Ok(_) => println!("Semantic analysis passed."),
+                Err(errors) => {
+                    eprintln!("Semantic errors:");
+                    for error in errors {
+                        eprintln!("{}", error);
+                    }
+                }
+            }
+        }
         Err(errors) => {
             for error in errors {
                 eprintln!("Error: {}", error);
