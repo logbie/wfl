@@ -123,7 +123,6 @@ impl<'a> Parser<'a> {
 
         let value = self.parse_expression()?;
 
-        let token_pos = token_pos;
         Ok(Statement::VariableDeclaration { 
             name, 
             value,

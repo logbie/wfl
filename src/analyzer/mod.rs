@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt;
-use crate::parser::ast::{Program, Statement, Expression, Type, Parameter, Argument};
+use crate::parser::ast::{Program, Statement, Expression, Type, Parameter};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {
@@ -24,6 +24,12 @@ pub struct Symbol {
 pub struct Scope {
     symbols: HashMap<String, Symbol>,
     parent: Option<Box<Scope>>,
+}
+
+impl Default for Scope {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Scope {
@@ -233,6 +239,12 @@ mod tests {
 pub struct Analyzer {
     current_scope: Scope,
     errors: Vec<SemanticError>,
+}
+
+impl Default for Analyzer {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Analyzer {
@@ -529,10 +541,10 @@ impl Analyzer {
             Statement::ExpressionStatement { expression, .. } => {
                 self.analyze_expression(expression);
             },
-            Statement::ReturnStatement { value, .. } => {
-                if let Some(expr) = value {
-                    self.analyze_expression(expr);
-                }
+            Statement::ReturnStatement { value: Some(expr), .. } => {
+                self.analyze_expression(expr);
+            },
+            Statement::ReturnStatement { value: None, .. } => {
             },
             _ => {
             }
