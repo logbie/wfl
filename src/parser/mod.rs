@@ -23,7 +23,7 @@ impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Program, Vec<ParseError>> {
         let mut program = Program::new();
 
-        while let Some(_) = self.tokens.peek() {
+        while self.tokens.peek().is_some() {
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(statement),
                 Err(error) => {
@@ -142,7 +142,7 @@ impl<'a> Parser<'a> {
 
     fn expect_token(&mut self, expected: Token, error_message: &str) -> Result<(), ParseError> {
         if let Some(token) = self.tokens.peek() {
-            if &token.token == &expected {
+            if token.token == expected {
                 self.tokens.next();
                 Ok(())
             } else {
@@ -439,48 +439,44 @@ impl<'a> Parser<'a> {
             };
             
             if let Ok(mut expr) = result {
-                loop {
-                    if let Some(token) = self.tokens.peek().cloned() {
-                        match &token.token {
-                            Token::Identifier(id) if id == "of" => {
-                                self.tokens.next(); // Consume "of"
-                                
-                                if let Some(prop_token) = self.tokens.peek().cloned() {
-                                    if let Token::Identifier(prop) = &prop_token.token {
-                                        self.tokens.next(); // Consume property name
-                                        expr = Expression::MemberAccess {
-                                            object: Box::new(expr),
-                                            property: prop.clone(),
-                                        };
-                                    } else {
-                                        return Err(ParseError::new(
-                                            format!("Expected identifier after 'of', found {:?}", prop_token.token),
-                                            prop_token.line,
-                                            prop_token.column,
-                                        ));
-                                    }
+                while let Some(token) = self.tokens.peek().cloned() {
+                    match &token.token {
+                        Token::Identifier(id) if id == "of" => {
+                            self.tokens.next(); // Consume "of"
+                            
+                            if let Some(prop_token) = self.tokens.peek().cloned() {
+                                if let Token::Identifier(prop) = &prop_token.token {
+                                    self.tokens.next(); // Consume property name
+                                    expr = Expression::MemberAccess {
+                                        object: Box::new(expr),
+                                        property: prop.clone(),
+                                    };
                                 } else {
                                     return Err(ParseError::new(
-                                        "Unexpected end of input after 'of'".to_string(),
-                                        token.line,
-                                        token.column,
+                                        format!("Expected identifier after 'of', found {:?}", prop_token.token),
+                                        prop_token.line,
+                                        prop_token.column,
                                     ));
                                 }
-                            },
-                            Token::KeywordAt => {
-                                self.tokens.next(); // Consume "at"
-                                
-                                let index = self.parse_expression()?;
-                                
-                                expr = Expression::IndexAccess {
-                                    collection: Box::new(expr),
-                                    index: Box::new(index),
-                                };
-                            },
-                            _ => break,
-                        }
-                    } else {
-                        break;
+                            } else {
+                                return Err(ParseError::new(
+                                    "Unexpected end of input after 'of'".to_string(),
+                                    token.line,
+                                    token.column,
+                                ));
+                            }
+                        },
+                        Token::KeywordAt => {
+                            self.tokens.next(); // Consume "at"
+                            
+                            let index = self.parse_expression()?;
+                            
+                            expr = Expression::IndexAccess {
+                                collection: Box::new(expr),
+                                index: Box::new(index),
+                            };
+                        },
+                        _ => break,
                     }
                 }
                 
@@ -769,14 +765,10 @@ impl<'a> Parser<'a> {
             if matches!(token.token, Token::KeywordWith) {
                 self.tokens.next(); // Consume "with"
                 
-                loop {
-                    let param_name = if let Some(token) = self.tokens.peek() {
-                        if let Token::Identifier(id) = &token.token {
-                            self.tokens.next();
-                            id.clone()
-                        } else {
-                            break;
-                        }
+                while let Some(token) = self.tokens.peek() {
+                    let param_name = if let Token::Identifier(id) = &token.token {
+                        self.tokens.next();
+                        id.clone()
                     } else {
                         break;
                     };
