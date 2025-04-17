@@ -1,9 +1,0 @@
-// Simple nested test
-
-// Nested collections
-set nested to:
-    "data" is set to:
-        "values" is [10, 20, 30]
-        "labels" is ["x", "y", "z"]
-    end set
-end set 
