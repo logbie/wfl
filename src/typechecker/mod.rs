@@ -117,6 +117,12 @@ impl TypeChecker {
             Statement::VariableDeclaration { name, value, line, column } => {
                 let inferred_type = self.infer_expression_type(value);
                 
+                let symbol_type_option = if let Some(symbol) = self.analyzer.get_symbol(name) {
+                    symbol.symbol_type.clone()
+                } else {
+                    None
+                };
+                
                 if let Some(symbol) = self.analyzer.get_symbol_mut(name) {
                     if symbol.symbol_type.is_none() {
                         if inferred_type == Type::Error {
@@ -129,18 +135,20 @@ impl TypeChecker {
                                 *column,
                             );
                         } else {
-                            symbol.symbol_type = Some(inferred_type);
+                            symbol.symbol_type = Some(inferred_type.clone());
                         }
-                    } else if let Some(declared_type) = &symbol.symbol_type {
-                        if !self.are_types_compatible(declared_type, &inferred_type) {
-                            self.type_error(
-                                format!("Cannot initialize variable '{}' with incompatible type", name),
-                                Some(declared_type.clone()),
-                                Some(inferred_type),
-                                *line,
-                                *column,
-                            );
-                        }
+                    }
+                }
+                
+                if let Some(declared_type) = symbol_type_option {
+                    if !self.are_types_compatible(&declared_type, &inferred_type) {
+                        self.type_error(
+                            format!("Cannot initialize variable '{}' with incompatible type", name),
+                            Some(declared_type),
+                            Some(inferred_type),
+                            *line,
+                            *column,
+                        );
                     }
                 }
             }
@@ -706,7 +714,7 @@ impl TypeChecker {
                         }
                     },
                     Type::Map(key_type, value_type) => {
-                        if !self.are_types_compatible(key_type, &index_type) {
+                        if !self.are_types_compatible(&key_type, &index_type) {
                             self.type_error(
                                 format!("Map key must be {}, got {}", key_type, index_type),
                                 Some(*key_type.clone()),
@@ -803,9 +811,9 @@ impl TypeChecker {
                     }
                 },
                 Statement::SingleLineIf { then_stmt, else_stmt, .. } => {
-                    self.check_return_statements(&[**then_stmt], expected_type, line, column);
+                    self.check_return_statements(&[then_stmt.clone()], expected_type, line, column);
                     if let Some(else_stmt) = else_stmt {
-                        self.check_return_statements(&[**else_stmt], expected_type, line, column);
+                        self.check_return_statements(&[else_stmt.clone()], expected_type, line, column);
                     }
                 },
                 Statement::ForEachLoop { body, .. } |
