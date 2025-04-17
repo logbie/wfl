@@ -230,9 +230,9 @@ pub enum Type {
         parameters: Vec<Type>,
         return_type: Box<Type>,
     },
-    Unknown,  // Used during type inference before a type is determined
-    Error,    // Used to mark expressions that have already failed type checking
-    Async(Box<Type>),  // For asynchronous operations returning a value of Type
+    Unknown,          // Used during type inference before a type is determined
+    Error,            // Used to mark expressions that have already failed type checking
+    Async(Box<Type>), // For asynchronous operations returning a value of Type
 }
 
 #[derive(Debug, Clone)]

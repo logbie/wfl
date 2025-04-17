@@ -125,7 +125,7 @@ fn main() -> io::Result<()> {
             match analyzer.analyze(&program) {
                 Ok(_) => {
                     println!("Semantic analysis passed.");
-                    
+
                     let mut type_checker = TypeChecker::new();
                     match type_checker.check_types(&program) {
                         Ok(_) => println!("Type checking passed."),
@@ -136,7 +136,7 @@ fn main() -> io::Result<()> {
                             }
                         }
                     }
-                },
+                }
                 Err(errors) => {
                     eprintln!("Semantic errors:");
                     for error in errors {
