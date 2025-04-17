@@ -51,8 +51,8 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
     let mut current_id_start_column = 0;
     let mut current_id_length = 0;
     
-    let mut line = 1;
-    let mut column = 1;
+    let mut _line = 1;
+    let mut _column = 1;
     let mut line_starts = vec![0];
     
     for (i, c) in input.char_indices() {
