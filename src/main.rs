@@ -134,10 +134,11 @@ fn main() -> io::Result<()> {
                         Ok(_) => {
                             println!("Type checking passed.");
 
-                            let script_dir = args.get(1)
+                            let script_dir = args
+                                .get(1)
                                 .map(|path| Path::new(path).parent().unwrap_or(Path::new(".")))
                                 .unwrap_or_else(|| Path::new("."));
-                            
+
                             println!("Script directory: {:?}", script_dir);
                             let timeout_secs = config::load_timeout(script_dir);
                             println!("Timeout seconds: {}", timeout_secs);

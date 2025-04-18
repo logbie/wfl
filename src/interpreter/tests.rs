@@ -160,5 +160,9 @@ fn test_timeout_forever_loop() {
         assert!(errors[0].message.contains("Execution exceeded timeout"));
     }
 
-    assert!(elapsed.as_millis() <= 1100, "Timeout took too long: {:?}", elapsed);
+    assert!(
+        elapsed.as_millis() <= 1100,
+        "Timeout took too long: {:?}",
+        elapsed
+    );
 }

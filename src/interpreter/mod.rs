@@ -57,8 +57,12 @@ impl Interpreter {
     fn check_time(&self) -> Result<(), RuntimeError> {
         if self.started.elapsed() > self.max_duration {
             Err(RuntimeError::new(
-                format!("Execution exceeded timeout ({}s)", self.max_duration.as_secs()),
-                0, 0
+                format!(
+                    "Execution exceeded timeout ({}s)",
+                    self.max_duration.as_secs()
+                ),
+                0,
+                0,
             ))
         } else {
             Ok(())
@@ -85,7 +89,7 @@ impl Interpreter {
                 errors.push(err);
                 return Err(errors);
             }
-            
+
             match self.execute_statement(statement, Rc::clone(&self.global_env)) {
                 Ok(value) => last_value = value,
                 Err(err) => errors.push(err),
@@ -112,7 +116,7 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.check_time()?;
-        
+
         match stmt {
             Statement::VariableDeclaration {
                 name,
@@ -274,7 +278,7 @@ impl Interpreter {
                     Box::new(|count, end_num| count <= end_num)
                 };
 
-                let max_iterations = if end_num > 1000000.0 { 
+                let max_iterations = if end_num > 1000000.0 {
                     u64::MAX // Effectively no limit for large end values, rely on timeout instead
                 } else {
                     10000 // Reasonable limit for normal loops
@@ -285,7 +289,7 @@ impl Interpreter {
 
                 while should_continue(count, end_num) && iterations < max_iterations {
                     self.check_time()?;
-                    
+
                     *self.current_count.borrow_mut() = Some(count);
 
                     match self.execute_block(body, Rc::clone(&loop_env)) {
@@ -452,7 +456,7 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.check_time()?;
-        
+
         match expr {
             Expression::Literal(literal, _line, _column) => match literal {
                 Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
