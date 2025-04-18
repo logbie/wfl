@@ -127,9 +127,9 @@ impl<'a> Parser<'a> {
                     }
                     
                     if has_read_pattern {
-                        return self.parse_open_file_read_statement();
+                        self.parse_open_file_read_statement()
                     } else {
-                        return self.parse_open_file_statement();
+                        self.parse_open_file_statement()
                     }
                 }
                 Token::KeywordWait => self.parse_wait_for_statement(),
@@ -1505,7 +1505,7 @@ impl<'a> Parser<'a> {
                 
                 let path_expr = if let Some(token) = self.tokens.peek() {
                     if let Token::StringLiteral(path_str) = &token.token {
-                        let token_clone = token.clone();
+                        let token_clone = token.to_owned();
                         self.tokens.next(); // Consume the string literal
                         Expression::Literal(
                             Literal::String(path_str.clone()),
@@ -1603,7 +1603,7 @@ impl<'a> Parser<'a> {
         
         let path_expr = if let Some(token) = self.tokens.peek() {
             if let Token::StringLiteral(path_str) = &token.token {
-                let token_clone = token.clone();
+                let token_clone = token.to_owned();
                 self.tokens.next(); // Consume the string literal
                 Expression::Literal(
                     Literal::String(path_str.clone()),

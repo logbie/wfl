@@ -8,7 +8,6 @@ use wfl::config;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 use wfl::typechecker::TypeChecker;
-use tokio;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {

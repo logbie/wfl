@@ -239,7 +239,15 @@ impl Interpreter {
         }
 
         if errors.is_empty() {
-            if let Some(Value::Function(main_func)) = self.global_env.borrow().get("main") {
+            let main_func_opt = {
+                if let Some(Value::Function(main_func)) = self.global_env.borrow().get("main") {
+                    Some(main_func.clone())
+                } else {
+                    None
+                }
+            };
+
+            if let Some(main_func) = main_func_opt {
                 match self.call_function(&main_func, vec![], 0, 0).await {
                     Ok(value) => last_value = value,
                     Err(err) => errors.push(err),
@@ -490,29 +498,32 @@ impl Interpreter {
 
                 match collection_val {
                     Value::List(list_rc) => {
-                        let list = list_rc.borrow();
-                        let indices: Vec<usize> = if *reversed {
-                            (0..list.len()).rev().collect()
-                        } else {
-                            (0..list.len()).collect()
+                        let items: Vec<Value> = {
+                            let list = list_rc.borrow();
+                            let indices: Vec<usize> = if *reversed {
+                                (0..list.len()).rev().collect()
+                            } else {
+                                (0..list.len()).collect()
+                            };
+                            indices.iter().map(|&i| list[i].clone()).collect()
                         };
 
-                        for i in indices {
-                            loop_env.borrow_mut().define(item_name, list[i].clone());
-
+                        for item in items {
+                            loop_env.borrow_mut().define(item_name, item);
                             self.execute_block(body, Rc::clone(&loop_env)).await?;
                         }
                     }
                     Value::Object(obj_rc) => {
-                        let obj = obj_rc.borrow();
-                        let keys: Vec<String> = obj.keys().cloned().collect();
+                        let items: Vec<(String, Value)> = {
+                            let obj = obj_rc.borrow();
+                            obj.iter()
+                                .map(|(k, v)| (k.clone(), v.clone()))
+                                .collect()
+                        };
 
-                        for key in keys {
-                            if let Some(value) = obj.get(&key) {
-                                loop_env.borrow_mut().define(item_name, value.clone());
-
-                                self.execute_block(body, Rc::clone(&loop_env)).await?;
-                            }
+                        for (_, value) in items {
+                            loop_env.borrow_mut().define(item_name, value);
+                            self.execute_block(body, Rc::clone(&loop_env)).await?;
                         }
                     }
                     _ => {
@@ -588,7 +599,7 @@ impl Interpreter {
                 
                 match self.io_client.open_file(&path_str).await {
                     Ok(handle) => {
-                        env.borrow_mut().define(&variable_name, Value::Text(handle.into()));
+                        env.borrow_mut().define(variable_name, Value::Text(handle.into()));
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -603,7 +614,7 @@ impl Interpreter {
                 
                 match self.io_client.read_file(&handle).await {
                     Ok(content) => {
-                        env.borrow_mut().define(&variable_name, Value::Text(content.into()));
+                        env.borrow_mut().define(variable_name, Value::Text(content.into()));
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
