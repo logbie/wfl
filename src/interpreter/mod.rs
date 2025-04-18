@@ -96,17 +96,16 @@ impl IoClient {
             }
         }
         
-        let mut file_handles = self.file_handles.borrow_mut();
-        let file_ref = file_handles.get_mut(handle_id).unwrap();
-        let clone_future = file_ref.try_clone();
-        drop(file_handles);
-        
-        let mut file_clone = match clone_future.await {
-            Ok(clone) => clone,
-            Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+        let file_clone = {
+            let mut file_handles = self.file_handles.borrow_mut();
+            match file_handles.get_mut(handle_id).unwrap().try_clone().await {
+                Ok(clone) => clone,
+                Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+            }
         };
         
         let mut contents = String::new();
+        let mut file_clone = file_clone; // Make it mutable for reading
         match AsyncReadExt::read_to_string(&mut file_clone, &mut contents).await {
             Ok(_) => Ok(contents),
             Err(e) => Err(format!("Failed to read file: {}", e)),
@@ -122,14 +121,12 @@ impl IoClient {
             }
         }
         
-        let mut file_handles = self.file_handles.borrow_mut();
-        let file_ref = file_handles.get_mut(handle_id).unwrap();
-        let clone_future = file_ref.try_clone();
-        drop(file_handles);
-        
-        let mut file_clone = match clone_future.await {
-            Ok(clone) => clone,
-            Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+        let file_clone = {
+            let mut file_handles = self.file_handles.borrow_mut();
+            match file_handles.get_mut(handle_id).unwrap().try_clone().await {
+                Ok(clone) => clone,
+                Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+            }
         };
         
         match AsyncSeekExt::seek(&mut file_clone, std::io::SeekFrom::Start(0)).await {
