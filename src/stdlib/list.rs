@@ -14,6 +14,7 @@ fn expect_list(value: &Value) -> Result<Rc<RefCell<Vec<Value>>>, RuntimeError> {
     }
 }
 
+#[allow(dead_code)]
 fn expect_number(value: &Value) -> Result<f64, RuntimeError> {
     match value {
         Value::Number(n) => Ok(*n),
