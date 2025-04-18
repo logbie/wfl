@@ -89,60 +89,62 @@ impl IoClient {
     
     #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
-        let mut file = {
-            let mut file_handles = self.file_handles.borrow_mut();
-            if let Some(file) = file_handles.get_mut(handle_id) {
-                match tokio::fs::File::try_clone(file) {
-                    Ok(clone) => Some(clone),
-                    Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
-                }
-            } else {
+        {
+            let file_handles = self.file_handles.borrow();
+            if !file_handles.contains_key(handle_id) {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
+        }
+        
+        let mut file_handles = self.file_handles.borrow_mut();
+        let file_ref = file_handles.get_mut(handle_id).unwrap();
+        let clone_future = file_ref.try_clone();
+        drop(file_handles);
+        
+        let mut file_clone = match clone_future.await {
+            Ok(clone) => clone,
+            Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
         };
         
-        if let Some(ref mut file) = file {
-            let mut contents = String::new();
-            match AsyncReadExt::read_to_string(file, &mut contents).await {
-                Ok(_) => Ok(contents),
-                Err(e) => Err(format!("Failed to read file: {}", e)),
-            }
-        } else {
-            Err(format!("Invalid file handle: {}", handle_id))
+        let mut contents = String::new();
+        match AsyncReadExt::read_to_string(&mut file_clone, &mut contents).await {
+            Ok(_) => Ok(contents),
+            Err(e) => Err(format!("Failed to read file: {}", e)),
         }
     }
     
     #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
-        let mut file = {
-            let mut file_handles = self.file_handles.borrow_mut();
-            if let Some(file) = file_handles.get_mut(handle_id) {
-                match tokio::fs::File::try_clone(file) {
-                    Ok(clone) => Some(clone),
-                    Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
-                }
-            } else {
+        {
+            let file_handles = self.file_handles.borrow();
+            if !file_handles.contains_key(handle_id) {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
+        }
+        
+        let mut file_handles = self.file_handles.borrow_mut();
+        let file_ref = file_handles.get_mut(handle_id).unwrap();
+        let clone_future = file_ref.try_clone();
+        drop(file_handles);
+        
+        let mut file_clone = match clone_future.await {
+            Ok(clone) => clone,
+            Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
         };
         
-        if let Some(ref mut file) = file {
-            match AsyncSeekExt::seek(file, std::io::SeekFrom::Start(0)).await {
-                Ok(_) => {
-                    match file.set_len(0).await {
-                        Ok(_) => {
-                            match AsyncWriteExt::write_all(file, content.as_bytes()).await {
-                                Ok(_) => Ok(()),
-                                Err(e) => Err(format!("Failed to write to file: {}", e)),
-                            }
-                        },
-                        Err(e) => Err(format!("Failed to truncate file: {}", e)),
-                    }
-                },
-                Err(e) => Err(format!("Failed to seek in file: {}", e)),
-            }
-        } else {
-            Err(format!("Invalid file handle: {}", handle_id))
+        match AsyncSeekExt::seek(&mut file_clone, std::io::SeekFrom::Start(0)).await {
+            Ok(_) => {
+                match file_clone.set_len(0).await {
+                    Ok(_) => {
+                        match AsyncWriteExt::write_all(&mut file_clone, content.as_bytes()).await {
+                            Ok(_) => Ok(()),
+                            Err(e) => Err(format!("Failed to write to file: {}", e)),
+                        }
+                    },
+                    Err(e) => Err(format!("Failed to truncate file: {}", e)),
+                }
+            },
+            Err(e) => Err(format!("Failed to seek in file: {}", e)),
         }
     }
     
