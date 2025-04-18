@@ -144,17 +144,16 @@ fn test_parse_expression() {
 
 #[test]
 fn test_parse_wait_for_open_file() {
-    
     {
         let input = r#"open file at "data.txt" and read content as content"#;
         let tokens = lex_wfl_with_positions(input);
         let mut parser = Parser::new(&tokens);
-        
+
         println!("Testing open file statement:");
         for (i, token) in tokens.iter().enumerate() {
             println!("{}: {:?}", i, token);
         }
-        
+
         let result = parser.parse_statement();
         if let Err(ref e) = result {
             println!("Parse error for open file: {:?}", e);
@@ -163,17 +162,17 @@ fn test_parse_wait_for_open_file() {
         }
         assert!(result.is_ok());
     }
-    
+
     {
         let input = r#"wait for open file at "data.txt" and read content as content"#;
         let tokens = lex_wfl_with_positions(input);
         let mut parser = Parser::new(&tokens);
-        
+
         println!("\nTesting wait for statement:");
         for (i, token) in tokens.iter().enumerate() {
             println!("{}: {:?}", i, token);
         }
-        
+
         let result = parser.parse_statement();
         if let Err(ref e) = result {
             println!("Parse error for wait for: {:?}", e);
@@ -181,9 +180,14 @@ fn test_parse_wait_for_open_file() {
             println!("Successfully parsed wait for statement");
         }
         assert!(result.is_ok());
-        
+
         if let Ok(Statement::WaitForStatement { inner, .. }) = result {
-            if let Statement::ReadFileStatement { path, variable_name, .. } = *inner {
+            if let Statement::ReadFileStatement {
+                path,
+                variable_name,
+                ..
+            } = *inner
+            {
                 if let Expression::Literal(Literal::String(s), ..) = path {
                     assert_eq!(s, "data.txt");
                 } else {

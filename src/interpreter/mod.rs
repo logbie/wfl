@@ -232,7 +232,10 @@ impl Interpreter {
                 return Err(errors);
             }
 
-            match self.execute_statement(statement, Rc::clone(&self.global_env)).await {
+            match self
+                .execute_statement(statement, Rc::clone(&self.global_env))
+                .await
+            {
                 Ok(value) => last_value = value,
                 Err(err) => errors.push(err),
             }
@@ -492,7 +495,9 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let collection_val = self.evaluate_expression(collection, Rc::clone(&env)).await?;
+                let collection_val = self
+                    .evaluate_expression(collection, Rc::clone(&env))
+                    .await?;
 
                 let loop_env = Environment::new(&env);
 
@@ -516,9 +521,7 @@ impl Interpreter {
                     Value::Object(obj_rc) => {
                         let items: Vec<(String, Value)> = {
                             let obj = obj_rc.borrow();
-                            obj.iter()
-                                .map(|(k, v)| (k.clone(), v.clone()))
-                                .collect()
+                            obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
                         };
 
                         for (_, value) in items {
@@ -545,7 +548,8 @@ impl Interpreter {
                 column: _column,
             } => {
                 while self
-                    .evaluate_expression(condition, Rc::clone(&env)).await?
+                    .evaluate_expression(condition, Rc::clone(&env))
+                    .await?
                     .is_truthy()
                 {
                     self.check_time()?;
@@ -564,7 +568,8 @@ impl Interpreter {
                     self.check_time()?;
                     self.execute_block(body, Rc::clone(&env)).await?;
                     if self
-                        .evaluate_expression(condition, Rc::clone(&env)).await?
+                        .evaluate_expression(condition, Rc::clone(&env))
+                        .await?
                         .is_truthy()
                     {
                         break;
@@ -590,41 +595,69 @@ impl Interpreter {
                 Ok(Value::Null)
             }
 
-            Statement::OpenFileStatement { path, variable_name, line, column } => {
+            Statement::OpenFileStatement {
+                path,
+                variable_name,
+                line,
+                column,
+            } => {
                 let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
                 let path_str = match &path_value {
                     Value::Text(s) => s.clone(),
-                    _ => return Err(RuntimeError::new(format!("Expected string for file path, got {:?}", path_value), *line, *column)),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Expected string for file path, got {:?}", path_value),
+                            *line,
+                            *column,
+                        ));
+                    }
                 };
-                
+
                 match self.io_client.open_file(&path_str).await {
                     Ok(handle) => {
-                        env.borrow_mut().define(variable_name, Value::Text(handle.into()));
+                        env.borrow_mut()
+                            .define(variable_name, Value::Text(handle.into()));
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
-            },
-            Statement::ReadFileStatement { path, variable_name, line, column } => {
+            }
+            Statement::ReadFileStatement {
+                path,
+                variable_name,
+                line,
+                column,
+            } => {
                 let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
                 let handle = match &path_value {
                     Value::Text(s) => s.clone(),
-                    _ => return Err(RuntimeError::new(format!("Expected string for file handle, got {:?}", path_value), *line, *column)),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Expected string for file handle, got {:?}", path_value),
+                            *line,
+                            *column,
+                        ));
+                    }
                 };
-                
+
                 match self.io_client.read_file(&handle).await {
                     Ok(content) => {
-                        env.borrow_mut().define(variable_name, Value::Text(content.into()));
+                        env.borrow_mut()
+                            .define(variable_name, Value::Text(content.into()));
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
-            },
-            Statement::WriteFileStatement { .. } | Statement::CloseFileStatement { .. } => Ok(Value::Null),
-            Statement::WaitForStatement { inner, line: _, column: _ } => {
-                self.execute_statement(inner, Rc::clone(&env)).await
-            },
-            Statement::TryStatement { .. } => Ok(Value::Null),     // TODO: Implement
+            }
+            Statement::WriteFileStatement { .. } | Statement::CloseFileStatement { .. } => {
+                Ok(Value::Null)
+            }
+            Statement::WaitForStatement {
+                inner,
+                line: _,
+                column: _,
+            } => self.execute_statement(inner, Rc::clone(&env)).await,
+            Statement::TryStatement { .. } => Ok(Value::Null), // TODO: Implement
             Statement::HttpGetStatement { .. } => Ok(Value::Null), // TODO: Implement
             Statement::HttpPostStatement { .. } => Ok(Value::Null), // TODO: Implement
         }
@@ -673,7 +706,9 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let value = self.evaluate_expression(expression, Rc::clone(&env)).await?;
+                let value = self
+                    .evaluate_expression(expression, Rc::clone(&env))
+                    .await?;
                 Ok(value)
             }
             Expression::Literal(literal, _line, _column) => match literal {
@@ -746,7 +781,9 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let value = self.evaluate_expression(expression, Rc::clone(&env)).await?;
+                let value = self
+                    .evaluate_expression(expression, Rc::clone(&env))
+                    .await?;
 
                 match operator {
                     UnaryOperator::Not => Ok(Value::Bool(!value.is_truthy())),
@@ -771,11 +808,16 @@ impl Interpreter {
 
                 let mut arg_values = Vec::new();
                 for arg in arguments {
-                    arg_values.push(self.evaluate_expression(&arg.value, Rc::clone(&env)).await?);
+                    arg_values.push(
+                        self.evaluate_expression(&arg.value, Rc::clone(&env))
+                            .await?,
+                    );
                 }
 
                 match function_val {
-                    Value::Function(func) => self.call_function(&func, arg_values, *line, *column).await,
+                    Value::Function(func) => {
+                        self.call_function(&func, arg_values, *line, *column).await
+                    }
                     Value::NativeFunction(native_fn) => native_fn(arg_values).map_err(|e| {
                         RuntimeError::new(
                             format!("Error in native function: {}", e),
@@ -826,7 +868,9 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let collection_val = self.evaluate_expression(collection, Rc::clone(&env)).await?;
+                let collection_val = self
+                    .evaluate_expression(collection, Rc::clone(&env))
+                    .await?;
                 let index_val = self.evaluate_expression(index, Rc::clone(&env)).await?;
 
                 match (collection_val, index_val) {
@@ -932,7 +976,9 @@ impl Interpreter {
             } => {
                 let text_val = self.evaluate_expression(text, Rc::clone(&env)).await?;
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
-                let replacement_val = self.evaluate_expression(replacement, Rc::clone(&env)).await?;
+                let replacement_val = self
+                    .evaluate_expression(replacement, Rc::clone(&env))
+                    .await?;
 
                 let args = vec![pattern_val, replacement_val, text_val]; // Note: pattern, replacement, then text
                 crate::stdlib::pattern::native_pattern_replace(args)

@@ -15,7 +15,10 @@ async fn test_literal_evaluation() {
 
     if let Some(stmt) = program.statements.first() {
         if let crate::parser::ast::Statement::ExpressionStatement { expression, .. } = stmt {
-            let result = interpreter.evaluate_expression(expression, env).await.unwrap();
+            let result = interpreter
+                .evaluate_expression(expression, env)
+                .await
+                .unwrap();
             match result {
                 Value::Number(n) => assert_eq!(n, 42.0),
                 _ => panic!("Expected number, got {:?}", result),
