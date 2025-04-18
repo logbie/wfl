@@ -24,6 +24,11 @@ pub fn register_stdlib_types(analyzer: &mut Analyzer) {
     register_pop(analyzer);
     register_list_contains(analyzer);
     register_indexof(analyzer);
+
+    register_pattern_matches(analyzer);
+    register_pattern_find(analyzer);
+    register_pattern_replace(analyzer);
+    register_pattern_split(analyzer);
 }
 
 fn register_print(analyzer: &mut Analyzer) {
@@ -167,4 +172,32 @@ fn register_indexof(analyzer: &mut Analyzer) {
     analyzer.register_builtin_function("indexof", param_types.clone(), return_type.clone());
 
     analyzer.register_builtin_function("index_of", param_types, return_type);
+}
+
+fn register_pattern_matches(analyzer: &mut Analyzer) {
+    let return_type = Type::Boolean;
+    let param_types = vec![Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("matches_pattern", param_types, return_type);
+}
+
+fn register_pattern_find(analyzer: &mut Analyzer) {
+    let return_type = Type::Map(Box::new(Type::Text), Box::new(Type::Text));
+    let param_types = vec![Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("find_pattern", param_types, return_type);
+}
+
+fn register_pattern_replace(analyzer: &mut Analyzer) {
+    let return_type = Type::Text;
+    let param_types = vec![Type::Text, Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("replace_pattern", param_types, return_type);
+}
+
+fn register_pattern_split(analyzer: &mut Analyzer) {
+    let return_type = Type::List(Box::new(Type::Text));
+    let param_types = vec![Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("split_by_pattern", param_types, return_type);
 }

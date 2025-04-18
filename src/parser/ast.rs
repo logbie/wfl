@@ -170,6 +170,31 @@ pub enum Expression {
         line: usize,
         column: usize,
     },
+    PatternMatch {
+        text: Box<Expression>,
+        pattern: Box<Expression>,
+        line: usize,
+        column: usize,
+    },
+    PatternFind {
+        text: Box<Expression>,
+        pattern: Box<Expression>,
+        line: usize,
+        column: usize,
+    },
+    PatternReplace {
+        text: Box<Expression>,
+        pattern: Box<Expression>,
+        replacement: Box<Expression>,
+        line: usize,
+        column: usize,
+    },
+    PatternSplit {
+        text: Box<Expression>,
+        pattern: Box<Expression>,
+        line: usize,
+        column: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -179,6 +204,7 @@ pub enum Literal {
     Float(f64),
     Boolean(bool),
     Nothing,
+    Pattern(String),
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -562,6 +562,7 @@ impl TypeChecker {
                 Literal::Float(_) => Type::Number,
                 Literal::Boolean(_) => Type::Boolean,
                 Literal::Nothing => Type::Nothing,
+                Literal::Pattern(_) => Type::Text,
             },
             Expression::Variable(name, line, column) => {
                 if let Some(symbol) = self.analyzer.get_symbol(name) {
@@ -998,6 +999,126 @@ impl TypeChecker {
                     );
                     Type::Error
                 }
+            }
+            Expression::PatternMatch { text, pattern, .. } => {
+                let text_type = self.infer_expression_type(text);
+                let pattern_type = self.infer_expression_type(pattern);
+
+                if text_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern matching, got {}", text_type),
+                        Some(Type::Text),
+                        Some(text_type),
+                        0,
+                        0,
+                    );
+                }
+
+                if pattern_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern, got {}", pattern_type),
+                        Some(Type::Text),
+                        Some(pattern_type),
+                        0,
+                        0,
+                    );
+                }
+
+                Type::Boolean
+            }
+            Expression::PatternFind { text, pattern, .. } => {
+                let text_type = self.infer_expression_type(text);
+                let pattern_type = self.infer_expression_type(pattern);
+
+                if text_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern finding, got {}", text_type),
+                        Some(Type::Text),
+                        Some(text_type),
+                        0,
+                        0,
+                    );
+                }
+
+                if pattern_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern, got {}", pattern_type),
+                        Some(Type::Text),
+                        Some(pattern_type),
+                        0,
+                        0,
+                    );
+                }
+
+                Type::Map(Box::new(Type::Text), Box::new(Type::Text))
+            }
+            Expression::PatternReplace {
+                text,
+                pattern,
+                replacement,
+                ..
+            } => {
+                let text_type = self.infer_expression_type(text);
+                let pattern_type = self.infer_expression_type(pattern);
+                let replacement_type = self.infer_expression_type(replacement);
+
+                if text_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern replacement, got {}", text_type),
+                        Some(Type::Text),
+                        Some(text_type),
+                        0,
+                        0,
+                    );
+                }
+
+                if pattern_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern, got {}", pattern_type),
+                        Some(Type::Text),
+                        Some(pattern_type),
+                        0,
+                        0,
+                    );
+                }
+
+                if replacement_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for replacement, got {}", replacement_type),
+                        Some(Type::Text),
+                        Some(replacement_type),
+                        0,
+                        0,
+                    );
+                }
+
+                Type::Text
+            }
+            Expression::PatternSplit { text, pattern, .. } => {
+                let text_type = self.infer_expression_type(text);
+                let pattern_type = self.infer_expression_type(pattern);
+
+                if text_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern splitting, got {}", text_type),
+                        Some(Type::Text),
+                        Some(text_type),
+                        0,
+                        0,
+                    );
+                }
+
+                if pattern_type != Type::Text {
+                    self.type_error(
+                        format!("Expected Text for pattern, got {}", pattern_type),
+                        Some(Type::Text),
+                        Some(pattern_type),
+                        0,
+                        0,
+                    );
+                }
+
+                Type::List(Box::new(Type::Text))
             }
         }
     }

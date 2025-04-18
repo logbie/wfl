@@ -580,6 +580,28 @@ impl Analyzer {
                 self.analyze_expression(left);
                 self.analyze_expression(right);
             }
+            Expression::PatternMatch { text, pattern, .. } => {
+                self.analyze_expression(text);
+                self.analyze_expression(pattern);
+            }
+            Expression::PatternFind { text, pattern, .. } => {
+                self.analyze_expression(text);
+                self.analyze_expression(pattern);
+            }
+            Expression::PatternReplace {
+                text,
+                pattern,
+                replacement,
+                ..
+            } => {
+                self.analyze_expression(text);
+                self.analyze_expression(pattern);
+                self.analyze_expression(replacement);
+            }
+            Expression::PatternSplit { text, pattern, .. } => {
+                self.analyze_expression(text);
+                self.analyze_expression(pattern);
+            }
             Expression::Literal(_, _, _) => {}
         }
     }
