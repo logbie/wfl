@@ -496,10 +496,7 @@ impl<'a> Parser<'a> {
                                     
                                     // In member access: "property of object", the left side is usually a property name
                                     
-                                    let is_function_call = match expr {
-                                        Expression::Variable(_, _, _) | Expression::FunctionCall { .. } => true,
-                                        _ => false,
-                                    };
+                                    let is_function_call = matches!(expr, Expression::Variable(_, _, _) | Expression::FunctionCall { .. });
                                     
                                     if is_function_call {
                                         let mut arguments = Vec::new();
