@@ -2,8 +2,10 @@
 """
 WFL File Combiner
 
-This script combines multiple markdown (.md) files from the Docs directory or Rust (.rs) files from the src directory into a single markdown file.
-Original files are preserved.
+This script combines multiple markdown (.md) files from the Docs directory or Rust (.rs) files from the src directory into a single markdown file
+and a matching text file. Original files are preserved.
+
+The script outputs to both .md and .txt formats by default, unless the --no-txt option is specified.
 
 Author: WFL Team
 """
@@ -18,7 +20,7 @@ import re
 def parse_arguments():
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="WFL File Combiner - Combine multiple files into one markdown file"
+        description="WFL File Combiner - Combine multiple files into markdown and text files"
     )
     parser.add_argument(
         "-o", "--output",
@@ -62,6 +64,11 @@ def parse_arguments():
         "-a", "--all-files",
         action="store_true",
         help="Include all .md files in Docs, not just those with 'wfl-' in the name"
+    )
+    parser.add_argument(
+        "--no-txt",
+        action="store_true",
+        help="Disable output to .txt format (by default outputs to both .md and .txt)"
     )
     return parser.parse_args()
 
@@ -201,21 +208,38 @@ def main():
     print("Combining files...")
     content, count = generate_combined_content(files, args.type, args.toc, args.header_level, args.separator)
 
-    # Set output file, creating combined directory if necessary
+    # Set output files, creating combined directory if necessary
     if args.output is None:
         combined_dir = os.path.join(project_root, "combined")
         os.makedirs(combined_dir, exist_ok=True)
         if args.type == "docs":
-            output_file = os.path.join(combined_dir, "docs.md")
+            md_output_file = os.path.join(combined_dir, "docs.md")
+            txt_output_file = os.path.join(combined_dir, "docs.txt")
         elif args.type == "src":
-            output_file = os.path.join(combined_dir, "src.md")
+            md_output_file = os.path.join(combined_dir, "src.md")
+            txt_output_file = os.path.join(combined_dir, "src.txt")
     else:
-        output_file = args.output
+        md_output_file = args.output
+        # Generate txt output file path by replacing or adding .txt extension
+        base, ext = os.path.splitext(args.output)
+        txt_output_file = base + ".txt"
+    
+    # Create directory for output files if it doesn't exist
+    output_dir = os.path.dirname(md_output_file)
+    if output_dir and not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
 
-    # Write the combined content to the output file
-    with open(output_file, 'w', encoding='utf-8') as f:
+    # Write the combined content to the output files
+    with open(md_output_file, 'w', encoding='utf-8') as f:
         f.write(content)
-    print(f"Successfully combined {count} files into {output_file}.")
+    
+    # Write to txt file unless --no-txt is specified
+    if not args.no_txt:
+        with open(txt_output_file, 'w', encoding='utf-8') as f:
+            f.write(content)
+        print(f"Successfully combined {count} files into {md_output_file} and {txt_output_file}.")
+    else:
+        print(f"Successfully combined {count} files into {md_output_file}.")
     print(f"WFL File Combiner - Completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 if __name__ == "__main__":
