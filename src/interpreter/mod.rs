@@ -17,6 +17,7 @@ use std::collections::HashMap;
 use tokio::io::AsyncReadExt;
 use tokio::io::AsyncWriteExt;
 use tokio::io::AsyncSeekExt;
+use tokio::sync::Mutex;
 // use self::value::FutureValue;
 
 pub struct Interpreter {
@@ -32,14 +33,14 @@ pub struct Interpreter {
 #[allow(dead_code)]
 pub struct IoClient {
     http_client: reqwest::Client,
-    file_handles: RefCell<HashMap<String, tokio::fs::File>>,
+    file_handles: Mutex<HashMap<String, tokio::fs::File>>,
 }
 
 impl IoClient {
     fn new() -> Self {
         Self {
             http_client: reqwest::Client::new(),
-            file_handles: RefCell::new(HashMap::new()),
+            file_handles: Mutex::new(HashMap::new()),
         }
     }
     
@@ -80,7 +81,8 @@ impl IoClient {
             .truncate(true)
             .open(path).await {
                 Ok(file) => {
-                    self.file_handles.borrow_mut().insert(handle_id.clone(), file);
+                    let mut file_handles = self.file_handles.lock().await;
+                    file_handles.insert(handle_id.clone(), file);
                     Ok(handle_id)
                 },
                 Err(e) => Err(format!("Failed to open file {}: {}", path, e)),
@@ -90,22 +92,22 @@ impl IoClient {
     #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
         {
-            let file_handles = self.file_handles.borrow();
+            let file_handles = self.file_handles.lock().await;
             if !file_handles.contains_key(handle_id) {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
         }
         
-        let file_clone = {
-            let mut file_handles = self.file_handles.borrow_mut();
-            match file_handles.get_mut(handle_id).unwrap().try_clone().await {
+        let mut file_clone = {
+            let mut file_handles = self.file_handles.lock().await;
+            let file = file_handles.get_mut(handle_id).unwrap();
+            match file.try_clone().await {
                 Ok(clone) => clone,
                 Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
             }
         };
         
         let mut contents = String::new();
-        let mut file_clone = file_clone; // Make it mutable for reading
         match AsyncReadExt::read_to_string(&mut file_clone, &mut contents).await {
             Ok(_) => Ok(contents),
             Err(e) => Err(format!("Failed to read file: {}", e)),
@@ -115,15 +117,16 @@ impl IoClient {
     #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
         {
-            let file_handles = self.file_handles.borrow();
+            let file_handles = self.file_handles.lock().await;
             if !file_handles.contains_key(handle_id) {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
         }
         
         let mut file_clone = {
-            let mut file_handles = self.file_handles.borrow_mut();
-            match file_handles.get_mut(handle_id).unwrap().try_clone().await {
+            let mut file_handles = self.file_handles.lock().await;
+            let file = file_handles.get_mut(handle_id).unwrap();
+            match file.try_clone().await {
                 Ok(clone) => clone,
                 Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
             }
@@ -146,8 +149,8 @@ impl IoClient {
     }
     
     #[allow(dead_code)]
-    fn close_file(&self, handle_id: &str) -> Result<(), String> {
-        let mut file_handles = self.file_handles.borrow_mut();
+    async fn close_file(&self, handle_id: &str) -> Result<(), String> {
+        let mut file_handles = self.file_handles.lock().await;
         
         if file_handles.remove(handle_id).is_some() {
             Ok(())
