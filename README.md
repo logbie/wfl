@@ -12,8 +12,10 @@ The WFL compiler is currently under development. Here's the current status:
 
 - ✅ **Lexer**: Complete - Converts source code into tokens
 - ✅ **Parser**: Complete - Transforms tokens into an Abstract Syntax Tree (AST)
+  - ✅ Enhanced to support natural language function calls (e.g., `typeof of value`)
 - ✅ **Semantic Analyzer**: Complete - Analyzes the AST for semantic correctness
 - ✅ **Type Checker**: Complete - Performs static type analysis on the AST
+- ✅ **Standard Library**: Complete - Core functions, math, text, and list operations
 - 🔄 **Interpreter**: In Progress - Will execute the AST directly
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
 - 🔄 **Virtual Machine**: Planned - Will execute bytecode instructions
@@ -63,6 +65,34 @@ Or, after building:
 ./target/debug/wfl path/to/your/program.wfl
 ```
 
+## Standard Library
+
+WFL includes a comprehensive standard library with the following modules:
+
+### Core Module
+- `print`: Outputs text to the console
+- `typeof`: Returns the type of a value as text
+- `isnothing`: Checks if a value is nothing (null)
+
+### Math Module
+- `abs`: Returns the absolute value of a number
+- `round`, `floor`, `ceil`: Rounding functions
+- `random`: Generates a random number between 0 and 1
+- `clamp`: Constrains a value between a minimum and maximum
+
+### Text Module
+- `length`: Returns the length of a text string
+- `touppercase`, `tolowercase`: Case conversion functions
+- `contains`: Checks if a text string contains another string
+- `substring`: Extracts a portion of a text string
+
+### List Module
+- `length`: Returns the number of items in a list
+- `push`: Adds an item to the end of a list
+- `pop`: Removes and returns the last item from a list
+- `contains`: Checks if a list contains a specific item
+- `indexof`: Returns the position of an item in a list
+
 ## Example WFL Program
 
 ```
@@ -78,6 +108,11 @@ end check
 count from 1 to 5:
   display "Counting: " with the current count
 end count
+
+// Using standard library functions
+store my list as [1, 2, 3, 4, 5]
+display "List length: " with length of my list
+display "Type of list: " with typeof of my list
 ```
 
 ## Project Structure
@@ -88,6 +123,7 @@ end count
   - `analyzer/`: Semantic analyzer
   - `typechecker/`: Static type checker
   - `interpreter/`: Runtime interpreter (in progress)
+  - `stdlib/`: Standard library implementation
   - `bytecode/`: Bytecode compiler (planned)
 - `Docs/`: Documentation
   - `wfl-spec.md`: Language specification
