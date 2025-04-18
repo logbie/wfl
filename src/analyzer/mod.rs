@@ -101,143 +101,6 @@ impl fmt::Display for SemanticError {
 
 impl std::error::Error for SemanticError {}
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::parser::ast::{Argument, Expression, Literal, Parameter, Program, Statement, Type};
-
-    #[test]
-    fn test_variable_declaration_and_usage() {
-        let program = Program {
-            statements: vec![
-                Statement::VariableDeclaration {
-                    name: "x".to_string(),
-                    value: Expression::Literal(Literal::Integer(10), 1, 1),
-                    line: 1,
-                    column: 1,
-                },
-                Statement::DisplayStatement {
-                    value: Expression::Variable("x".to_string(), 2, 9),
-                    line: 2,
-                    column: 1,
-                },
-            ],
-        };
-
-        let mut analyzer = Analyzer::new();
-        let result = analyzer.analyze(&program);
-        assert!(result.is_ok(), "Expected no semantic errors");
-    }
-
-    #[test]
-    fn test_undefined_variable() {
-        let program = Program {
-            statements: vec![Statement::DisplayStatement {
-                value: Expression::Variable("x".to_string(), 1, 9),
-                line: 1,
-                column: 1,
-            }],
-        };
-
-        let mut analyzer = Analyzer::new();
-        let result = analyzer.analyze(&program);
-        assert!(
-            result.is_err(),
-            "Expected semantic error for undefined variable"
-        );
-
-        let errors = analyzer.get_errors();
-        assert_eq!(errors.len(), 1);
-        assert!(errors[0].message.contains("not defined"));
-    }
-
-    #[test]
-    fn test_function_definition_and_call() {
-        let program = Program {
-            statements: vec![
-                Statement::ActionDefinition {
-                    name: "greet".to_string(),
-                    parameters: vec![Parameter {
-                        name: "name".to_string(),
-                        param_type: Some(Type::Text),
-                        default_value: None,
-                    }],
-                    body: vec![Statement::DisplayStatement {
-                        value: Expression::Variable("name".to_string(), 2, 5),
-                        line: 2,
-                        column: 5,
-                    }],
-                    return_type: None,
-                    line: 1,
-                    column: 1,
-                },
-                Statement::ExpressionStatement {
-                    expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
-                        arguments: vec![Argument {
-                            name: None,
-                            value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
-                        }],
-                        line: 3,
-                        column: 1,
-                    },
-                    line: 3,
-                    column: 1,
-                },
-            ],
-        };
-
-        let mut analyzer = Analyzer::new();
-        let result = analyzer.analyze(&program);
-        assert!(result.is_ok(), "Expected no semantic errors");
-    }
-
-    #[test]
-    fn test_function_call_wrong_args() {
-        let program = Program {
-            statements: vec![
-                Statement::ActionDefinition {
-                    name: "greet".to_string(),
-                    parameters: vec![Parameter {
-                        name: "name".to_string(),
-                        param_type: Some(Type::Text),
-                        default_value: None,
-                    }],
-                    body: vec![],
-                    return_type: None,
-                    line: 1,
-                    column: 1,
-                },
-                Statement::ExpressionStatement {
-                    expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 2, 1)),
-                        arguments: vec![], // No arguments provided
-                        line: 2,
-                        column: 1,
-                    },
-                    line: 2,
-                    column: 1,
-                },
-            ],
-        };
-
-        let mut analyzer = Analyzer::new();
-        let result = analyzer.analyze(&program);
-        assert!(
-            result.is_err(),
-            "Expected semantic error for wrong number of arguments"
-        );
-
-        let errors = analyzer.get_errors();
-        assert_eq!(errors.len(), 1);
-        assert!(
-            errors[0]
-                .message
-                .contains("expects 1 arguments, but 0 were provided")
-        );
-    }
-}
-
 pub struct Analyzer {
     current_scope: Scope,
     errors: Vec<SemanticError>,
@@ -686,5 +549,142 @@ impl Analyzer {
             }
             Expression::Literal(_, _, _) => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::parser::ast::{Argument, Expression, Literal, Parameter, Program, Statement, Type};
+
+    #[test]
+    fn test_variable_declaration_and_usage() {
+        let program = Program {
+            statements: vec![
+                Statement::VariableDeclaration {
+                    name: "x".to_string(),
+                    value: Expression::Literal(Literal::Integer(10), 1, 1),
+                    line: 1,
+                    column: 1,
+                },
+                Statement::DisplayStatement {
+                    value: Expression::Variable("x".to_string(), 2, 9),
+                    line: 2,
+                    column: 1,
+                },
+            ],
+        };
+
+        let mut analyzer = Analyzer::new();
+        let result = analyzer.analyze(&program);
+        assert!(result.is_ok(), "Expected no semantic errors");
+    }
+
+    #[test]
+    fn test_undefined_variable() {
+        let program = Program {
+            statements: vec![Statement::DisplayStatement {
+                value: Expression::Variable("x".to_string(), 1, 9),
+                line: 1,
+                column: 1,
+            }],
+        };
+
+        let mut analyzer = Analyzer::new();
+        let result = analyzer.analyze(&program);
+        assert!(
+            result.is_err(),
+            "Expected semantic error for undefined variable"
+        );
+
+        let errors = analyzer.get_errors();
+        assert_eq!(errors.len(), 1);
+        assert!(errors[0].message.contains("not defined"));
+    }
+
+    #[test]
+    fn test_function_definition_and_call() {
+        let program = Program {
+            statements: vec![
+                Statement::ActionDefinition {
+                    name: "greet".to_string(),
+                    parameters: vec![Parameter {
+                        name: "name".to_string(),
+                        param_type: Some(Type::Text),
+                        default_value: None,
+                    }],
+                    body: vec![Statement::DisplayStatement {
+                        value: Expression::Variable("name".to_string(), 2, 5),
+                        line: 2,
+                        column: 5,
+                    }],
+                    return_type: None,
+                    line: 1,
+                    column: 1,
+                },
+                Statement::ExpressionStatement {
+                    expression: Expression::FunctionCall {
+                        function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
+                        arguments: vec![Argument {
+                            name: None,
+                            value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
+                        }],
+                        line: 3,
+                        column: 1,
+                    },
+                    line: 3,
+                    column: 1,
+                },
+            ],
+        };
+
+        let mut analyzer = Analyzer::new();
+        let result = analyzer.analyze(&program);
+        assert!(result.is_ok(), "Expected no semantic errors");
+    }
+
+    #[test]
+    fn test_function_call_wrong_args() {
+        let program = Program {
+            statements: vec![
+                Statement::ActionDefinition {
+                    name: "greet".to_string(),
+                    parameters: vec![Parameter {
+                        name: "name".to_string(),
+                        param_type: Some(Type::Text),
+                        default_value: None,
+                    }],
+                    body: vec![],
+                    return_type: None,
+                    line: 1,
+                    column: 1,
+                },
+                Statement::ExpressionStatement {
+                    expression: Expression::FunctionCall {
+                        function: Box::new(Expression::Variable("greet".to_string(), 2, 1)),
+                        arguments: vec![], // No arguments provided
+                        line: 2,
+                        column: 1,
+                    },
+                    line: 2,
+                    column: 1,
+                },
+            ],
+        };
+
+        let mut analyzer = Analyzer::new();
+        let result = analyzer.analyze(&program);
+        assert!(
+            result.is_err(),
+            "Expected semantic error for wrong number of arguments"
+        );
+
+        let errors = analyzer.get_errors();
+        assert_eq!(errors.len(), 1);
+        assert!(
+            errors[0]
+                .message
+                .contains("expects 1 arguments, but 0 were provided")
+        );
     }
 }
