@@ -451,8 +451,13 @@ impl Analyzer {
     pub fn get_symbol_mut(&mut self, name: &str) -> Option<&mut Symbol> {
         self.current_scope.symbols.get_mut(name)
     }
-    
-    pub fn register_builtin_function(&mut self, name: &str, param_types: Vec<Type>, return_type: Type) {
+
+    pub fn register_builtin_function(
+        &mut self,
+        name: &str,
+        param_types: Vec<Type>,
+        return_type: Type,
+    ) {
         let parameters = param_types
             .iter()
             .enumerate()
@@ -462,7 +467,7 @@ impl Analyzer {
                 default_value: None,
             })
             .collect();
-            
+
         let symbol = Symbol {
             name: name.to_string(),
             kind: SymbolKind::Function {
@@ -476,7 +481,7 @@ impl Analyzer {
             line: 0,
             column: 0,
         };
-        
+
         let _ = self.current_scope.define(symbol);
     }
 
