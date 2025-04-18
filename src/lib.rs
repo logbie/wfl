@@ -2,6 +2,9 @@ pub mod analyzer;
 pub mod lexer;
 pub mod parser;
 pub mod typechecker;
+pub mod interpreter;
+
+pub use interpreter::Interpreter;
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right

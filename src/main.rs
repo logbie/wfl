@@ -5,6 +5,7 @@ use wfl::analyzer::Analyzer;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 use wfl::typechecker::TypeChecker;
+use wfl::Interpreter;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -128,7 +129,20 @@ fn main() -> io::Result<()> {
 
                     let mut type_checker = TypeChecker::new();
                     match type_checker.check_types(&program) {
-                        Ok(_) => println!("Type checking passed."),
+                        Ok(_) => {
+                            println!("Type checking passed.");
+                            
+                            let mut interpreter = Interpreter::new();
+                            match interpreter.interpret(&program) {
+                                Ok(result) => println!("Execution completed successfully. Result: {:?}", result),
+                                Err(errors) => {
+                                    eprintln!("Runtime errors:");
+                                    for error in errors {
+                                        eprintln!("{}", error);
+                                    }
+                                }
+                            }
+                        },
                         Err(errors) => {
                             eprintln!("Type errors:");
                             for error in errors {
