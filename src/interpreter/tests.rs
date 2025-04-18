@@ -102,3 +102,24 @@ fn test_function_definition_and_call() {
     }
 }
 */
+
+#[test]
+fn test_count_loop_with_direct_access() {
+    let mut interpreter = Interpreter::new();
+
+    let source = "
+    count from 1 to 5:
+        display \"Count: \" with count
+    end count
+    ";
+    let tokens = lex_wfl_with_positions(source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+
+    let result = interpreter.interpret(&program).unwrap();
+
+    match result {
+        Value::Null => {}
+        _ => panic!("Expected null, got {:?}", result),
+    }
+}

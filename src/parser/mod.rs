@@ -467,6 +467,16 @@ impl<'a> Parser<'a> {
                     let expr = self.parse_expression()?;
                     Ok(expr)
                 }
+                Token::KeywordCount => {
+                    self.tokens.next(); // Consume "count"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "count".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
                 _ => Err(ParseError::new(
                     format!("Unexpected token in expression: {:?}", token.token),
                     token.line,
