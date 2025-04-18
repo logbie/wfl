@@ -9,10 +9,16 @@ use std::cell::RefCell;
 use crate::parser::ast::{Program, Statement, Expression, Literal, Operator, UnaryOperator};
 use self::environment::Environment;
 use self::error::RuntimeError;
-use self::value::{Value, FunctionValue, NativeFunction};
+use self::value::{Value, FunctionValue};
 
 pub struct Interpreter {
     global_env: Rc<RefCell<Environment>>,
+}
+
+impl Default for Interpreter {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl Interpreter {
@@ -65,7 +71,7 @@ impl Interpreter {
     
     fn execute_statement(&self, stmt: &Statement, env: Rc<RefCell<Environment>>) -> Result<Value, RuntimeError> {
         match stmt {
-            Statement::VariableDeclaration { name, value, line, column } => {
+            Statement::VariableDeclaration { name, value, line: _, column: _ } => {
                 let value = self.evaluate_expression(value, Rc::clone(&env))?;
                 env.borrow_mut().define(name, value);
                 Ok(Value::Null)

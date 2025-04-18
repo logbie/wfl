@@ -36,7 +36,7 @@ impl Environment {
             if let Some(parent) = parent_weak.upgrade() {
                 parent.borrow_mut().assign(name, value)
             } else {
-                Err(format!("Parent environment no longer exists"))
+                Err("Parent environment no longer exists".to_string())
             }
         } else {
             Err(format!("Undefined variable '{}'", name))
