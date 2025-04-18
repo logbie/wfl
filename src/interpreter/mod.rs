@@ -115,7 +115,7 @@ impl Interpreter {
                 Ok(Value::Null)
             },
             
-            Statement::ActionDefinition { name, parameters, body, return_type: _return_type, line: _line, column: _column } => {
+            Statement::ActionDefinition { name, parameters, body, return_type: _return_type, line, column } => {
                 let param_names: Vec<String> = parameters.iter().map(|p| p.name.clone()).collect();
                 
                 let function = FunctionValue {
@@ -145,7 +145,7 @@ impl Interpreter {
                 self.evaluate_expression(expression, Rc::clone(&env))
             },
             
-            Statement::CountLoop { start, end, step, downward, body, line: _line, column: _column } => {
+            Statement::CountLoop { start, end, step, downward, body, line, column } => {
                 let start_val = self.evaluate_expression(start, Rc::clone(&env))?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env))?;
                 
