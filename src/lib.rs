@@ -5,6 +5,7 @@ pub mod lexer;
 pub mod parser;
 pub mod stdlib;
 pub mod typechecker;
+pub mod repl;
 
 pub use interpreter::Interpreter;
 

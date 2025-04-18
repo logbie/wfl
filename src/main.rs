@@ -1,23 +1,26 @@
 use std::env;
 use std::fs;
-use std::io::{self, Read};
+use std::io;
 use std::path::Path;
 use wfl::Interpreter;
 use wfl::analyzer::Analyzer;
 use wfl::config;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
+use wfl::repl;
 use wfl::typechecker::TypeChecker;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    let input = if args.len() > 1 {
-        fs::read_to_string(&args[1])?
-    } else {
-        let mut buffer = String::new();
-        io::stdin().read_to_string(&mut buffer)?;
-        buffer
-    };
+    
+    if args.len() == 1 {
+        if let Err(e) = repl::run_repl() {
+            eprintln!("REPL error: {}", e);
+        }
+        return Ok(());
+    }
+    
+    let input = fs::read_to_string(&args[1])?;
 
     let tokens = lex_wfl(&input);
     let tokens_with_pos = lex_wfl_with_positions(&input);
