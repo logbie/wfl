@@ -11,11 +11,14 @@ use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, Unar
 use crate::stdlib;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::{Duration, Instant};
 
 pub struct Interpreter {
     global_env: Rc<RefCell<Environment>>,
     current_count: RefCell<Option<f64>>,
     in_count_loop: RefCell<bool>,
+    started: Instant,
+    max_duration: Duration,
 }
 
 impl Default for Interpreter {
@@ -39,6 +42,26 @@ impl Interpreter {
             global_env,
             current_count: RefCell::new(None),
             in_count_loop: RefCell::new(false),
+            started: Instant::now(),
+            max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
+        }
+    }
+
+    pub fn with_timeout(seconds: u64) -> Self {
+        let mut interpreter = Self::new();
+        interpreter.started = Instant::now();
+        interpreter.max_duration = Duration::from_secs(seconds);
+        interpreter
+    }
+
+    fn check_time(&self) -> Result<(), RuntimeError> {
+        if self.started.elapsed() > self.max_duration {
+            Err(RuntimeError::new(
+                format!("Execution exceeded timeout ({}s)", self.max_duration.as_secs()),
+                0, 0
+            ))
+        } else {
+            Ok(())
         }
     }
 
@@ -58,6 +81,11 @@ impl Interpreter {
         let mut errors = Vec::new();
 
         for statement in &program.statements {
+            if let Err(err) = self.check_time() {
+                errors.push(err);
+                return Err(errors);
+            }
+            
             match self.execute_statement(statement, Rc::clone(&self.global_env)) {
                 Ok(value) => last_value = value,
                 Err(err) => errors.push(err),
@@ -83,6 +111,8 @@ impl Interpreter {
         stmt: &Statement,
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
+        self.check_time()?;
+        
         match stmt {
             Statement::VariableDeclaration {
                 name,
@@ -244,12 +274,18 @@ impl Interpreter {
                     Box::new(|count, end_num| count <= end_num)
                 };
 
-                let max_iterations = 10000; // Reasonable limit for most loops
+                let max_iterations = if end_num > 1000000.0 { 
+                    u64::MAX // Effectively no limit for large end values, rely on timeout instead
+                } else {
+                    10000 // Reasonable limit for normal loops
+                };
                 let mut iterations = 0;
 
                 *self.in_count_loop.borrow_mut() = true;
 
                 while should_continue(count, end_num) && iterations < max_iterations {
+                    self.check_time()?;
+                    
                     *self.current_count.borrow_mut() = Some(count);
 
                     match self.execute_block(body, Rc::clone(&loop_env)) {
@@ -347,6 +383,7 @@ impl Interpreter {
                     .evaluate_expression(condition, Rc::clone(&env))?
                     .is_truthy()
                 {
+                    self.check_time()?;
                     self.execute_block(body, Rc::clone(&env))?;
                 }
                 Ok(Value::Null)
@@ -359,6 +396,7 @@ impl Interpreter {
                 column: _column,
             } => {
                 loop {
+                    self.check_time()?;
                     self.execute_block(body, Rc::clone(&env))?;
                     if self
                         .evaluate_expression(condition, Rc::clone(&env))?
@@ -376,6 +414,7 @@ impl Interpreter {
                 column: _column,
             } => {
                 loop {
+                    self.check_time()?;
                     self.execute_block(body, Rc::clone(&env))?;
                 }
                 #[allow(unreachable_code)]
@@ -412,6 +451,8 @@ impl Interpreter {
         expr: &Expression,
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
+        self.check_time()?;
+        
         match expr {
             Expression::Literal(literal, _line, _column) => match literal {
                 Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),

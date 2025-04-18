@@ -1,8 +1,10 @@
 use std::env;
 use std::fs;
 use std::io::{self, Read};
+use std::path::{Path, PathBuf};
 use wfl::Interpreter;
 use wfl::analyzer::Analyzer;
+use wfl::config;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 use wfl::typechecker::TypeChecker;
@@ -132,7 +134,14 @@ fn main() -> io::Result<()> {
                         Ok(_) => {
                             println!("Type checking passed.");
 
-                            let mut interpreter = Interpreter::new();
+                            let script_dir = args.get(1)
+                                .map(|path| Path::new(path).parent().unwrap_or(Path::new(".")))
+                                .unwrap_or_else(|| Path::new("."));
+                            
+                            println!("Script directory: {:?}", script_dir);
+                            let timeout_secs = config::load_timeout(script_dir);
+                            println!("Timeout seconds: {}", timeout_secs);
+                            let mut interpreter = Interpreter::with_timeout(timeout_secs);
                             match interpreter.interpret(&program) {
                                 Ok(result) => println!(
                                     "Execution completed successfully. Result: {:?}",
