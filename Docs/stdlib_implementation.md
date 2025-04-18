@@ -33,7 +33,14 @@ The standard library functions are registered with the type checker to ensure pr
 
 During testing, we encountered issues with the WFL parser's handling of function calls. The current parser implementation doesn't properly support function calls with arguments using the natural language syntax we attempted (e.g., `typeof of number value`).
 
-The parser treats expressions like `typeof of number value` as variable names rather than function calls with arguments. This suggests that the parser needs to be updated to handle function calls with arguments using the natural language syntax that aligns with WFL's design principles.
+The parser treats expressions like `typeof of number value` as variable names rather than function calls with arguments. When attempting to run even simple test programs, the parser panics with an error:
+
+```
+thread 'main' panicked at src/parser/mod.rs:554:44:
+called `Option::unwrap()` on a `None` value
+```
+
+This confirms that the parser needs to be updated to handle function calls with arguments using the natural language syntax that aligns with WFL's design principles. Until the parser is updated, the standard library functions cannot be fully tested with WFL programs.
 
 ## Future Work
 
