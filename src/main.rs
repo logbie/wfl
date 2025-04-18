@@ -4,6 +4,7 @@ use std::io::{self, Read};
 use wfl::analyzer::Analyzer;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
+use wfl::typechecker::TypeChecker;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -122,7 +123,20 @@ fn main() -> io::Result<()> {
 
             let mut analyzer = Analyzer::new();
             match analyzer.analyze(&program) {
-                Ok(_) => println!("Semantic analysis passed."),
+                Ok(_) => {
+                    println!("Semantic analysis passed.");
+
+                    let mut type_checker = TypeChecker::new();
+                    match type_checker.check_types(&program) {
+                        Ok(_) => println!("Type checking passed."),
+                        Err(errors) => {
+                            eprintln!("Type errors:");
+                            for error in errors {
+                                eprintln!("{}", error);
+                            }
+                        }
+                    }
+                }
                 Err(errors) => {
                     eprintln!("Semantic errors:");
                     for error in errors {

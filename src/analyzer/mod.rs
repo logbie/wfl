@@ -24,8 +24,8 @@ pub struct Symbol {
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-    symbols: HashMap<String, Symbol>,
-    parent: Option<Box<Scope>>,
+    pub symbols: HashMap<String, Symbol>,
+    pub parent: Option<Box<Scope>>,
 }
 
 impl Default for Scope {
@@ -579,6 +579,14 @@ impl Analyzer {
             Statement::ReturnStatement { value: None, .. } => {}
             _ => {}
         }
+    }
+
+    pub fn get_symbol(&self, name: &str) -> Option<&Symbol> {
+        self.current_scope.resolve(name)
+    }
+
+    pub fn get_symbol_mut(&mut self, name: &str) -> Option<&mut Symbol> {
+        self.current_scope.symbols.get_mut(name)
     }
 
     fn analyze_expression(&mut self, expression: &Expression) {
