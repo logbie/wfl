@@ -121,7 +121,7 @@ impl IoClient {
             }
         }
         
-        let file_clone = {
+        let mut file_clone = {
             let mut file_handles = self.file_handles.borrow_mut();
             match file_handles.get_mut(handle_id).unwrap().try_clone().await {
                 Ok(clone) => clone,
