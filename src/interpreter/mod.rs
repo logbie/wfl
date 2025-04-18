@@ -13,6 +13,8 @@ use std::rc::Rc;
 
 pub struct Interpreter {
     global_env: Rc<RefCell<Environment>>,
+    current_count: RefCell<Option<f64>>,
+    in_count_loop: RefCell<bool>,
 }
 
 impl Default for Interpreter {
@@ -30,7 +32,11 @@ impl Interpreter {
             env.define("display", Value::NativeFunction(Self::native_display));
         }
 
-        Interpreter { global_env }
+        Interpreter {
+            global_env,
+            current_count: RefCell::new(None),
+            in_count_loop: RefCell::new(false),
+        }
     }
 
     fn native_display(args: Vec<Value>) -> Result<Value, RuntimeError> {
@@ -238,15 +244,17 @@ impl Interpreter {
                 let max_iterations = 10000; // Reasonable limit for most loops
                 let mut iterations = 0;
 
-                env.borrow_mut().define("count", Value::Number(count));
+                *self.in_count_loop.borrow_mut() = true;
 
                 while should_continue(count, end_num) && iterations < max_iterations {
-                    env.borrow_mut().define("count", Value::Number(count));
-                    loop_env.borrow_mut().define("count", Value::Number(count));
+                    *self.current_count.borrow_mut() = Some(count);
 
                     match self.execute_block(body, Rc::clone(&loop_env)) {
                         Ok(_) => {}
-                        Err(e) => return Err(e),
+                        Err(e) => {
+                            *self.in_count_loop.borrow_mut() = false;
+                            return Err(e);
+                        }
                     }
 
                     if *downward {
@@ -258,7 +266,8 @@ impl Interpreter {
                     iterations += 1;
                 }
 
-                env.borrow_mut().define("count", Value::Number(count));
+                *self.current_count.borrow_mut() = None;
+                *self.in_count_loop.borrow_mut() = false;
 
                 if iterations >= max_iterations {
                     return Err(RuntimeError::new(
@@ -411,16 +420,18 @@ impl Interpreter {
 
             Expression::Variable(name, line, column) => {
                 if name == "count" {
-                    if let Some(value) = env.borrow().get(name) {
-                        Ok(value)
+                    if let Some(count_value) = *self.current_count.borrow() {
+                        return Ok(Value::Number(count_value));
                     } else {
                         println!(
                             "Warning: Using 'count' outside of a count loop context at line {}, column {}",
                             line, column
                         );
-                        Ok(Value::Number(0.0))
+                        return Ok(Value::Number(0.0));
                     }
-                } else if let Some(value) = env.borrow().get(name) {
+                }
+
+                if let Some(value) = env.borrow().get(name) {
                     Ok(value)
                 } else {
                     Err(RuntimeError::new(
@@ -603,7 +614,17 @@ impl Interpreter {
                 column: _column,
             } => {
                 let left_val = self.evaluate_expression(left, Rc::clone(&env))?;
-                let right_val = self.evaluate_expression(right, Rc::clone(&env))?;
+
+                let right_val = match right.as_ref() {
+                    Expression::Variable(name, _, _) if name == "count" => {
+                        if let Some(count_value) = *self.current_count.borrow() {
+                            Value::Number(count_value)
+                        } else {
+                            self.evaluate_expression(right, Rc::clone(&env))?
+                        }
+                    }
+                    _ => self.evaluate_expression(right, Rc::clone(&env))?,
+                };
 
                 let result = format!("{}{}", left_val, right_val);
                 Ok(Value::Text(Rc::from(result.as_str())))
