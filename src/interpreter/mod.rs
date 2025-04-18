@@ -85,7 +85,7 @@ impl Interpreter {
                 }
             },
             
-            Statement::IfStatement { condition, then_block, else_block, line, column } => {
+            Statement::IfStatement { condition, then_block, else_block, line: _line, column: _column } => {
                 let condition_value = self.evaluate_expression(condition, Rc::clone(&env))?;
                 
                 if condition_value.is_truthy() {
@@ -97,7 +97,7 @@ impl Interpreter {
                 }
             },
             
-            Statement::SingleLineIf { condition, then_stmt, else_stmt, line, column } => {
+            Statement::SingleLineIf { condition, then_stmt, else_stmt, line: _line, column: _column } => {
                 let condition_value = self.evaluate_expression(condition, Rc::clone(&env))?;
                 
                 if condition_value.is_truthy() {
@@ -109,13 +109,13 @@ impl Interpreter {
                 }
             },
             
-            Statement::DisplayStatement { value, line, column } => {
+            Statement::DisplayStatement { value, line: _line, column: _column } => {
                 let value = self.evaluate_expression(value, Rc::clone(&env))?;
                 println!("{}", value);
                 Ok(Value::Null)
             },
             
-            Statement::ActionDefinition { name, parameters, body, return_type, line, column } => {
+            Statement::ActionDefinition { name, parameters, body, return_type: _return_type, line: _line, column: _column } => {
                 let param_names: Vec<String> = parameters.iter().map(|p| p.name.clone()).collect();
                 
                 let function = FunctionValue {
@@ -133,7 +133,7 @@ impl Interpreter {
                 Ok(function_value)
             },
             
-            Statement::ReturnStatement { value, line, column } => {
+            Statement::ReturnStatement { value, line: _line, column: _column } => {
                 if let Some(expr) = value {
                     self.evaluate_expression(expr, Rc::clone(&env))
                 } else {
@@ -141,11 +141,11 @@ impl Interpreter {
                 }
             },
             
-            Statement::ExpressionStatement { expression, line, column } => {
+            Statement::ExpressionStatement { expression, line: _line, column: _column } => {
                 self.evaluate_expression(expression, Rc::clone(&env))
             },
             
-            Statement::CountLoop { start, end, step, downward, body, line, column } => {
+            Statement::CountLoop { start, end, step, downward, body, line: _line, column: _column } => {
                 let start_val = self.evaluate_expression(start, Rc::clone(&env))?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env))?;
                 
@@ -254,14 +254,14 @@ impl Interpreter {
                 Ok(Value::Null)
             },
             
-            Statement::WhileLoop { condition, body, line, column } => {
+            Statement::WhileLoop { condition, body, line: _line, column: _column } => {
                 while self.evaluate_expression(condition, Rc::clone(&env))?.is_truthy() {
                     self.execute_block(body, Rc::clone(&env))?;
                 }
                 Ok(Value::Null)
             },
             
-            Statement::RepeatUntilLoop { condition, body, line, column } => {
+            Statement::RepeatUntilLoop { condition, body, line: _line, column: _column } => {
                 loop {
                     self.execute_block(body, Rc::clone(&env))?;
                     if self.evaluate_expression(condition, Rc::clone(&env))?.is_truthy() {
@@ -271,7 +271,7 @@ impl Interpreter {
                 Ok(Value::Null)
             },
             
-            Statement::ForeverLoop { body, line, column } => {
+            Statement::ForeverLoop { body, line: _line, column: _column } => {
                 loop {
                     self.execute_block(body, Rc::clone(&env))?;
                 }
@@ -304,7 +304,7 @@ impl Interpreter {
     
     fn evaluate_expression(&self, expr: &Expression, env: Rc<RefCell<Environment>>) -> Result<Value, RuntimeError> {
         match expr {
-            Expression::Literal(literal, line, column) => {
+            Expression::Literal(literal, _line, _column) => {
                 match literal {
                     Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
                     Literal::Integer(i) => Ok(Value::Number(*i as f64)),
@@ -450,7 +450,7 @@ impl Interpreter {
                 }
             },
             
-            Expression::Concatenation { left, right, line, column } => {
+            Expression::Concatenation { left, right, line: _line, column: _column } => {
                 let left_val = self.evaluate_expression(left, Rc::clone(&env))?;
                 let right_val = self.evaluate_expression(right, Rc::clone(&env))?;
                 
