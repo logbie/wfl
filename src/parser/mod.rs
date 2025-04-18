@@ -492,13 +492,56 @@ impl<'a> Parser<'a> {
 
                             if let Some(prop_token) = self.tokens.peek().cloned() {
                                 if let Token::Identifier(prop) = &prop_token.token {
-                                    self.tokens.next(); // Consume property name
-                                    expr = Expression::MemberAccess {
-                                        object: Box::new(expr),
-                                        property: prop.clone(),
-                                        line: prop_token.line,
-                                        column: prop_token.column,
+                                    self.tokens.next(); // Consume property name or first argument
+                                    
+                                    // In member access: "property of object", the left side is usually a property name
+                                    
+                                    let is_function_call = match expr {
+                                        Expression::Variable(_, _, _) | Expression::FunctionCall { .. } => true,
+                                        _ => false,
                                     };
+                                    
+                                    if is_function_call {
+                                        let mut arguments = Vec::new();
+                                        
+                                        arguments.push(Argument {
+                                            name: None,
+                                            value: Expression::Variable(prop.clone(), prop_token.line, prop_token.column),
+                                        });
+                                        
+                                        while let Some(and_token) = self.tokens.peek().cloned() {
+                                            if let Token::Identifier(id) = &and_token.token {
+                                                if id.to_lowercase() == "and" {
+                                                    self.tokens.next(); // Consume "and"
+                                                    
+                                                    let arg_value = self.parse_expression()?;
+                                                    
+                                                    arguments.push(Argument {
+                                                        name: None,
+                                                        value: arg_value,
+                                                    });
+                                                } else {
+                                                    break;
+                                                }
+                                            } else {
+                                                break;
+                                            }
+                                        }
+                                        
+                                        expr = Expression::FunctionCall {
+                                            function: Box::new(expr),
+                                            arguments,
+                                            line: token.line,
+                                            column: token.column,
+                                        };
+                                    } else {
+                                        expr = Expression::MemberAccess {
+                                            object: Box::new(expr),
+                                            property: prop.clone(),
+                                            line: prop_token.line,
+                                            column: prop_token.column,
+                                        };
+                                    }
                                 } else {
                                     return Err(ParseError::new(
                                         format!(
@@ -551,7 +594,53 @@ impl<'a> Parser<'a> {
 
         let expr = self.parse_expression()?;
 
-        let token_pos = self.tokens.peek().unwrap();
+        let token_pos = if let Some(token) = self.tokens.peek() {
+            token
+        } else {
+            return match expr {
+                Expression::Literal(_, line, column) => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::Variable(_, line, column) => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::BinaryOperation { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::UnaryOperation { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::FunctionCall { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::MemberAccess { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::IndexAccess { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::Concatenation { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+            };
+        };
+        
         Ok(Statement::DisplayStatement {
             value: expr,
             line: token_pos.line,
