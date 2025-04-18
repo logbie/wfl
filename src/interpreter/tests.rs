@@ -123,3 +123,46 @@ fn test_count_loop_with_direct_access() {
         _ => panic!("Expected null, got {:?}", result),
     }
 }
+#[test]
+fn test_timeout_happy_path() {
+    let mut interpreter = Interpreter::with_timeout(1); // 1 second timeout
+
+    let source = "store x as 42\nx"; // A quick script
+    let tokens = lex_wfl_with_positions(source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+
+    let result = interpreter.interpret(&program);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_timeout_forever_loop() {
+    let mut interpreter = Interpreter::with_timeout(1); // 1 second timeout
+
+    let source = "
+    count from 1 to 1000000000:
+        store x as 1 plus 1
+    end count
+    ";
+    let tokens = lex_wfl_with_positions(source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+
+    let start = std::time::Instant::now();
+    let result = interpreter.interpret(&program);
+    let elapsed = start.elapsed();
+
+    assert!(result.is_err());
+    if let Err(errors) = result {
+        assert!(!errors.is_empty());
+        println!("Actual error message: {}", errors[0].message);
+        assert!(errors[0].message.contains("Execution exceeded timeout"));
+    }
+
+    assert!(
+        elapsed.as_millis() <= 1100,
+        "Timeout took too long: {:?}",
+        elapsed
+    );
+}
