@@ -451,6 +451,34 @@ impl Analyzer {
     pub fn get_symbol_mut(&mut self, name: &str) -> Option<&mut Symbol> {
         self.current_scope.symbols.get_mut(name)
     }
+    
+    pub fn register_builtin_function(&mut self, name: &str, param_types: Vec<Type>, return_type: Type) {
+        let parameters = param_types
+            .iter()
+            .enumerate()
+            .map(|(i, t)| Parameter {
+                name: format!("param{}", i),
+                param_type: Some(t.clone()),
+                default_value: None,
+            })
+            .collect();
+            
+        let symbol = Symbol {
+            name: name.to_string(),
+            kind: SymbolKind::Function {
+                parameters,
+                return_type: Some(return_type.clone()),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: param_types,
+                return_type: Box::new(return_type),
+            }),
+            line: 0,
+            column: 0,
+        };
+        
+        let _ = self.current_scope.define(symbol);
+    }
 
     fn analyze_expression(&mut self, expression: &Expression) {
         match expression {
