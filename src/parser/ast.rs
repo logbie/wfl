@@ -111,7 +111,7 @@ pub enum Statement {
         column: usize,
     },
     ReadFileStatement {
-        file: Expression,
+        path: Expression,
         variable_name: String,
         line: usize,
         column: usize,
@@ -128,8 +128,7 @@ pub enum Statement {
         column: usize,
     },
     WaitForStatement {
-        expression: Expression,
-        body: Vec<Statement>,
+        inner: Box<Statement>,
         line: usize,
         column: usize,
     },

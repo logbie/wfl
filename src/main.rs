@@ -8,8 +8,10 @@ use wfl::config;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 use wfl::typechecker::TypeChecker;
+use tokio;
 
-fn main() -> io::Result<()> {
+#[tokio::main]
+async fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let input = if args.len() > 1 {
         fs::read_to_string(&args[1])?
@@ -143,7 +145,8 @@ fn main() -> io::Result<()> {
                             let timeout_secs = config::load_timeout(script_dir);
                             println!("Timeout seconds: {}", timeout_secs);
                             let mut interpreter = Interpreter::with_timeout(timeout_secs);
-                            match interpreter.interpret(&program) {
+                            let interpret_result = interpreter.interpret(&program).await;
+                            match interpret_result {
                                 Ok(result) => println!(
                                     "Execution completed successfully. Result: {:?}",
                                     result
