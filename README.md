@@ -12,8 +12,22 @@ The WFL compiler is currently under development. Here's the current status:
 
 - ✅ **Lexer**: Complete - Converts source code into tokens
 - ✅ **Parser**: Complete - Transforms tokens into an Abstract Syntax Tree (AST)
-- 🔄 **Bytecode Compiler**: In Progress - Will convert the AST into bytecode instructions
+- ✅ **Semantic Analyzer**: Complete - Analyzes the AST for semantic correctness
+- ✅ **Type Checker**: Complete - Performs static type analysis on the AST
+- 🔄 **Interpreter**: In Progress - Will execute the AST directly
+- 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
 - 🔄 **Virtual Machine**: Planned - Will execute bytecode instructions
+
+## AI-Assisted Development
+
+This project is developed with the assistance of AI:
+
+- **Devin.ai**: Primary AI developer responsible for core implementation
+- **ChatGPT (GPT-4)**: Assisted with code reviews and optimization
+- **Claude (via Cline)**: Assisted with documentation and architectural design
+- **Grok**: Indirectly contributed to the project through knowledge base
+
+The combination of AI assistance with human oversight has allowed for rapid development while maintaining high code quality and documentation standards.
 
 ## Getting Started
 
@@ -71,10 +85,17 @@ end count
 - `src/`: Source code
   - `lexer/`: Lexical analyzer
   - `parser/`: Parser and AST
-  - `bytecode/`: Bytecode compiler (in progress)
+  - `analyzer/`: Semantic analyzer
+  - `typechecker/`: Static type checker
+  - `interpreter/`: Runtime interpreter (in progress)
+  - `bytecode/`: Bytecode compiler (planned)
 - `Docs/`: Documentation
   - `wfl-spec.md`: Language specification
-  - `implementation_progress.md`: Implementation status
+  - `wfl-foundation.md`: Design principles
+  - `wfl-error.md`: Error handling philosophy
+  - `wfl-staticTypeChecker.md`: Type system design
+  - `wfl-interpretor.md`: Interpreter design
+  - `implementation_progress_2025-04-17.md`: Implementation status
 - `Test Programs/`: Example WFL programs
 
 ## Contributing
