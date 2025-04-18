@@ -1,12 +1,10 @@
-use std::rc::Rc;
-use std::cell::RefCell;
-use crate::lexer::{lex_wfl_with_positions, token::Token};
+use crate::lexer::lex_wfl_with_positions;
 use crate::parser::Parser;
 use super::{Interpreter, Value, Environment};
 
 #[test]
 fn test_literal_evaluation() {
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     let env = Environment::new_global();
     
     let source = "42";
@@ -31,7 +29,7 @@ fn test_literal_evaluation() {
 
 #[test]
 fn test_variable_declaration_and_access() {
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     
     let source = "store x as 42\nx";
     let tokens = lex_wfl_with_positions(source);
@@ -48,7 +46,7 @@ fn test_variable_declaration_and_access() {
 
 #[test]
 fn test_binary_operations() {
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     
     let source = "2 plus 3";
     let tokens = lex_wfl_with_positions(source);
@@ -73,7 +71,7 @@ fn test_binary_operations() {
 
 #[test]
 fn test_if_statement() {
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     
     let source = "check if yes: display \"true\" otherwise: display \"false\" end check";
     let tokens = lex_wfl_with_positions(source);
@@ -89,7 +87,7 @@ fn test_if_statement() {
 
 #[test]
 fn test_function_definition_and_call() {
-    let interpreter = Interpreter::new();
+    let mut interpreter = Interpreter::new();
     
     let source = "define action called add needs a as Number, b as Number: give back a plus b end action\nadd with 2, 3";
     let tokens = lex_wfl_with_positions(source);
