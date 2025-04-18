@@ -3,6 +3,7 @@ pub mod list;
 pub mod math;
 pub mod text;
 pub mod typechecker;
+pub mod pattern;
 
 use crate::interpreter::environment::Environment;
 
@@ -11,4 +12,5 @@ pub fn register_stdlib(env: &mut Environment) {
     math::register_math(env);
     text::register_text(env);
     list::register_list(env);
+    pattern::register(env);
 }

@@ -419,6 +419,7 @@ impl Interpreter {
                 Literal::Float(f) => Ok(Value::Number(*f)),
                 Literal::Boolean(b) => Ok(Value::Bool(*b)),
                 Literal::Nothing => Ok(Value::Null),
+                Literal::Pattern(s) => Ok(Value::Text(Rc::from(s.as_str()))),
             },
 
             Expression::Variable(name, line, column) => {
@@ -631,6 +632,60 @@ impl Interpreter {
 
                 let result = format!("{}{}", left_val, right_val);
                 Ok(Value::Text(Rc::from(result.as_str())))
+            }
+            
+            Expression::PatternMatch {
+                text,
+                pattern,
+                line: _line,
+                column: _column,
+            } => {
+                let text_val = self.evaluate_expression(text, Rc::clone(&env))?;
+                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env))?;
+                
+                let args = vec![text_val, pattern_val];
+                crate::stdlib::pattern::native_pattern_matches(args)
+            }
+            
+            Expression::PatternFind {
+                text,
+                pattern,
+                line: _line,
+                column: _column,
+            } => {
+                let text_val = self.evaluate_expression(text, Rc::clone(&env))?;
+                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env))?;
+                
+                let args = vec![pattern_val, text_val]; // Note: pattern first, then text
+                crate::stdlib::pattern::native_pattern_find(args)
+            }
+            
+            Expression::PatternReplace {
+                text,
+                pattern,
+                replacement,
+                line: _line,
+                column: _column,
+            } => {
+                let text_val = self.evaluate_expression(text, Rc::clone(&env))?;
+                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env))?;
+                let replacement_val = self.evaluate_expression(replacement, Rc::clone(&env))?;
+                
+                let args = vec![pattern_val, replacement_val, text_val]; // Note: pattern, replacement, then text
+                crate::stdlib::pattern::native_pattern_replace(args)
+            }
+            
+            Expression::PatternSplit {
+                text,
+                pattern,
+                line: _line,
+                column: _column,
+            } => {
+                let text_val = self.evaluate_expression(text, Rc::clone(&env))?;
+                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env))?;
+                
+                let args = vec![text_val, pattern_val];
+                crate::stdlib::pattern::native_pattern_split(args)
             }
         }
     }

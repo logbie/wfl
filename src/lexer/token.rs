@@ -107,6 +107,16 @@ pub enum Token {
     KeywordBy,
     #[token("contains")]
     KeywordContains,
+    #[token("pattern")]
+    KeywordPattern,
+    #[token("matches")]
+    KeywordMatches,
+    #[token("find")]
+    KeywordFind,
+    #[token("replace")]
+    KeywordReplace,
+    #[token("split")]
+    KeywordSplit,
     #[token("above")]
     KeywordAbove, // e.g., "is above 100"
     #[token("below")]
