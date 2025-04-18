@@ -1003,7 +1003,7 @@ impl TypeChecker {
             Expression::PatternMatch { text, pattern, .. } => {
                 let text_type = self.infer_expression_type(text);
                 let pattern_type = self.infer_expression_type(pattern);
-                
+
                 if text_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern matching, got {}", text_type),
@@ -1013,7 +1013,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 if pattern_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern, got {}", pattern_type),
@@ -1023,13 +1023,13 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 Type::Boolean
             }
             Expression::PatternFind { text, pattern, .. } => {
                 let text_type = self.infer_expression_type(text);
                 let pattern_type = self.infer_expression_type(pattern);
-                
+
                 if text_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern finding, got {}", text_type),
@@ -1039,7 +1039,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 if pattern_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern, got {}", pattern_type),
@@ -1049,14 +1049,19 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 Type::Map(Box::new(Type::Text), Box::new(Type::Text))
             }
-            Expression::PatternReplace { text, pattern, replacement, .. } => {
+            Expression::PatternReplace {
+                text,
+                pattern,
+                replacement,
+                ..
+            } => {
                 let text_type = self.infer_expression_type(text);
                 let pattern_type = self.infer_expression_type(pattern);
                 let replacement_type = self.infer_expression_type(replacement);
-                
+
                 if text_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern replacement, got {}", text_type),
@@ -1066,7 +1071,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 if pattern_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern, got {}", pattern_type),
@@ -1076,7 +1081,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 if replacement_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for replacement, got {}", replacement_type),
@@ -1086,13 +1091,13 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 Type::Text
             }
             Expression::PatternSplit { text, pattern, .. } => {
                 let text_type = self.infer_expression_type(text);
                 let pattern_type = self.infer_expression_type(pattern);
-                
+
                 if text_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern splitting, got {}", text_type),
@@ -1102,7 +1107,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 if pattern_type != Type::Text {
                     self.type_error(
                         format!("Expected Text for pattern, got {}", pattern_type),
@@ -1112,7 +1117,7 @@ impl TypeChecker {
                         0,
                     );
                 }
-                
+
                 Type::List(Box::new(Type::Text))
             }
         }

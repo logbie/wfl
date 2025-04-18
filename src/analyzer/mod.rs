@@ -588,7 +588,12 @@ impl Analyzer {
                 self.analyze_expression(text);
                 self.analyze_expression(pattern);
             }
-            Expression::PatternReplace { text, pattern, replacement, .. } => {
+            Expression::PatternReplace {
+                text,
+                pattern,
+                replacement,
+                ..
+            } => {
                 self.analyze_expression(text);
                 self.analyze_expression(pattern);
                 self.analyze_expression(replacement);
