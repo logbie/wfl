@@ -25,9 +25,11 @@ pub struct Interpreter {
     in_count_loop: RefCell<bool>,
     started: Instant,
     max_duration: Duration,
+    #[allow(dead_code)]
     io_client: Rc<IoClient>,
 }
 
+#[allow(dead_code)]
 pub struct IoClient {
     http_client: reqwest::Client,
     file_handles: RefCell<HashMap<String, tokio::fs::File>>,
@@ -41,6 +43,7 @@ impl IoClient {
         }
     }
     
+    #[allow(dead_code)]
     async fn http_get(&self, url: &str) -> Result<String, String> {
         match self.http_client.get(url).send().await {
             Ok(response) => {
@@ -53,6 +56,7 @@ impl IoClient {
         }
     }
     
+    #[allow(dead_code)]
     async fn http_post(&self, url: &str, data: &str) -> Result<String, String> {
         match self.http_client.post(url).body(data.to_string()).send().await {
             Ok(response) => {
@@ -65,6 +69,7 @@ impl IoClient {
         }
     }
     
+    #[allow(dead_code)]
     async fn open_file(&self, path: &str) -> Result<String, String> {
         let handle_id = format!("file_{}", path);
         
@@ -72,6 +77,7 @@ impl IoClient {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(true)
             .open(path).await {
                 Ok(file) => {
                     self.file_handles.borrow_mut().insert(handle_id.clone(), file);
@@ -81,10 +87,21 @@ impl IoClient {
             }
     }
     
+    #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
-        let mut file_handles = self.file_handles.borrow_mut();
+        let mut file = {
+            let mut file_handles = self.file_handles.borrow_mut();
+            if let Some(file) = file_handles.get_mut(handle_id) {
+                match tokio::fs::File::try_clone(file) {
+                    Ok(clone) => Some(clone),
+                    Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+                }
+            } else {
+                return Err(format!("Invalid file handle: {}", handle_id));
+            }
+        };
         
-        if let Some(file) = file_handles.get_mut(handle_id) {
+        if let Some(ref mut file) = file {
             let mut contents = String::new();
             match AsyncReadExt::read_to_string(file, &mut contents).await {
                 Ok(_) => Ok(contents),
@@ -95,10 +112,21 @@ impl IoClient {
         }
     }
     
+    #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
-        let mut file_handles = self.file_handles.borrow_mut();
+        let mut file = {
+            let mut file_handles = self.file_handles.borrow_mut();
+            if let Some(file) = file_handles.get_mut(handle_id) {
+                match tokio::fs::File::try_clone(file) {
+                    Ok(clone) => Some(clone),
+                    Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
+                }
+            } else {
+                return Err(format!("Invalid file handle: {}", handle_id));
+            }
+        };
         
-        if let Some(file) = file_handles.get_mut(handle_id) {
+        if let Some(ref mut file) = file {
             match AsyncSeekExt::seek(file, std::io::SeekFrom::Start(0)).await {
                 Ok(_) => {
                     match file.set_len(0).await {
@@ -118,6 +146,7 @@ impl IoClient {
         }
     }
     
+    #[allow(dead_code)]
     fn close_file(&self, handle_id: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.borrow_mut();
         
