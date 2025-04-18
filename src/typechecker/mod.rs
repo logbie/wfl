@@ -91,8 +91,12 @@ impl Default for TypeChecker {
 
 impl TypeChecker {
     pub fn new() -> Self {
+        let mut analyzer = Analyzer::new();
+
+        crate::stdlib::typechecker::register_stdlib_types(&mut analyzer);
+
         TypeChecker {
-            analyzer: Analyzer::new(),
+            analyzer,
             errors: Vec::new(),
         }
     }

@@ -8,6 +8,7 @@ use self::environment::Environment;
 use self::error::RuntimeError;
 use self::value::{FunctionValue, Value};
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
+use crate::stdlib;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -30,6 +31,8 @@ impl Interpreter {
         {
             let mut env = global_env.borrow_mut();
             env.define("display", Value::NativeFunction(Self::native_display));
+
+            stdlib::register_stdlib(&mut env);
         }
 
         Interpreter {
