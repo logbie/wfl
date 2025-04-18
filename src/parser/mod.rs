@@ -878,6 +878,11 @@ impl<'a> Parser<'a> {
                     line,
                     column,
                 }),
+                Expression::AwaitExpression { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
             };
         };
 

@@ -127,6 +127,33 @@ pub enum Statement {
         line: usize,
         column: usize,
     },
+    WaitForStatement {
+        expression: Expression,
+        body: Vec<Statement>,
+        line: usize,
+        column: usize,
+    },
+    TryStatement {
+        body: Vec<Statement>,
+        error_name: String,
+        when_block: Vec<Statement>,
+        otherwise_block: Option<Vec<Statement>>,
+        line: usize,
+        column: usize,
+    },
+    HttpGetStatement {
+        url: Expression,
+        variable_name: String,
+        line: usize,
+        column: usize,
+    },
+    HttpPostStatement {
+        url: Expression,
+        data: Expression,
+        variable_name: String,
+        line: usize,
+        column: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -192,6 +219,11 @@ pub enum Expression {
     PatternSplit {
         text: Box<Expression>,
         pattern: Box<Expression>,
+        line: usize,
+        column: usize,
+    },
+    AwaitExpression {
+        expression: Box<Expression>,
         line: usize,
         column: usize,
     },
