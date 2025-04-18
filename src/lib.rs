@@ -1,8 +1,8 @@
 pub mod analyzer;
+pub mod interpreter;
 pub mod lexer;
 pub mod parser;
 pub mod typechecker;
-pub mod interpreter;
 
 pub use interpreter::Interpreter;
 

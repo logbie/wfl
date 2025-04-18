@@ -1,10 +1,10 @@
-use std::rc::Rc;
+use super::environment::Environment;
+use super::error::RuntimeError;
+use crate::parser::ast::Statement;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-use crate::parser::ast::{Statement};
-use super::environment::Environment;
-use super::error::RuntimeError;
+use std::rc::Rc;
 
 #[derive(Clone)]
 pub enum Value {
@@ -43,7 +43,7 @@ impl Value {
             Value::Null => "Null",
         }
     }
-    
+
     pub fn is_truthy(&self) -> bool {
         match self {
             Value::Bool(b) => *b,
@@ -86,7 +86,11 @@ impl fmt::Debug for Value {
                 write!(f, "}}")
             }
             Value::Function(func) => {
-                write!(f, "Function({})", func.name.as_ref().unwrap_or(&"anonymous".to_string()))
+                write!(
+                    f,
+                    "Function({})",
+                    func.name.as_ref().unwrap_or(&"anonymous".to_string())
+                )
             }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Null => write!(f, "null"),
@@ -103,7 +107,11 @@ impl fmt::Display for Value {
             Value::List(_) => write!(f, "[List]"),
             Value::Object(_) => write!(f, "[Object]"),
             Value::Function(func) => {
-                write!(f, "action {}", func.name.as_ref().unwrap_or(&"anonymous".to_string()))
+                write!(
+                    f,
+                    "action {}",
+                    func.name.as_ref().unwrap_or(&"anonymous".to_string())
+                )
             }
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
             Value::Null => write!(f, "nothing"),
