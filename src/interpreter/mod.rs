@@ -15,8 +15,8 @@ use std::time::{Duration, Instant};
 
 use std::collections::HashMap;
 use tokio::io::AsyncReadExt;
-use tokio::io::AsyncWriteExt;
 use tokio::io::AsyncSeekExt;
+use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 // use self::value::FutureValue;
 
@@ -43,52 +43,56 @@ impl IoClient {
             file_handles: Mutex::new(HashMap::new()),
         }
     }
-    
+
     #[allow(dead_code)]
     async fn http_get(&self, url: &str) -> Result<String, String> {
         match self.http_client.get(url).send().await {
-            Ok(response) => {
-                match response.text().await {
-                    Ok(text) => Ok(text),
-                    Err(e) => Err(format!("Failed to read response body: {}", e)),
-                }
+            Ok(response) => match response.text().await {
+                Ok(text) => Ok(text),
+                Err(e) => Err(format!("Failed to read response body: {}", e)),
             },
             Err(e) => Err(format!("Failed to send HTTP GET request: {}", e)),
         }
     }
-    
+
     #[allow(dead_code)]
     async fn http_post(&self, url: &str, data: &str) -> Result<String, String> {
-        match self.http_client.post(url).body(data.to_string()).send().await {
-            Ok(response) => {
-                match response.text().await {
-                    Ok(text) => Ok(text),
-                    Err(e) => Err(format!("Failed to read response body: {}", e)),
-                }
+        match self
+            .http_client
+            .post(url)
+            .body(data.to_string())
+            .send()
+            .await
+        {
+            Ok(response) => match response.text().await {
+                Ok(text) => Ok(text),
+                Err(e) => Err(format!("Failed to read response body: {}", e)),
             },
             Err(e) => Err(format!("Failed to send HTTP POST request: {}", e)),
         }
     }
-    
+
     #[allow(dead_code)]
     async fn open_file(&self, path: &str) -> Result<String, String> {
         let handle_id = format!("file_{}", path);
-        
+
         match tokio::fs::OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
             .truncate(true)
-            .open(path).await {
-                Ok(file) => {
-                    let mut file_handles = self.file_handles.lock().await;
-                    file_handles.insert(handle_id.clone(), file);
-                    Ok(handle_id)
-                },
-                Err(e) => Err(format!("Failed to open file {}: {}", path, e)),
+            .open(path)
+            .await
+        {
+            Ok(file) => {
+                let mut file_handles = self.file_handles.lock().await;
+                file_handles.insert(handle_id.clone(), file);
+                Ok(handle_id)
             }
+            Err(e) => Err(format!("Failed to open file {}: {}", path, e)),
+        }
     }
-    
+
     #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
         {
@@ -97,7 +101,7 @@ impl IoClient {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
         }
-        
+
         let mut file_clone = {
             let mut file_handles = self.file_handles.lock().await;
             let file = file_handles.get_mut(handle_id).unwrap();
@@ -106,14 +110,14 @@ impl IoClient {
                 Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
             }
         };
-        
+
         let mut contents = String::new();
         match AsyncReadExt::read_to_string(&mut file_clone, &mut contents).await {
             Ok(_) => Ok(contents),
             Err(e) => Err(format!("Failed to read file: {}", e)),
         }
     }
-    
+
     #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
         {
@@ -122,7 +126,7 @@ impl IoClient {
                 return Err(format!("Invalid file handle: {}", handle_id));
             }
         }
-        
+
         let mut file_clone = {
             let mut file_handles = self.file_handles.lock().await;
             let file = file_handles.get_mut(handle_id).unwrap();
@@ -131,27 +135,25 @@ impl IoClient {
                 Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
             }
         };
-        
+
         match AsyncSeekExt::seek(&mut file_clone, std::io::SeekFrom::Start(0)).await {
-            Ok(_) => {
-                match file_clone.set_len(0).await {
-                    Ok(_) => {
-                        match AsyncWriteExt::write_all(&mut file_clone, content.as_bytes()).await {
-                            Ok(_) => Ok(()),
-                            Err(e) => Err(format!("Failed to write to file: {}", e)),
-                        }
-                    },
-                    Err(e) => Err(format!("Failed to truncate file: {}", e)),
+            Ok(_) => match file_clone.set_len(0).await {
+                Ok(_) => {
+                    match AsyncWriteExt::write_all(&mut file_clone, content.as_bytes()).await {
+                        Ok(_) => Ok(()),
+                        Err(e) => Err(format!("Failed to write to file: {}", e)),
+                    }
                 }
+                Err(e) => Err(format!("Failed to truncate file: {}", e)),
             },
             Err(e) => Err(format!("Failed to seek in file: {}", e)),
         }
     }
-    
+
     #[allow(dead_code)]
     async fn close_file(&self, handle_id: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.lock().await;
-        
+
         if file_handles.remove(handle_id).is_some() {
             Ok(())
         } else {
@@ -573,10 +575,10 @@ impl Interpreter {
             | Statement::ReadFileStatement { .. }
             | Statement::WriteFileStatement { .. }
             | Statement::CloseFileStatement { .. } => Ok(Value::Null),
-            | Statement::WaitForStatement { .. } => Ok(Value::Null), // TODO: Implement
-            | Statement::TryStatement { .. } => Ok(Value::Null), // TODO: Implement
-            | Statement::HttpGetStatement { .. } => Ok(Value::Null), // TODO: Implement
-            | Statement::HttpPostStatement { .. } => Ok(Value::Null), // TODO: Implement
+            Statement::WaitForStatement { .. } => Ok(Value::Null), // TODO: Implement
+            Statement::TryStatement { .. } => Ok(Value::Null),     // TODO: Implement
+            Statement::HttpGetStatement { .. } => Ok(Value::Null), // TODO: Implement
+            Statement::HttpPostStatement { .. } => Ok(Value::Null), // TODO: Implement
         }
     }
 
@@ -602,10 +604,14 @@ impl Interpreter {
         self.check_time()?;
 
         match expr {
-            &Expression::AwaitExpression { ref expression, line: _line, column: _column } => {
+            &Expression::AwaitExpression {
+                ref expression,
+                line: _line,
+                column: _column,
+            } => {
                 let value = self.evaluate_expression(expression, Rc::clone(&env))?;
                 Ok(value)
-            },
+            }
             Expression::Literal(literal, _line, _column) => match literal {
                 Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
                 Literal::Integer(i) => Ok(Value::Number(*i as f64)),

@@ -128,33 +128,50 @@ impl TypeChecker {
 
     fn check_statement_types(&mut self, statement: &Statement) {
         match statement {
-            Statement::WaitForStatement { expression, body, line: _line, column: _column } => {
+            Statement::WaitForStatement {
+                expression,
+                body,
+                line: _line,
+                column: _column,
+            } => {
                 let _expr_type = self.infer_expression_type(expression);
-                
+
                 for stmt in body {
                     self.check_statement_types(stmt);
                 }
-            },
-            Statement::TryStatement { body, error_name, when_block, otherwise_block, line: _line, column: _column } => {
+            }
+            Statement::TryStatement {
+                body,
+                error_name,
+                when_block,
+                otherwise_block,
+                line: _line,
+                column: _column,
+            } => {
                 for stmt in body {
                     self.check_statement_types(stmt);
                 }
-                
+
                 if let Some(symbol) = self.analyzer.get_symbol_mut(error_name) {
                     symbol.symbol_type = Some(Type::Text); // Errors are represented as text
                 }
-                
+
                 for stmt in when_block {
                     self.check_statement_types(stmt);
                 }
-                
+
                 if let Some(otherwise_stmts) = otherwise_block {
                     for stmt in otherwise_stmts {
                         self.check_statement_types(stmt);
                     }
                 }
-            },
-            Statement::HttpGetStatement { url, variable_name, line, column } => {
+            }
+            Statement::HttpGetStatement {
+                url,
+                variable_name,
+                line,
+                column,
+            } => {
                 let url_type = self.infer_expression_type(url);
                 if url_type != Type::Text && url_type != Type::Unknown && url_type != Type::Error {
                     self.type_error(
@@ -165,14 +182,20 @@ impl TypeChecker {
                         *column,
                     );
                 }
-                
+
                 if !variable_name.is_empty() {
                     if let Some(symbol) = self.analyzer.get_symbol_mut(variable_name) {
                         symbol.symbol_type = Some(Type::Text);
                     }
                 }
-            },
-            Statement::HttpPostStatement { url, data, variable_name, line, column } => {
+            }
+            Statement::HttpPostStatement {
+                url,
+                data,
+                variable_name,
+                line,
+                column,
+            } => {
                 let url_type = self.infer_expression_type(url);
                 if url_type != Type::Text && url_type != Type::Unknown && url_type != Type::Error {
                     self.type_error(
@@ -183,15 +206,15 @@ impl TypeChecker {
                         *column,
                     );
                 }
-                
+
                 self.infer_expression_type(data);
-                
+
                 if !variable_name.is_empty() {
                     if let Some(symbol) = self.analyzer.get_symbol_mut(variable_name) {
                         symbol.symbol_type = Some(Type::Text);
                     }
                 }
-            },
+            }
             Statement::VariableDeclaration {
                 name,
                 value,
@@ -1184,9 +1207,13 @@ impl TypeChecker {
 
                 Type::List(Box::new(Type::Text))
             }
-            Expression::AwaitExpression { expression, line, column } => {
+            Expression::AwaitExpression {
+                expression,
+                line,
+                column,
+            } => {
                 let expr_type = self.infer_expression_type(expression);
-                
+
                 match expr_type {
                     Type::Async(inner_type) => *inner_type,
                     _ => {
