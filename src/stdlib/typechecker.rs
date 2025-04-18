@@ -24,7 +24,7 @@ pub fn register_stdlib_types(analyzer: &mut Analyzer) {
     register_pop(analyzer);
     register_list_contains(analyzer);
     register_indexof(analyzer);
-    
+
     register_pattern_matches(analyzer);
     register_pattern_find(analyzer);
     register_pattern_replace(analyzer);

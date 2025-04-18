@@ -1,9 +1,9 @@
 pub mod core;
 pub mod list;
 pub mod math;
+pub mod pattern;
 pub mod text;
 pub mod typechecker;
-pub mod pattern;
 
 use crate::interpreter::environment::Environment;
 
