@@ -493,26 +493,34 @@ impl<'a> Parser<'a> {
                             if let Some(prop_token) = self.tokens.peek().cloned() {
                                 if let Token::Identifier(prop) = &prop_token.token {
                                     self.tokens.next(); // Consume property name or first argument
-                                    
+
                                     // In member access: "property of object", the left side is usually a property name
-                                    
-                                    let is_function_call = matches!(expr, Expression::Variable(_, _, _) | Expression::FunctionCall { .. });
-                                    
+
+                                    let is_function_call = matches!(
+                                        expr,
+                                        Expression::Variable(_, _, _)
+                                            | Expression::FunctionCall { .. }
+                                    );
+
                                     if is_function_call {
                                         let mut arguments = Vec::new();
-                                        
+
                                         arguments.push(Argument {
                                             name: None,
-                                            value: Expression::Variable(prop.clone(), prop_token.line, prop_token.column),
+                                            value: Expression::Variable(
+                                                prop.clone(),
+                                                prop_token.line,
+                                                prop_token.column,
+                                            ),
                                         });
-                                        
+
                                         while let Some(and_token) = self.tokens.peek().cloned() {
                                             if let Token::Identifier(id) = &and_token.token {
                                                 if id.to_lowercase() == "and" {
                                                     self.tokens.next(); // Consume "and"
-                                                    
+
                                                     let arg_value = self.parse_expression()?;
-                                                    
+
                                                     arguments.push(Argument {
                                                         name: None,
                                                         value: arg_value,
@@ -524,7 +532,7 @@ impl<'a> Parser<'a> {
                                                 break;
                                             }
                                         }
-                                        
+
                                         expr = Expression::FunctionCall {
                                             function: Box::new(expr),
                                             arguments,
@@ -605,16 +613,20 @@ impl<'a> Parser<'a> {
                     line,
                     column,
                 }),
-                Expression::BinaryOperation { line, column, .. } => Ok(Statement::DisplayStatement {
-                    value: expr,
-                    line,
-                    column,
-                }),
-                Expression::UnaryOperation { line, column, .. } => Ok(Statement::DisplayStatement {
-                    value: expr,
-                    line,
-                    column,
-                }),
+                Expression::BinaryOperation { line, column, .. } => {
+                    Ok(Statement::DisplayStatement {
+                        value: expr,
+                        line,
+                        column,
+                    })
+                }
+                Expression::UnaryOperation { line, column, .. } => {
+                    Ok(Statement::DisplayStatement {
+                        value: expr,
+                        line,
+                        column,
+                    })
+                }
                 Expression::FunctionCall { line, column, .. } => Ok(Statement::DisplayStatement {
                     value: expr,
                     line,
@@ -637,7 +649,7 @@ impl<'a> Parser<'a> {
                 }),
             };
         };
-        
+
         Ok(Statement::DisplayStatement {
             value: expr,
             line: token_pos.line,
