@@ -1,6 +1,7 @@
 use super::{Environment, Interpreter, Value};
 use crate::lexer::lex_wfl_with_positions;
 use crate::parser::Parser;
+// use std::io::Write;
 
 #[test]
 fn test_literal_evaluation() {

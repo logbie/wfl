@@ -95,6 +95,18 @@ pub enum Token {
     KeywordContent,
     #[token("into")]
     KeywordInto, // (if needed for phrasing like "into variable")
+    #[token("wait")]
+    KeywordWait,
+    #[token("try")]
+    KeywordTry,
+    #[token("when")]
+    KeywordWhen,
+    #[token("data")]
+    KeywordData,
+    // #[token("otherwise")]
+    // KeywordOtherwise,
+    #[token("error")]
+    KeywordError,
     #[token("plus")]
     KeywordPlus, // arithmetic operators in word form
     #[token("minus")]

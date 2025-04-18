@@ -487,6 +487,13 @@ impl Analyzer {
 
     fn analyze_expression(&mut self, expression: &Expression) {
         match expression {
+            Expression::AwaitExpression {
+                expression,
+                line: _,
+                column: _,
+            } => {
+                self.analyze_expression(expression);
+            }
             Expression::Variable(name, line, column) => {
                 if self.current_scope.resolve(name).is_none() {
                     self.errors.push(SemanticError::new(

@@ -15,6 +15,7 @@ pub enum Value {
     Object(Rc<RefCell<HashMap<String, Value>>>),
     Function(Rc<FunctionValue>),
     NativeFunction(NativeFunction),
+    Future(Rc<RefCell<FutureValue>>),
     Null,
 }
 
@@ -30,6 +31,14 @@ pub struct FunctionValue {
     pub column: usize,
 }
 
+#[derive(Clone)]
+pub struct FutureValue {
+    pub value: Option<Result<Value, RuntimeError>>,
+    pub completed: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
 impl Value {
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -40,6 +49,7 @@ impl Value {
             Value::Object(_) => "Object",
             Value::Function(_) => "Function",
             Value::NativeFunction(_) => "NativeFunction",
+            Value::Future(_) => "Future",
             Value::Null => "Null",
         }
     }
@@ -53,6 +63,7 @@ impl Value {
             Value::List(list) => !list.borrow().is_empty(),
             Value::Object(obj) => !obj.borrow().is_empty(),
             Value::Function(_) | Value::NativeFunction(_) => true,
+            Value::Future(future) => future.borrow().completed,
         }
     }
 }
@@ -93,6 +104,7 @@ impl fmt::Debug for Value {
                 )
             }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
+            Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "null"),
         }
     }
@@ -114,6 +126,7 @@ impl fmt::Display for Value {
                 )
             }
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
+            Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "nothing"),
         }
     }
