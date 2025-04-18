@@ -12,14 +12,14 @@ use wfl::typechecker::TypeChecker;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    
+
     if args.len() == 1 {
         if let Err(e) = repl::run_repl() {
             eprintln!("REPL error: {}", e);
         }
         return Ok(());
     }
-    
+
     let input = fs::read_to_string(&args[1])?;
 
     let tokens = lex_wfl(&input);
