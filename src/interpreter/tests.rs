@@ -4,7 +4,7 @@ use super::{Interpreter, Value, Environment};
 
 #[test]
 fn test_literal_evaluation() {
-    let mut interpreter = Interpreter::new();
+    let interpreter = Interpreter::new();
     let env = Environment::new_global();
     
     let source = "42";
