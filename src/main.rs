@@ -2,7 +2,6 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::process;
 use wfl::Interpreter;
 use wfl::analyzer::Analyzer;
 use wfl::config;

@@ -7,7 +7,6 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::collections::HashMap;
-use std::fmt::Write as FmtWrite;
 
 #[derive(Debug, Clone)]
 pub struct CallFrame {
