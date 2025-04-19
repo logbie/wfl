@@ -10,7 +10,6 @@ use codespan_reporting::term::termcolor::Buffer;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
-use tokio::runtime::Runtime;
 
 pub struct ReplState {
     interpreter: Interpreter,
@@ -259,9 +258,7 @@ impl ReplState {
     }
 }
 
-pub fn run_repl() -> RustylineResult<()> {
-    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-
+pub async fn run_repl() -> RustylineResult<()> {
     let mut repl_state = ReplState::new();
     let mut rl = DefaultEditor::new()?;
 
@@ -277,7 +274,7 @@ pub fn run_repl() -> RustylineResult<()> {
             Ok(line) => {
                 rl.add_history_entry(&line)?;
 
-                match runtime.block_on(repl_state.process_line(&line)) {
+                match repl_state.process_line(&line).await {
                     Ok(Some(output)) => println!("{}", output),
                     Ok(None) => {} // No output needed
                     Err(error) => println!("Error: {}", error),

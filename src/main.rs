@@ -16,7 +16,7 @@ async fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {
-        if let Err(e) = repl::run_repl() {
+        if let Err(e) = repl::run_repl().await {
             eprintln!("REPL error: {}", e);
         }
         return Ok(());
