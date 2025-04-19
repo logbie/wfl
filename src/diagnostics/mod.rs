@@ -168,13 +168,29 @@ impl DiagnosticReporter {
             "Error occurred here",
         );
 
-        if message.contains("Expected 'as' after identifier") {
+        if message.contains("Expected 'as' after variable name") {
             diag = diag.with_note(
                 "Did you forget to use 'as' before assigning a value? For example: `store a as 4`",
             );
         } else if message.contains("Expected 'to' after identifier") {
             diag = diag.with_note(
                 "Did you forget to use 'to' before assigning a value? For example: `change a to 4`",
+            );
+        } else if message.contains("Expected a variable name before 'as'") {
+            diag = diag.with_note(
+                "You must provide a variable name before 'as'. For example: `store x as 3`",
+            );
+        } else if message.contains("Expected variable name but found end of input") {
+            diag = diag.with_note(
+                "The 'store' statement requires a variable name and value. For example: `store x as 3`",
+            );
+        } else if message.contains("Cannot use a number as a variable name") {
+            diag = diag.with_note(
+                "Variable names must start with a letter, not a number. For example: `store count as 1`",
+            );
+        } else if message.contains("Cannot use keyword") {
+            diag = diag.with_note(
+                "Reserved keywords cannot be used as variable names. Choose a different name that is not a reserved word.",
             );
         }
 

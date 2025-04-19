@@ -153,55 +153,114 @@ impl<'a> Parser<'a> {
     fn parse_variable_declaration(&mut self) -> Result<Statement, ParseError> {
         let token_pos = self.tokens.next().unwrap();
         let is_store = matches!(token_pos.token, Token::KeywordStore);
-        let keyword = if is_store { "store" } else { "create" };
-
-        let mut name = String::new();
-        let mut has_identifier = false;
-
-        while let Some(token) = self.tokens.peek() {
-            if let Token::Identifier(id) = &token.token {
-                has_identifier = true;
-                if !name.is_empty() {
-                    name.push(' ');
-                }
-                name.push_str(id);
-                self.tokens.next();
-            } else if let Token::KeywordAs = &token.token {
-                break;
-            } else {
-                // Provide a more specific error message if we've seen at least one identifier
-                if has_identifier {
-                    return Err(ParseError::new(
-                        format!(
-                            "Expected 'as' after identifier(s), but found {:?}",
-                            token.token
-                        ),
-                        token.line,
-                        token.column,
-                    ));
-                } else {
-                    return Err(ParseError::new(
-                        format!("Expected identifier or 'as', found {:?}", token.token),
-                        token.line,
-                        token.column,
-                    ));
-                }
+        let _keyword = if is_store { "store" } else { "create" };
+        
+        let name = match self.parse_variable_name_list() {
+            Ok(name) => name,
+            Err(e) => return Err(e),
+        };
+        
+        if let Some(token) = self.tokens.peek() {
+            if !matches!(token.token, Token::KeywordAs) {
+                return Err(ParseError::new(
+                    format!("Expected 'as' after variable name '{}', but found {:?}", name, token.token),
+                    token.line,
+                    token.column,
+                ));
             }
+        } else {
+            return Err(ParseError::new(
+                format!("Expected 'as' after variable name '{}', but found end of input", name),
+                token_pos.line,
+                token_pos.column,
+            ));
         }
-
-        self.expect_token(
-            Token::KeywordAs,
-            &format!("Expected 'as' after variable name in {} statement", keyword),
-        )?;
-
+        
+        self.tokens.next(); // Consume the 'as' token
+        
         let value = self.parse_expression()?;
-
+        
         Ok(Statement::VariableDeclaration {
             name,
             value,
             line: token_pos.line,
             column: token_pos.column,
         })
+    }
+    
+    fn parse_variable_name_list(&mut self) -> Result<String, ParseError> {
+        let mut name_parts = Vec::new();
+        
+        if let Some(token) = self.tokens.peek() {
+            match &token.token {
+                Token::Identifier(id) => {
+                    self.tokens.next(); // Consume the identifier
+                    name_parts.push(id.clone());
+                }
+                Token::IntLiteral(_) | Token::FloatLiteral(_) => {
+                    return Err(ParseError::new(
+                        format!("Cannot use a number as a variable name: {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+                Token::KeywordAs => {
+                    return Err(ParseError::new(
+                        "Expected a variable name before 'as'".to_string(),
+                        token.line,
+                        token.column,
+                    ));
+                }
+                _ if token.token.is_keyword() => {
+                    return Err(ParseError::new(
+                        format!("Cannot use keyword '{:?}' as a variable name", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+                _ => {
+                    return Err(ParseError::new(
+                        format!("Expected identifier for variable name, found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected variable name but found end of input".to_string(),
+                0,
+                0,
+            ));
+        }
+        
+        while let Some(token) = self.tokens.peek() {
+            match &token.token {
+                Token::Identifier(id) => {
+                    self.tokens.next(); // Consume the identifier
+                    name_parts.push(id.clone());
+                }
+                Token::KeywordAs => {
+                    break;
+                }
+                Token::IntLiteral(_) | Token::FloatLiteral(_) => {
+                    return Err(ParseError::new(
+                        format!("Expected 'as' after variable name, but found number: {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+                _ => {
+                    return Err(ParseError::new(
+                        format!("Expected 'as' after variable name, but found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+            }
+        }
+        
+        Ok(name_parts.join(" "))
     }
 
     fn expect_token(&mut self, expected: Token, error_message: &str) -> Result<(), ParseError> {
