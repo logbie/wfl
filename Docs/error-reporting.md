@@ -47,6 +47,28 @@ error: Expected expression after 'as'
  3 | store z as
    |           ^ Error occurred here
 ```
+
+### Missing Keyword Error
+
+```
+error: Expected 'as' after identifier(s), but found IntLiteral(42)
+  --> example.wfl:3:14
+   |
+ 3 | store greeting 42
+   |              ^ Error occurred here
+   |
+   = Note: Did you forget to use 'as' before assigning a value? For example: `store greeting as 42`
+```
+
+```
+error: Expected 'to' after identifier(s), but found IntLiteral(10)
+  --> example.wfl:5:16
+   |
+ 5 | change counter 10
+   |                ^ Error occurred here
+   |
+   = Note: Did you forget to use 'to' before assigning a value? For example: `change counter to 10`
+```
    
 ### Type Error
    

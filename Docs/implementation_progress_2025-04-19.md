@@ -12,6 +12,10 @@
   - Clear, actionable descriptions
   - Source code snippets showing the exact location of the error
   - Helpful suggestions for fixing common issues
+  - Specific guidance for missing keywords in variable declarations and assignments
+    - Improved detection of missing `as` in `store` and `create` statements
+    - Improved detection of missing `to` in `change` statements
+    - Added contextual suggestions showing the correct syntax
 - Updated the main compiler and REPL to use the new diagnostic system
 - Added comprehensive documentation for the error reporting system
     
