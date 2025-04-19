@@ -30,18 +30,18 @@ impl fmt::Debug for SafeDebug<'_> {
         if self.depth == 0 {
             return write!(f, "...");
         }
-        
+
         match self.value {
             Value::List(list) => {
                 let ptr = Rc::as_ptr(list) as *const ();
-                
+
                 if !self.seen.borrow_mut().insert(ptr) {
                     return write!(f, "[<cycle>]");
                 }
-                
+
                 let borrowed = list.borrow();
                 write!(f, "[")?;
-                
+
                 for (i, v) in borrowed.iter().take(16).enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
@@ -50,26 +50,27 @@ impl fmt::Debug for SafeDebug<'_> {
                         value: v,
                         depth: self.depth - 1,
                         seen: Rc::clone(&self.seen),
-                    }.fmt(f)?;
+                    }
+                    .fmt(f)?;
                 }
-                
+
                 if borrowed.len() > 16 {
                     write!(f, ", ... ({} more items)", borrowed.len() - 16)?;
                 }
-                
+
                 self.seen.borrow_mut().remove(&ptr);
                 write!(f, "]")
-            },
+            }
             Value::Object(obj) => {
                 let ptr = Rc::as_ptr(obj) as *const ();
-                
+
                 if !self.seen.borrow_mut().insert(ptr) {
                     return write!(f, "{{<cycle>}}");
                 }
-                
+
                 let borrowed = obj.borrow();
                 write!(f, "{{")?;
-                
+
                 for (i, (k, v)) in borrowed.iter().take(16).enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
@@ -79,17 +80,18 @@ impl fmt::Debug for SafeDebug<'_> {
                         value: v,
                         depth: self.depth - 1,
                         seen: Rc::clone(&self.seen),
-                    }.fmt(f)?;
+                    }
+                    .fmt(f)?;
                 }
-                
+
                 if borrowed.len() > 16 {
                     write!(f, ", ... ({} more items)", borrowed.len() - 16)?;
                 }
-                
+
                 self.seen.borrow_mut().remove(&ptr);
                 write!(f, "}}")
-            },
-            v => fmt::Debug::fmt(v, f)
+            }
+            v => fmt::Debug::fmt(v, f),
         }
     }
 }
@@ -292,36 +294,36 @@ mod tests {
     fn test_debug_report_generation_simple() {
         let error = RuntimeError::new("Test error".to_string(), 1, 1);
         let mut call_frame = CallFrame::new("test_function".to_string(), 1, 1);
-        
+
         let env = Environment::new_global();
-        
+
         {
             let mut env_mut = env.borrow_mut();
             env_mut.define("x", Value::Number(42.0));
             env_mut.define("y", Value::Text("hello".into()));
         }
-        
+
         call_frame.capture_locals(&env);
-        
+
         let call_stack = vec![call_frame];
-        
+
         let script_content = "store x as 42\nstore y as \"hello\"";
-        
+
         let temp_dir = tempdir().unwrap();
         let script_path = temp_dir.path().join("test_script.wfl");
         fs::write(&script_path, script_content).unwrap();
-        
+
         let report_path = create_report(
             &error,
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
         );
-        
+
         assert!(report_path.exists());
-        
+
         let report_content = fs::read_to_string(report_path).unwrap();
-        
+
         assert!(report_content.contains("=== WFL Debug Report ==="));
         assert!(report_content.contains("=== Error Summary ==="));
         assert!(report_content.contains("Test error"));
@@ -332,24 +334,27 @@ mod tests {
         assert!(report_content.contains("x = 42"));
         assert!(report_content.contains("y = \"hello\""));
     }
-    
+
     #[test]
     fn test_safe_debug_with_cyclic_list() {
         use crate::interpreter::value::Value;
         use std::cell::RefCell;
         use std::rc::Rc;
-        
+
         let list = Rc::new(RefCell::new(Vec::<Value>::new()));
         let list_value = Value::List(Rc::clone(&list));
-        
+
         list.borrow_mut().push(list_value.clone());
-        
+
         let safe_debug = SafeDebug::new(&list_value, 4);
         let debug_output = format!("{:?}", safe_debug);
-        
+
         assert!(debug_output.contains("<cycle>"));
-        
-        assert!(debug_output.len() < 1000, 
-                "Debug output size: {} bytes exceeds 1000 byte limit", debug_output.len());
+
+        assert!(
+            debug_output.len() < 1000,
+            "Debug output size: {} bytes exceeds 1000 byte limit",
+            debug_output.len()
+        );
     }
 }

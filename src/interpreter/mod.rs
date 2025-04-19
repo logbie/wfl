@@ -213,7 +213,7 @@ impl Interpreter {
                 *self.in_count_loop.borrow_mut() = false;
                 *self.current_count.borrow_mut() = None;
             }
-            
+
             Err(RuntimeError::new(
                 format!(
                     "Execution exceeded timeout ({}s)",
@@ -232,9 +232,8 @@ impl Interpreter {
             *self.in_count_loop.borrow(),
             self.current_count.borrow().is_some()
         );
-        
+
         debug_assert!(self.call_stack.borrow().len() < 10_000);
-        
     }
 
     fn native_display(args: Vec<Value>) -> Result<Value, RuntimeError> {
@@ -289,7 +288,7 @@ impl Interpreter {
                     Err(err) => {
                         errors.push(err);
                         self.clear_call_stack();
-                    },
+                    }
                 }
             }
 
@@ -1087,11 +1086,11 @@ impl Interpreter {
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
                     last_frame.capture_locals(&call_env);
                 }
-                
+
                 let error_with_stack = err.clone();
-                
+
                 self.call_stack.borrow_mut().pop();
-                
+
                 Err(error_with_stack)
             }
         }
