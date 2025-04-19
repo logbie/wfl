@@ -3,8 +3,8 @@ use crate::lexer::lex_wfl_with_positions;
 use crate::parser::Parser;
 // use std::io::Write;
 
-#[test]
-fn test_literal_evaluation() {
+#[tokio::test]
+async fn test_literal_evaluation() {
     let interpreter = Interpreter::new();
     let env = Environment::new_global();
 
@@ -15,7 +15,10 @@ fn test_literal_evaluation() {
 
     if let Some(stmt) = program.statements.first() {
         if let crate::parser::ast::Statement::ExpressionStatement { expression, .. } = stmt {
-            let result = interpreter.evaluate_expression(expression, env).unwrap();
+            let result = interpreter
+                .evaluate_expression(expression, env)
+                .await
+                .unwrap();
             match result {
                 Value::Number(n) => assert_eq!(n, 42.0),
                 _ => panic!("Expected number, got {:?}", result),
@@ -28,8 +31,8 @@ fn test_literal_evaluation() {
     }
 }
 
-#[test]
-fn test_variable_declaration_and_access() {
+#[tokio::test]
+async fn test_variable_declaration_and_access() {
     let mut interpreter = Interpreter::new();
 
     let source = "store x as 42\nx";
@@ -37,7 +40,7 @@ fn test_variable_declaration_and_access() {
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
 
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
 
     match result {
         Value::Number(n) => assert_eq!(n, 42.0),
@@ -45,15 +48,15 @@ fn test_variable_declaration_and_access() {
     }
 }
 
-#[test]
-fn test_binary_operations() {
+#[tokio::test]
+async fn test_binary_operations() {
     let mut interpreter = Interpreter::new();
 
     let source = "2 plus 3";
     let tokens = lex_wfl_with_positions(source);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
     match result {
         Value::Number(n) => assert_eq!(n, 5.0),
         _ => panic!("Expected number, got {:?}", result),
@@ -63,22 +66,22 @@ fn test_binary_operations() {
     let tokens = lex_wfl_with_positions(source);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
     match result {
         Value::Bool(b) => assert!(b),
         _ => panic!("Expected boolean, got {:?}", result),
     }
 }
 
-#[test]
-fn test_if_statement() {
+#[tokio::test]
+async fn test_if_statement() {
     let mut interpreter = Interpreter::new();
 
     let source = "check if yes: display \"true\" otherwise: display \"false\" end check";
     let tokens = lex_wfl_with_positions(source);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
 
     match result {
         Value::Null => {}
@@ -87,15 +90,15 @@ fn test_if_statement() {
 }
 
 /*
-#[test]
-fn test_function_definition_and_call() {
+#[tokio::test]
+async fn test_function_definition_and_call() {
     let mut interpreter = Interpreter::new();
 
     let source = "define action called add: give back 2 plus 3 end action\nadd";
     let tokens = lex_wfl_with_positions(source);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
 
     match result {
         Value::Number(n) => assert_eq!(n, 5.0),
@@ -104,8 +107,8 @@ fn test_function_definition_and_call() {
 }
 */
 
-#[test]
-fn test_count_loop_with_direct_access() {
+#[tokio::test]
+async fn test_count_loop_with_direct_access() {
     let mut interpreter = Interpreter::new();
 
     let source = "
@@ -117,15 +120,15 @@ fn test_count_loop_with_direct_access() {
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
 
-    let result = interpreter.interpret(&program).unwrap();
+    let result = interpreter.interpret(&program).await.unwrap();
 
     match result {
         Value::Null => {}
         _ => panic!("Expected null, got {:?}", result),
     }
 }
-#[test]
-fn test_timeout_happy_path() {
+#[tokio::test]
+async fn test_timeout_happy_path() {
     let mut interpreter = Interpreter::with_timeout(1); // 1 second timeout
 
     let source = "store x as 42\nx"; // A quick script
@@ -134,11 +137,11 @@ fn test_timeout_happy_path() {
     let program = parser.parse().unwrap();
 
     let result = interpreter.interpret(&program);
-    assert!(result.is_ok());
+    assert!(result.await.is_ok());
 }
 
-#[test]
-fn test_timeout_forever_loop() {
+#[tokio::test]
+async fn test_timeout_forever_loop() {
     let mut interpreter = Interpreter::with_timeout(1); // 1 second timeout
 
     let source = "
@@ -154,8 +157,9 @@ fn test_timeout_forever_loop() {
     let result = interpreter.interpret(&program);
     let elapsed = start.elapsed();
 
-    assert!(result.is_err());
-    if let Err(errors) = result {
+    let result_value = result.await;
+    assert!(result_value.is_err());
+    if let Err(errors) = result_value {
         assert!(!errors.is_empty());
         println!("Actual error message: {}", errors[0].message);
         assert!(errors[0].message.contains("Execution exceeded timeout"));

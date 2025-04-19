@@ -14,8 +14,7 @@ async fn test_file_io() {
     
     let source = format!(
         r#"
-        open file at "{}" as test_file
-        store content as read content from test_file
+        wait for open file at "{}" and read content as content
         display content
         "#,
         file_path

@@ -86,7 +86,62 @@ impl<'a> Parser<'a> {
                         column: token_pos.column,
                     })
                 }
-                Token::KeywordOpen => self.parse_open_file_statement(),
+                Token::KeywordOpen => {
+                    let mut tokens_clone = self.tokens.clone();
+                    let mut has_read_pattern = false;
+
+                    tokens_clone.next();
+
+                    if let Some(token) = tokens_clone.next() {
+                        if token.token == Token::KeywordFile {
+                            if let Some(token) = tokens_clone.next() {
+                                if token.token == Token::KeywordAt {
+                                    if let Some(token) = tokens_clone.next() {
+                                        if let Token::StringLiteral(_) = token.token {
+                                            if let Some(token) = tokens_clone.next() {
+                                                if token.token == Token::KeywordAnd {
+                                                    if let Some(token) = tokens_clone.next() {
+                                                        if token.token == Token::KeywordRead {
+                                                            if let Some(token) = tokens_clone.next()
+                                                            {
+                                                                if token.token
+                                                                    == Token::KeywordContent
+                                                                {
+                                                                    if let Some(token) =
+                                                                        tokens_clone.next()
+                                                                    {
+                                                                        if token.token
+                                                                            == Token::KeywordAs
+                                                                        {
+                                                                            if let Some(token) =
+                                                                                tokens_clone.next()
+                                                                            {
+                                                                                if let Token::Identifier(_) = token.token {
+                                                                                    has_read_pattern = true;
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if has_read_pattern {
+                        self.parse_open_file_read_statement()
+                    } else {
+                        self.parse_open_file_statement()
+                    }
+                }
+                Token::KeywordWait => self.parse_wait_for_statement(),
                 Token::KeywordGive | Token::KeywordReturn => self.parse_return_statement(),
                 _ => self.parse_expression_statement(),
             }
@@ -1449,9 +1504,72 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_open_file_statement(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.next(); // Consume "open"
+        let open_token = self.tokens.next().unwrap(); // Consume "open"
 
         self.expect_token(Token::KeywordFile, "Expected 'file' after 'open'")?;
+
+        if let Some(token) = self.tokens.peek() {
+            if token.token == Token::KeywordAt {
+                self.tokens.next(); // Consume "at"
+
+                let path_expr = if let Some(token) = self.tokens.peek() {
+                    if let Token::StringLiteral(path_str) = &token.token {
+                        let token_clone = token.to_owned();
+                        self.tokens.next(); // Consume the string literal
+                        Expression::Literal(
+                            Literal::String(path_str.clone()),
+                            token_clone.line,
+                            token_clone.column,
+                        )
+                    } else {
+                        return Err(ParseError::new(
+                            format!(
+                                "Expected string literal for file path, found {:?}",
+                                token.token
+                            ),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
+                };
+
+                self.expect_token(Token::KeywordAnd, "Expected 'and' after file path")?;
+                self.expect_token(Token::KeywordRead, "Expected 'read' after 'and'")?;
+                self.expect_token(Token::KeywordContent, "Expected 'content' after 'read'")?;
+                self.expect_token(Token::KeywordAs, "Expected 'as' after 'content'")?;
+
+                let variable_name = if let Some(token) = self.tokens.peek() {
+                    if let Token::Identifier(name) = &token.token {
+                        self.tokens.next(); // Consume the identifier
+                        name.clone()
+                    } else if let Token::KeywordContent = &token.token {
+                        // Special case for "content" as an identifier
+                        self.tokens.next(); // Consume the "content" keyword
+                        "content".to_string()
+                    } else {
+                        return Err(ParseError::new(
+                            format!(
+                                "Expected identifier for variable name, found {:?}",
+                                token.token
+                            ),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
+                };
+
+                return Ok(Statement::ReadFileStatement {
+                    path: path_expr,
+                    variable_name,
+                    line: open_token.line,
+                    column: open_token.column,
+                });
+            }
+        }
 
         let path = self.parse_expression()?;
 
@@ -1476,20 +1594,97 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        let token_pos = self.tokens.peek().map_or(
+        Ok(Statement::OpenFileStatement {
+            path,
+            variable_name,
+            line: open_token.line,
+            column: open_token.column,
+        })
+    }
+
+    fn parse_open_file_read_statement(&mut self) -> Result<Statement, ParseError> {
+        let open_token = self.tokens.next().unwrap(); // Consume "open"
+
+        self.expect_token(Token::KeywordFile, "Expected 'file' after 'open'")?;
+        self.expect_token(Token::KeywordAt, "Expected 'at' after 'file'")?;
+
+        let path_expr = if let Some(token) = self.tokens.peek() {
+            if let Token::StringLiteral(path_str) = &token.token {
+                let token_clone = token.to_owned();
+                self.tokens.next(); // Consume the string literal
+                Expression::Literal(
+                    Literal::String(path_str.clone()),
+                    token_clone.line,
+                    token_clone.column,
+                )
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected string literal for file path, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
+        };
+
+        self.expect_token(Token::KeywordAnd, "Expected 'and' after file path")?;
+        self.expect_token(Token::KeywordRead, "Expected 'read' after 'and'")?;
+        self.expect_token(Token::KeywordContent, "Expected 'content' after 'read'")?;
+        self.expect_token(Token::KeywordAs, "Expected 'as' after 'content'")?;
+
+        let variable_name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(name) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                name.clone()
+            } else if let Token::KeywordContent = &token.token {
+                self.tokens.next(); // Consume the "content" keyword
+                "content".to_string()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for variable name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
+        };
+
+        Ok(Statement::ReadFileStatement {
+            path: path_expr,
+            variable_name,
+            line: open_token.line,
+            column: open_token.column,
+        })
+    }
+
+    fn parse_wait_for_statement(&mut self) -> Result<Statement, ParseError> {
+        let wait_token_pos = self.tokens.peek().map_or(
             &TokenWithPosition {
-                token: Token::KeywordOpen,
+                token: Token::KeywordWait,
                 line: 0,
                 column: 0,
                 length: 0,
             },
             |v| v,
         );
-        Ok(Statement::OpenFileStatement {
-            path,
-            variable_name,
-            line: token_pos.line,
-            column: token_pos.column,
+
+        self.tokens.next(); // Consume "wait"
+        self.expect_token(Token::KeywordFor, "Expected 'for' after 'wait'")?;
+
+        let inner = Box::new(self.parse_statement()?);
+
+        Ok(Statement::WaitForStatement {
+            inner,
+            line: wait_token_pos.line,
+            column: wait_token_pos.column,
         })
     }
 
