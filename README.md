@@ -20,6 +20,8 @@ The WFL compiler is currently under development. Here's the current status:
 - ✅ **Interpreter**: Complete - Executes the AST directly
   - ✅ Supports all basic language features
   - ✅ Includes runtime error handling and reporting
+  - ✅ HTTP GET/POST support
+  - ✅ Try/when/otherwise exception handling
   - 🔄 Asynchronous operations support in progress
 - ✅ **Error Reporting System**: Complete - Comprehensive diagnostics with actionable messages
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions

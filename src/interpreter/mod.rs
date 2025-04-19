@@ -1,3 +1,4 @@
+#![allow(clippy::await_holding_refcell_ref)]
 pub mod environment;
 pub mod error;
 #[cfg(test)]
@@ -410,7 +411,7 @@ impl Interpreter {
                     name: Some(name.clone()),
                     params: param_names,
                     body: body.clone(),
-                    env: Rc::downgrade(&env),
+                    env: Rc::clone(&env),
                     line: *line,
                     column: *column,
                 };
@@ -478,7 +479,7 @@ impl Interpreter {
                 };
 
                 let mut count = start_num;
-                let loop_env = Environment::new(&env);
+                let loop_env = Environment::new_child_env(&env);
 
                 let should_continue: Box<dyn Fn(f64, f64) -> bool> = if *downward {
                     Box::new(|count, end_num| count >= end_num)
@@ -546,7 +547,7 @@ impl Interpreter {
                     .evaluate_expression(collection, Rc::clone(&env))
                     .await?;
 
-                let loop_env = Environment::new(&env);
+                let loop_env = Environment::new_child_env(&env);
 
                 match collection_val {
                     Value::List(list_rc) => {
@@ -756,21 +757,79 @@ impl Interpreter {
                 line: _,
                 column: _,
             } => self.execute_statement(inner, Rc::clone(&env)).await,
-            Statement::TryStatement { line, column, .. } => Err(RuntimeError::new(
-                "Feature not implemented: Try statement".to_string(),
-                *line,
-                *column,
-            )),
-            Statement::HttpGetStatement { line, column, .. } => Err(RuntimeError::new(
-                "Feature not implemented: HttpGet statement".to_string(),
-                *line,
-                *column,
-            )),
-            Statement::HttpPostStatement { line, column, .. } => Err(RuntimeError::new(
-                "Feature not implemented: HttpPost statement".to_string(),
-                *line,
-                *column,
-            )),
+            Statement::TryStatement { body, error_name, when_block, otherwise_block, line: _line, column: _column } => {
+                let child_env = Environment::new_child_env(&env);
+                
+                match self.execute_block(body, Rc::clone(&child_env)).await {
+                    Ok(val) => Ok(val),  // Success path: just bubble result
+                    Err(err) => {
+                        child_env.borrow_mut().define(error_name, Value::Text(err.message.into()));
+                        
+                        let result = self.execute_block(when_block, Rc::clone(&child_env)).await;
+                        
+                        if result.is_ok() || otherwise_block.is_none() {
+                            result
+                        } else {
+                            self.execute_block(otherwise_block.as_ref().unwrap(), child_env).await
+                        }
+                    }
+                }
+            },
+            Statement::HttpGetStatement { url, variable_name, line, column } => {
+                let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
+                let url_str = match &url_val {
+                    Value::Text(s) => s.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Expected string for URL, got {:?}", url_val),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+
+                match self.io_client.http_get(&url_str).await {
+                    Ok(body) => {
+                        env.borrow_mut().define(variable_name, Value::Text(body.into()));
+                        Ok(Value::Null)
+                    },
+                    Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                }
+            },
+            Statement::HttpPostStatement { url, data, variable_name, line, column } => {
+                let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
+                let data_val = self.evaluate_expression(data, Rc::clone(&env)).await?;
+                
+                let url_str = match &url_val {
+                    Value::Text(s) => s.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Expected string for URL, got {:?}", url_val),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+                
+                let data_str = match &data_val {
+                    Value::Text(s) => s.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Expected string for data, got {:?}", data_val),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+
+                match self.io_client.http_post(&url_str, &data_str).await {
+                    Ok(body) => {
+                        env.borrow_mut().define(variable_name, Value::Text(body.into()));
+                        Ok(Value::Null)
+                    },
+                    Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                }
+            },
         }
     }
 
@@ -1134,18 +1193,9 @@ impl Interpreter {
             ));
         }
 
-        let func_env = match func.env.upgrade() {
-            Some(env) => env,
-            None => {
-                return Err(RuntimeError::new(
-                    "Parent environment no longer exists".to_string(),
-                    line,
-                    column,
-                ));
-            }
-        };
-
-        let call_env = Environment::new(&func_env);
+        let func_env = func.env.clone();
+        
+        let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
             call_env.borrow_mut().define(param, arg);

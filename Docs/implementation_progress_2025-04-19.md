@@ -20,3 +20,37 @@
 - Added comprehensive documentation for the error reporting system
     
 This implementation aligns with WFL's emphasis on helpful errors inspired by Elm, providing a more user-friendly development experience.
+
+## HTTP GET/POST Support
+
+- Implemented `HttpGetStatement` and `HttpPostStatement` in the interpreter
+- Uses the existing `IoClient` for HTTP operations
+- Stores response in specified variable
+- Added proper error handling
+- Added tests for both GET and POST operations using httpbin.org
+
+## Try/When/Otherwise Exception Handling
+
+- Implemented `TryStatement` in the interpreter
+- Supports error capture, error handling blocks, and fallback blocks
+- Properly propagates errors up the call stack
+- Added tests for error handling and error propagation
+
+## Closure Environment Fixes
+
+- Changed `FunctionValue` to use `Rc` references instead of `Weak` references
+- Keeps `Environment::parent` as `Weak` to prevent memory cycles
+- Allows closures to outlive their defining scope
+- Added new test verifying closures work properly
+- Added `new_child_env` helper method to Environment for cleaner code
+
+## Documentation Updates
+
+- Updated README.md to mark features as implemented
+- Reference updated
+
+## Remaining Work
+
+- Full asynchronous operations support
+- WebAssembly compilation
+- Language Server Protocol enhancements
