@@ -121,10 +121,10 @@ impl ReplState {
                 let mut error_messages = Vec::new();
                 let mut reporter = DiagnosticReporter::new();
                 let file_id = reporter.add_file("repl", input);
-                
+
                 for error in &errors {
                     let diagnostic = reporter.convert_parse_error(file_id, error);
-                    
+
                     let mut buffer = Buffer::ansi();
                     let config = term::Config::default();
                     if let Err(_e) = term::emit(
@@ -139,11 +139,11 @@ impl ReplState {
                         ));
                         continue;
                     }
-                    
+
                     let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                     error_messages.push(output);
                 }
-                
+
                 return Ok(Some(error_messages.join("\n")));
             }
         };
@@ -169,10 +169,10 @@ impl ReplState {
                             let mut error_messages = Vec::new();
                             let mut reporter = DiagnosticReporter::new();
                             let file_id = reporter.add_file("repl", input);
-                            
+
                             for error in &errors {
                                 let diagnostic = reporter.convert_runtime_error(file_id, error);
-                                
+
                                 let mut buffer = Buffer::ansi();
                                 let config = term::Config::default();
                                 if let Err(_e) = term::emit(
@@ -184,11 +184,11 @@ impl ReplState {
                                     error_messages.push(format!("Runtime error: {}", error));
                                     continue;
                                 }
-                                
+
                                 let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                                 error_messages.push(output);
                             }
-                            
+
                             result_output = Some(error_messages.join("\n"));
                         }
                     }
@@ -199,10 +199,10 @@ impl ReplState {
                         let mut error_messages = Vec::new();
                         let mut reporter = DiagnosticReporter::new();
                         let file_id = reporter.add_file("repl", input);
-                        
+
                         for error in &errors {
                             let diagnostic = reporter.convert_runtime_error(file_id, error);
-                            
+
                             let mut buffer = Buffer::ansi();
                             let config = term::Config::default();
                             if let Err(_e) = term::emit(
@@ -214,11 +214,11 @@ impl ReplState {
                                 error_messages.push(format!("Runtime error: {}", error));
                                 continue;
                             }
-                            
+
                             let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                             error_messages.push(output);
                         }
-                        
+
                         result_output = Some(error_messages.join("\n"));
                     }
                 },
@@ -230,10 +230,10 @@ impl ReplState {
                     let mut error_messages = Vec::new();
                     let mut reporter = DiagnosticReporter::new();
                     let file_id = reporter.add_file("repl", input);
-                    
+
                     for error in &errors {
                         let diagnostic = reporter.convert_runtime_error(file_id, error);
-                        
+
                         let mut buffer = Buffer::ansi();
                         let config = term::Config::default();
                         if let Err(_e) = term::emit(
@@ -245,11 +245,11 @@ impl ReplState {
                             error_messages.push(format!("Runtime error: {}", error));
                             continue;
                         }
-                        
+
                         let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                         error_messages.push(output);
                     }
-                    
+
                     result_output = Some(error_messages.join("\n"));
                 }
             }

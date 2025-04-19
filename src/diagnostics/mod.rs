@@ -1,4 +1,3 @@
-
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
@@ -69,19 +68,18 @@ impl WflDiagnostic {
     }
 
     pub fn to_codespan_diagnostic(&self, file_id: usize) -> Diagnostic<usize> {
-        let mut diag = Diagnostic::new(self.severity.into())
-            .with_message(self.message.clone());
-        
+        let mut diag = Diagnostic::new(self.severity.into()).with_message(self.message.clone());
+
         for (span, message) in &self.labels {
             diag = diag.with_labels(vec![
-                Label::primary(file_id, span.start..span.end).with_message(message.clone())
+                Label::primary(file_id, span.start..span.end).with_message(message.clone()),
             ]);
         }
-        
+
         for note in &self.notes {
             diag = diag.with_notes(vec![note.clone()]);
         }
-        
+
         diag
     }
 }
@@ -108,12 +106,12 @@ impl DiagnosticReporter {
     }
 
     pub fn report_diagnostic(&self, file_id: usize, diagnostic: &WflDiagnostic) -> io::Result<()> {
-        let mut diag = Diagnostic::new(diagnostic.severity.into())
-            .with_message(diagnostic.message.clone());
+        let mut diag =
+            Diagnostic::new(diagnostic.severity.into()).with_message(diagnostic.message.clone());
 
         for (span, message) in &diagnostic.labels {
             diag = diag.with_labels(vec![
-                Label::primary(file_id, span.start..span.end).with_message(message.clone())
+                Label::primary(file_id, span.start..span.end).with_message(message.clone()),
             ]);
         }
 
@@ -137,7 +135,11 @@ impl DiagnosticReporter {
             let lines: Vec<&str> = source.lines().collect();
 
             if line < lines.len() {
-                let line_start = source.lines().take(line).map(|l| l.len() + 1).sum::<usize>();
+                let line_start = source
+                    .lines()
+                    .take(line)
+                    .map(|l| l.len() + 1)
+                    .sum::<usize>();
                 if column <= lines[line].len() {
                     return Some(line_start + column);
                 }
@@ -146,88 +148,127 @@ impl DiagnosticReporter {
         None
     }
 
-    pub fn convert_parse_error(&self, file_id: usize, error: &crate::parser::ast::ParseError) -> WflDiagnostic {
+    pub fn convert_parse_error(
+        &self,
+        file_id: usize,
+        error: &crate::parser::ast::ParseError,
+    ) -> WflDiagnostic {
         let message = error.message.clone();
-        
-        let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
+
+        let start_offset = self
+            .line_col_to_offset(file_id, error.line, error.column)
+            .unwrap_or(0);
         let end_offset = start_offset + 1;
-        
-        WflDiagnostic::error(message)
-            .with_primary_label(
-                Span { start: start_offset, end: end_offset },
-                "Error occurred here"
-            )
+
+        WflDiagnostic::error(message).with_primary_label(
+            Span {
+                start: start_offset,
+                end: end_offset,
+            },
+            "Error occurred here",
+        )
     }
 
-    pub fn convert_type_error(&self, file_id: usize, error: &crate::typechecker::TypeError) -> WflDiagnostic {
+    pub fn convert_type_error(
+        &self,
+        file_id: usize,
+        error: &crate::typechecker::TypeError,
+    ) -> WflDiagnostic {
         let mut message_text = error.message.clone();
-        
+
         if let (Some(expected), Some(found)) = (&error.expected, &error.found) {
-            message_text = format!("{} - Expected {} but found {}", message_text, expected, found);
-        }
-        
-        let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
-        let end_offset = start_offset + 1;
-        
-        let mut diag = WflDiagnostic::error(message_text.clone())
-            .with_primary_label(
-                Span { start: start_offset, end: end_offset },
-                "Type error occurred here"
+            message_text = format!(
+                "{} - Expected {} but found {}",
+                message_text, expected, found
             );
-        
+        }
+
+        let start_offset = self
+            .line_col_to_offset(file_id, error.line, error.column)
+            .unwrap_or(0);
+        let end_offset = start_offset + 1;
+
+        let mut diag = WflDiagnostic::error(message_text.clone()).with_primary_label(
+            Span {
+                start: start_offset,
+                end: end_offset,
+            },
+            "Type error occurred here",
+        );
+
         if message_text.contains("undefined") || message_text.contains("not defined") {
             diag = diag.with_note("Did you misspell the variable name or forget to declare it?");
         } else if let (Some(expected), Some(found)) = (&error.expected, &error.found) {
             if expected.to_string() == "Number" && found.to_string() == "Text" {
-                diag = diag.with_note("Try converting the text to a number using 'convert to number'");
+                diag =
+                    diag.with_note("Try converting the text to a number using 'convert to number'");
             } else if expected.to_string() == "Text" && found.to_string() == "Number" {
                 diag = diag.with_note("Try converting the number to text using 'convert to text'");
             }
         }
-        
+
         diag
     }
 
-    pub fn convert_semantic_error(&self, file_id: usize, error: &crate::analyzer::SemanticError) -> WflDiagnostic {
+    pub fn convert_semantic_error(
+        &self,
+        file_id: usize,
+        error: &crate::analyzer::SemanticError,
+    ) -> WflDiagnostic {
         let message = error.message.clone();
-        
-        let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
-        let end_offset = start_offset + (if error.message.contains("not defined") { 
-            error.message.split_whitespace()
-                .find(|word| word.starts_with('\'') && word.ends_with('\''))
-                .map(|word| word.len() - 2)
-                .unwrap_or(1)
-        } else {
-            1
-        });
-        
-        let mut diag = WflDiagnostic::error(message)
-            .with_primary_label(
-                Span { start: start_offset, end: end_offset },
-                "Semantic error occurred here"
-            );
-        
+
+        let start_offset = self
+            .line_col_to_offset(file_id, error.line, error.column)
+            .unwrap_or(0);
+        let end_offset = start_offset
+            + (if error.message.contains("not defined") {
+                error
+                    .message
+                    .split_whitespace()
+                    .find(|word| word.starts_with('\'') && word.ends_with('\''))
+                    .map(|word| word.len() - 2)
+                    .unwrap_or(1)
+            } else {
+                1
+            });
+
+        let mut diag = WflDiagnostic::error(message).with_primary_label(
+            Span {
+                start: start_offset,
+                end: end_offset,
+            },
+            "Semantic error occurred here",
+        );
+
         if error.message.contains("already defined") {
             diag = diag.with_note("Variables must have unique names within the same scope");
         } else if error.message.contains("not defined") {
             diag = diag.with_note("Did you misspell the variable name or forget to declare it?");
         }
-        
+
         diag
     }
 
-    pub fn convert_runtime_error(&self, file_id: usize, error: &crate::interpreter::error::RuntimeError) -> WflDiagnostic {
+    pub fn convert_runtime_error(
+        &self,
+        file_id: usize,
+        error: &crate::interpreter::error::RuntimeError,
+    ) -> WflDiagnostic {
         let message = error.message.clone();
-        
-        let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
+
+        let start_offset = self
+            .line_col_to_offset(file_id, error.line, error.column)
+            .unwrap_or(0);
         let end_offset = start_offset + 1;
-        
-        let mut diag = WflDiagnostic::error(message)
-            .with_primary_label(
-                Span { start: start_offset, end: end_offset },
-                "Runtime error occurred here"
-            );
-        
+
+        let mut diag = WflDiagnostic::error(message).with_primary_label(
+            Span {
+                start: start_offset,
+                end: end_offset,
+            },
+            "Runtime error occurred here",
+        );
+
         if error.message.contains("division by zero") {
             diag = diag.with_note("Check your divisor to ensure it's never zero");
         } else if error.message.contains("index out of bounds") {
@@ -235,7 +276,7 @@ impl DiagnosticReporter {
         } else if error.message.contains("file not found") {
             diag = diag.with_note("Verify that the file exists and the path is correct");
         }
-        
+
         diag
     }
 }

@@ -156,13 +156,16 @@ async fn main() -> io::Result<()> {
                                 ),
                                 Err(errors) => {
                                     eprintln!("Runtime errors:");
-                                    
+
                                     let mut reporter = DiagnosticReporter::new();
                                     let file_id = reporter.add_file(&args[1], &input);
-                                    
+
                                     for error in errors {
-                                        let diagnostic = reporter.convert_runtime_error(file_id, &error);
-                                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                                        let diagnostic =
+                                            reporter.convert_runtime_error(file_id, &error);
+                                        if let Err(e) =
+                                            reporter.report_diagnostic(file_id, &diagnostic)
+                                        {
                                             eprintln!("Error displaying diagnostic: {}", e);
                                             eprintln!("{}", error); // Fallback to simple error display
                                         }
@@ -172,10 +175,10 @@ async fn main() -> io::Result<()> {
                         }
                         Err(errors) => {
                             eprintln!("Type errors:");
-                            
+
                             let mut reporter = DiagnosticReporter::new();
                             let file_id = reporter.add_file(&args[1], &input);
-                            
+
                             for error in errors {
                                 let diagnostic = reporter.convert_type_error(file_id, &error);
                                 if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -188,10 +191,10 @@ async fn main() -> io::Result<()> {
                 }
                 Err(errors) => {
                     eprintln!("Semantic errors:");
-                    
+
                     let mut reporter = DiagnosticReporter::new();
                     let file_id = reporter.add_file(&args[1], &input);
-                    
+
                     for error in errors {
                         let diagnostic = reporter.convert_semantic_error(file_id, &error);
                         if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -204,10 +207,10 @@ async fn main() -> io::Result<()> {
         }
         Err(errors) => {
             eprintln!("Parse errors:");
-            
+
             let mut reporter = DiagnosticReporter::new();
             let file_id = reporter.add_file(&args[1], &input);
-            
+
             for error in errors {
                 let diagnostic = reporter.convert_parse_error(file_id, &error);
                 if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
