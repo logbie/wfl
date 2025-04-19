@@ -275,19 +275,6 @@ impl ReplState {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_clear_command() {
-        let mut repl = ReplState::new();
-        let result = repl.handle_repl_command(".clear");
-        assert!(result.is_ok());
-        assert_eq!(result.unwrap(), CommandResult::ClearedScreen);
-    }
-}
-
 pub async fn run_repl() -> RustylineResult<()> {
     let mut repl_state = ReplState::new();
     let mut rl = DefaultEditor::new()?;
@@ -326,4 +313,17 @@ pub async fn run_repl() -> RustylineResult<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_clear_command() {
+        let mut repl = ReplState::new();
+        let result = repl.handle_repl_command(".clear");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), CommandResult::ClearedScreen);
+    }
 }
