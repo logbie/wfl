@@ -1,0 +1,18 @@
+// This is a clean WFL file that should pass linting
+
+define action called calculate_sum needs number a, number b:
+    give back a plus b
+end action
+
+define action called main:
+    store first_number as 10
+    store second_number as 20
+    
+    store result as calculate_sum(first_number, second_number)
+    
+    if result > 25 then
+        display "Result is greater than 25"
+    otherwise
+        display "Result is not greater than 25"
+    end
+end action
