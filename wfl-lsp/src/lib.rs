@@ -2,10 +2,10 @@ use dashmap::DashMap;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
+use wfl::analyzer::Analyzer;
 use wfl::diagnostics::{DiagnosticReporter, WflDiagnostic};
 use wfl::lexer::lex_wfl_with_positions;
 use wfl::parser::Parser;
-use wfl::analyzer::Analyzer;
 use wfl::typechecker::TypeChecker;
 
 #[derive(Debug)]
@@ -145,35 +145,60 @@ impl WflLanguageServer {
             data: None,
         }
     }
-    
-    fn collect_completion_items(&self, document_text: &str, position: Position) -> Vec<CompletionItem> {
+
+    fn collect_completion_items(
+        &self,
+        document_text: &str,
+        position: Position,
+    ) -> Vec<CompletionItem> {
         let mut items = Vec::new();
-        
+
         self.add_keyword_completions(&mut items);
-        
+
         if let Some(scope_items) = self.get_scope_items(document_text, position) {
             items.extend(scope_items);
         }
-        
+
         items
     }
-    
+
     fn add_keyword_completions(&self, items: &mut Vec<CompletionItem>) {
         let keywords = [
             ("store", "store ${1:variable_name} as ${2:value}"),
             ("create", "create ${1:variable_name} as ${2:value}"),
             ("display", "display ${1:expression}"),
-            ("check if", "check if ${1:condition}:\n\t${2:statements}\nend check"),
-            ("count from", "count from ${1:start} to ${2:end}:\n\t${3:statements}\nend count"),
-            ("for each", "for each ${1:item} in ${2:collection}:\n\t${3:statements}\nend for each"),
-            ("define action", "define action called ${1:name}:\n\t${2:statements}\nend action"),
+            (
+                "check if",
+                "check if ${1:condition}:\n\t${2:statements}\nend check",
+            ),
+            (
+                "count from",
+                "count from ${1:start} to ${2:end}:\n\t${3:statements}\nend count",
+            ),
+            (
+                "for each",
+                "for each ${1:item} in ${2:collection}:\n\t${3:statements}\nend for each",
+            ),
+            (
+                "define action",
+                "define action called ${1:name}:\n\t${2:statements}\nend action",
+            ),
             ("open file", "open file at \"${1:path}\" and read content"),
-            ("repeat while", "repeat while ${1:condition}:\n\t${2:statements}\nend repeat"),
-            ("repeat until", "repeat until ${1:condition}:\n\t${2:statements}\nend repeat"),
+            (
+                "repeat while",
+                "repeat while ${1:condition}:\n\t${2:statements}\nend repeat",
+            ),
+            (
+                "repeat until",
+                "repeat until ${1:condition}:\n\t${2:statements}\nend repeat",
+            ),
             ("give back", "give back ${1:value}"),
-            ("try", "try:\n\t${1:statements}\nwhen error:\n\t${2:error_handling}\nend try"),
+            (
+                "try",
+                "try:\n\t${1:statements}\nwhen error:\n\t${2:error_handling}\nend try",
+            ),
         ];
-        
+
         for (keyword, snippet) in keywords {
             items.push(CompletionItem {
                 label: keyword.to_string(),
@@ -185,25 +210,28 @@ impl WflLanguageServer {
             });
         }
     }
-    
-    fn get_scope_items(&self, document_text: &str, _position: Position) -> Option<Vec<CompletionItem>> {
+
+    fn get_scope_items(
+        &self,
+        document_text: &str,
+        _position: Position,
+    ) -> Option<Vec<CompletionItem>> {
         let mut items = Vec::new();
-        
+
         let tokens = lex_wfl_with_positions(document_text);
         let mut parser = Parser::new(&tokens);
-        
+
         match parser.parse() {
             Ok(program) => {
                 let mut analyzer = Analyzer::new();
                 if analyzer.analyze(&program).is_ok() {
-                    
                     items.push(CompletionItem {
                         label: "example_variable".to_string(),
                         kind: Some(CompletionItemKind::VARIABLE),
                         detail: Some("Example variable (placeholder)".to_string()),
                         ..CompletionItem::default()
                     });
-                    
+
                     items.push(CompletionItem {
                         label: "example_function".to_string(),
                         kind: Some(CompletionItemKind::FUNCTION),
@@ -212,10 +240,9 @@ impl WflLanguageServer {
                     });
                 }
             }
-            Err(_) => {
-            }
+            Err(_) => {}
         }
-        
+
         Some(items)
     }
 }
@@ -256,16 +283,17 @@ impl LanguageServer for WflLanguageServer {
     async fn did_open(&self, params: DidOpenTextDocumentParams) {
         let uri = params.text_document.uri;
         let text = params.text_document.text;
-        
+
         self.document_map.insert(uri.to_string(), text);
         self.validate_document(uri).await;
     }
 
     async fn did_change(&self, params: DidChangeTextDocumentParams) {
         let uri = params.text_document.uri;
-        
+
         if let Some(change) = params.content_changes.last() {
-            self.document_map.insert(uri.to_string(), change.text.clone());
+            self.document_map
+                .insert(uri.to_string(), change.text.clone());
             self.validate_document(uri).await;
         }
     }
@@ -273,16 +301,14 @@ impl LanguageServer for WflLanguageServer {
     async fn did_close(&self, params: DidCloseTextDocumentParams) {
         let uri = params.text_document.uri;
         self.document_map.remove(&uri.to_string());
-        
-        self.client
-            .publish_diagnostics(uri, vec![], None)
-            .await;
+
+        self.client.publish_diagnostics(uri, vec![], None).await;
     }
-    
+
     async fn completion(&self, params: CompletionParams) -> Result<Option<CompletionResponse>> {
         let uri = params.text_document_position.text_document.uri;
         let position = params.text_document_position.position;
-        
+
         if let Some(document) = self.document_map.get(&uri.to_string()) {
             let items = self.collect_completion_items(&document, position);
             Ok(Some(CompletionResponse::Array(items)))
@@ -294,7 +320,7 @@ impl LanguageServer for WflLanguageServer {
     async fn hover(&self, params: HoverParams) -> Result<Option<Hover>> {
         let uri = params.text_document_position_params.text_document.uri;
         let _position = params.text_document_position_params.position;
-        
+
         if let Some(_document) = self.document_map.get(&uri.to_string()) {
             Ok(Some(Hover {
                 contents: HoverContents::Markup(MarkupContent {

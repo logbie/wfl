@@ -3,7 +3,9 @@ use wfl_lsp::WflLanguageServer;
 
 #[tokio::main]
 async fn main() {
-    unsafe { std::env::set_var("RUST_LOG", "info"); }
+    unsafe {
+        std::env::set_var("RUST_LOG", "info");
+    }
     env_logger::init();
 
     let stdin = tokio::io::stdin();
