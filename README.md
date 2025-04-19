@@ -155,13 +155,68 @@ display "Type of list: " with typeof of my list
 
 ## Error Reporting and Diagnostics
 
-WFL includes a comprehensive error reporting system that provides clear, actionable error messages to help developers quickly identify and fix issues:
+WebFirst Language includes a comprehensive error reporting system that provides clear, actionable error messages to help developers quickly identify and fix issues:
 
-- **User-Friendly Error Messages**: Inspired by Elm's approach to error messages, WFL provides detailed, human-readable error messages
+- **User-Friendly Error Messages**: Inspired by Elm's approach to error messages, WebFirst Language provides detailed, human-readable error messages
 - **Source Context**: Error messages include the relevant source code snippets with precise highlighting
-- **Actionable Suggestions**: For common errors, WFL suggests specific fixes and corrections
+- **Actionable Suggestions**: For common errors, WebFirst Language suggests specific fixes and corrections
 - **Unified Error System**: Consistent error formatting across all error types (syntax, semantic, type, runtime)
 - **Contextual Hints**: Special handling for common mistakes like missing keywords in variable declarations
+
+## Code Quality Suite
+
+WebFirst Language includes a built-in code quality suite with three main components:
+
+### Linter (`--lint`)
+
+The linter checks your code for style issues and best practices:
+
+```bash
+wfl --lint your_script.wfl
+```
+
+It enforces:
+- Naming conventions (snake_case for variables and actions)
+- 4-space indentation
+- Consistent keyword casing (lowercase)
+- No trailing whitespace
+- Line length limits (default: 100 characters)
+- Nesting depth limits (default: 5 levels)
+
+### Static Analyzer (`--analyze`)
+
+The static analyzer performs deeper code analysis:
+
+```bash
+wfl --analyze your_script.wfl
+```
+
+It detects:
+- Unused variables and actions
+- Unreachable code and dead branches
+- Variable shadowing
+- Inconsistent return paths
+
+### Code Fixer (`--fix`)
+
+The code fixer automatically formats your code and performs safe refactorings:
+
+```bash
+# Print fixed code to stdout
+wfl --fix your_script.wfl
+
+# Overwrite the file with fixed code
+wfl --fix your_script.wfl --in-place
+
+# Show a diff of the changes
+wfl --fix your_script.wfl --diff
+```
+
+The fixer performs the following operations:
+- Pretty-prints the code with consistent formatting
+- Renames identifiers to follow snake_case convention
+- Removes dead code
+- Simplifies boolean expressions
 
 ## Logging and Debugging
 
@@ -183,6 +238,14 @@ debug_report_enabled = true
 
 # Set execution timeout in seconds (default: 60)
 timeout_seconds = 120
+
+# Code quality settings
+max_line_length = 100
+max_nesting_depth = 5
+indent_size = 4
+snake_case_variables = true
+trailing_whitespace = false
+consistent_keyword_case = true
 ```
 
 ### Logging
