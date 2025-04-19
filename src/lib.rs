@@ -11,7 +11,6 @@ pub mod stdlib;
 pub mod typechecker;
 
 pub use interpreter::Interpreter;
-pub use crate::{debug, info, warn, error};
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right

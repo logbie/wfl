@@ -22,7 +22,7 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     let level_filter = log_level.to_level_filter();
 
     let config = ConfigBuilder::new()
-        .set_time_format_custom(time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap())
+        .set_time_format_custom(&time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap())
         .set_location_level(LevelFilter::Debug) // Include file:line for all levels
         .build();
 
