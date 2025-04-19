@@ -1,8 +1,6 @@
 use super::*;
 use crate::parser::ast::ParseError;
 use crate::typechecker::TypeError;
-use crate::analyzer::SemanticError;
-use crate::interpreter::error::RuntimeError;
 
 #[test]
 fn test_parse_error_conversion() {

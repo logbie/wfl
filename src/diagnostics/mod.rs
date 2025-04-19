@@ -1,9 +1,9 @@
 
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use codespan_reporting::files::{SimpleFile, SimpleFiles};
+use codespan_reporting::files::SimpleFiles;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
-use std::fmt;
+// use std::fmt;
 use std::io;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -125,6 +125,7 @@ impl DiagnosticReporter {
         let config = term::Config::default();
 
         term::emit(&mut writer.lock(), &config, &self.files, &diag)
+            .map_err(|_| io::Error::new(io::ErrorKind::Other, "Failed to emit diagnostic"))
     }
 
     pub fn line_col_to_offset(&self, file_id: usize, line: usize, column: usize) -> Option<usize> {
@@ -159,22 +160,22 @@ impl DiagnosticReporter {
     }
 
     pub fn convert_type_error(&self, file_id: usize, error: &crate::typechecker::TypeError) -> WflDiagnostic {
-        let mut message = error.message.clone();
+        let mut message_text = error.message.clone();
         
         if let (Some(expected), Some(found)) = (&error.expected, &error.found) {
-            message = format!("{} - Expected {} but found {}", message, expected, found);
+            message_text = format!("{} - Expected {} but found {}", message_text, expected, found);
         }
         
         let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
         let end_offset = start_offset + 1;
         
-        let mut diag = WflDiagnostic::error(message)
+        let mut diag = WflDiagnostic::error(message_text.clone())
             .with_primary_label(
                 Span { start: start_offset, end: end_offset },
                 "Type error occurred here"
             );
         
-        if message.contains("undefined") || message.contains("not defined") {
+        if message_text.contains("undefined") || message_text.contains("not defined") {
             diag = diag.with_note("Did you misspell the variable name or forget to declare it?");
         } else if let (Some(expected), Some(found)) = (&error.expected, &error.found) {
             if expected.to_string() == "Number" && found.to_string() == "Text" {
@@ -191,7 +192,14 @@ impl DiagnosticReporter {
         let message = error.message.clone();
         
         let start_offset = self.line_col_to_offset(file_id, error.line, error.column).unwrap_or(0);
-        let end_offset = start_offset + 1;
+        let end_offset = start_offset + (if error.message.contains("not defined") { 
+            error.message.split_whitespace()
+                .find(|word| word.starts_with('\'') && word.ends_with('\''))
+                .map(|word| word.len() - 2)
+                .unwrap_or(1)
+        } else {
+            1
+        });
         
         let mut diag = WflDiagnostic::error(message)
             .with_primary_label(

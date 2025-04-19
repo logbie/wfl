@@ -6,7 +6,7 @@ use crate::parser::{
     ast::{Program, Statement},
 };
 use codespan_reporting::term;
-use codespan_reporting::term::termcolor::{ColorChoice, StandardStream, Buffer};
+use codespan_reporting::term::termcolor::Buffer;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
@@ -127,7 +127,7 @@ impl ReplState {
                     
                     let mut buffer = Buffer::ansi();
                     let config = term::Config::default();
-                    if let Err(e) = term::emit(
+                    if let Err(_e) = term::emit(
                         &mut buffer,
                         &config,
                         &reporter.files,
@@ -175,7 +175,7 @@ impl ReplState {
                                 
                                 let mut buffer = Buffer::ansi();
                                 let config = term::Config::default();
-                                if let Err(_) = term::emit(
+                                if let Err(_e) = term::emit(
                                     &mut buffer,
                                     &config,
                                     &reporter.files,
@@ -205,7 +205,7 @@ impl ReplState {
                             
                             let mut buffer = Buffer::ansi();
                             let config = term::Config::default();
-                            if let Err(_) = term::emit(
+                            if let Err(_e) = term::emit(
                                 &mut buffer,
                                 &config,
                                 &reporter.files,
@@ -236,7 +236,7 @@ impl ReplState {
                         
                         let mut buffer = Buffer::ansi();
                         let config = term::Config::default();
-                        if let Err(_) = term::emit(
+                        if let Err(_e) = term::emit(
                             &mut buffer,
                             &config,
                             &reporter.files,
