@@ -1,3 +1,4 @@
+use crate::config::WflConfig;
 use crate::diagnostics::DiagnosticReporter;
 use crate::interpreter::Interpreter;
 use crate::lexer::{lex_wfl_with_positions, token::TokenWithPosition};
@@ -10,6 +11,14 @@ use codespan_reporting::term::termcolor::Buffer;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
+
+#[derive(Debug, PartialEq)]
+pub enum CommandResult {
+    Help(String),
+    History(String),
+    ClearedScreen,
+    Unknown(String),
+}
 
 pub struct ReplState {
     interpreter: Interpreter,
@@ -26,7 +35,8 @@ impl Default for ReplState {
 
 impl ReplState {
     pub fn new() -> Self {
-        let interpreter = Interpreter::new();
+        let config = WflConfig::default();
+        let interpreter = Interpreter::with_timeout(config.timeout_seconds);
 
         ReplState {
             interpreter,
@@ -38,7 +48,12 @@ impl ReplState {
 
     pub async fn process_line(&mut self, line: &str) -> Result<Option<String>, String> {
         if line.trim().starts_with('.') {
-            return self.handle_repl_command(line.trim());
+            match self.handle_repl_command(line.trim())? {
+                CommandResult::Help(text) => return Ok(Some(text)),
+                CommandResult::History(text) => return Ok(Some(text)),
+                CommandResult::ClearedScreen => return Ok(None),
+                CommandResult::Unknown(text) => return Ok(Some(text)),
+            }
         }
 
         if !self.input_buffer.is_empty() {
@@ -67,10 +82,10 @@ impl ReplState {
         result
     }
 
-    fn handle_repl_command(&mut self, command: &str) -> Result<Option<String>, String> {
+    fn handle_repl_command(&mut self, command: &str) -> Result<CommandResult, String> {
         match command {
             ".exit" => std::process::exit(0),
-            ".help" => Ok(Some(
+            ".help" => Ok(CommandResult::Help(
                 "WFL REPL Commands:\n\
                  .exit    - Exit the REPL\n\
                  .help    - Show this help message\n\
@@ -83,14 +98,14 @@ impl ReplState {
                 for (i, cmd) in self.history.iter().enumerate() {
                     result.push_str(&format!("{}: {}\n", i + 1, cmd));
                 }
-                Ok(Some(result))
+                Ok(CommandResult::History(result))
             }
             ".clear" => {
                 print!("\x1B[2J\x1B[1;1H");
                 io::stdout().flush().unwrap();
-                Ok(None)
+                Ok(CommandResult::ClearedScreen)
             }
-            _ => Ok(Some(format!("Unknown command: {}", command))),
+            _ => Ok(CommandResult::Unknown(format!("Unknown command: {}", command))),
         }
     }
 
@@ -254,6 +269,19 @@ impl ReplState {
         }
 
         Ok(result_output)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_clear_command() {
+        let mut repl = ReplState::new();
+        let result = repl.handle_repl_command(".clear");
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), CommandResult::ClearedScreen);
     }
 }
 
