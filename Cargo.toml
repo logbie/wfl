@@ -3,6 +3,12 @@ name = "wfl"
 version = "0.1.0"
 edition = "2024"
 
+[workspace]
+members = [
+    ".",
+    "wfl-lsp"
+]
+
 [dependencies]
 logos = "0.15.0"
 rand = "0.9.1"

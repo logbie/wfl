@@ -16,6 +16,7 @@ The WFL compiler is currently under development. Here's the current status:
 - ✅ **Semantic Analyzer**: Complete - Analyzes the AST for semantic correctness
 - ✅ **Type Checker**: Complete - Performs static type analysis on the AST
 - ✅ **Standard Library**: Complete - Core functions, math, text, and list operations
+- ✅ **Language Server Protocol (LSP)**: Complete - Provides editor integration with real-time diagnostics and auto-completion
 - 🔄 **Interpreter**: In Progress - Will execute the AST directly
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
 - 🔄 **Virtual Machine**: Planned - Will execute bytecode instructions
