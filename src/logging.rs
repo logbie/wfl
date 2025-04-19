@@ -6,13 +6,18 @@ use simplelog::{
     WriteLogger,
 };
 use time;
+use time::format_description::FormatItem;
 use std::fs::File;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
+use once_cell::sync::Lazy;
 
 static LOGGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
-static START_TIME: once_cell::sync::Lazy<Instant> = once_cell::sync::Lazy::new(Instant::now);
+static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
+static TIME_FORMAT: Lazy<Vec<FormatItem>> = Lazy::new(|| {
+    time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap()
+});
 
 pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLoggerError> {
     if LOGGER_INITIALIZED.load(Ordering::Relaxed) {
@@ -22,7 +27,7 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     let level_filter = log_level.to_level_filter();
 
     let config = ConfigBuilder::new()
-        .set_time_format_custom(&time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap())
+        .set_time_format_custom(&TIME_FORMAT)
         .set_location_level(LevelFilter::Debug) // Include file:line for all levels
         .build();
 
