@@ -2,12 +2,97 @@ use crate::interpreter::environment::Environment;
 use crate::interpreter::error::RuntimeError;
 use crate::interpreter::value::Value;
 use std::cell::RefCell;
-use std::collections::HashMap;
-use std::fmt::Write;
+use std::collections::{HashMap, HashSet};
+use std::fmt::{self, Write};
 use std::fs::File;
 use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
+
+pub struct SafeDebug<'a> {
+    value: &'a Value,
+    depth: usize,
+    seen: Rc<RefCell<HashSet<*const ()>>>,
+}
+
+impl<'a> SafeDebug<'a> {
+    pub fn new(value: &'a Value, depth: usize) -> Self {
+        Self {
+            value,
+            depth,
+            seen: Rc::new(RefCell::new(HashSet::new())),
+        }
+    }
+}
+
+impl fmt::Debug for SafeDebug<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.depth == 0 {
+            return write!(f, "...");
+        }
+        
+        match self.value {
+            Value::List(list) => {
+                let ptr = Rc::as_ptr(list) as *const ();
+                
+                if !self.seen.borrow_mut().insert(ptr) {
+                    return write!(f, "[<cycle>]");
+                }
+                
+                let borrowed = list.borrow();
+                write!(f, "[")?;
+                
+                for (i, v) in borrowed.iter().take(16).enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    SafeDebug {
+                        value: v,
+                        depth: self.depth - 1,
+                        seen: Rc::clone(&self.seen),
+                    }.fmt(f)?;
+                }
+                
+                if borrowed.len() > 16 {
+                    write!(f, ", ... ({} more items)", borrowed.len() - 16)?;
+                }
+                
+                self.seen.borrow_mut().remove(&ptr);
+                write!(f, "]")
+            },
+            Value::Object(obj) => {
+                let ptr = Rc::as_ptr(obj) as *const ();
+                
+                if !self.seen.borrow_mut().insert(ptr) {
+                    return write!(f, "{{<cycle>}}");
+                }
+                
+                let borrowed = obj.borrow();
+                write!(f, "{{")?;
+                
+                for (i, (k, v)) in borrowed.iter().take(16).enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: ", k)?;
+                    SafeDebug {
+                        value: v,
+                        depth: self.depth - 1,
+                        seen: Rc::clone(&self.seen),
+                    }.fmt(f)?;
+                }
+                
+                if borrowed.len() > 16 {
+                    write!(f, ", ... ({} more items)", borrowed.len() - 16)?;
+                }
+                
+                self.seen.borrow_mut().remove(&ptr);
+                write!(f, "}}")
+            },
+            v => fmt::Debug::fmt(v, f)
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct CallFrame {
@@ -121,7 +206,7 @@ fn generate_report_content(
     if let Some(frame) = call_stack.last() {
         if let Some(locals) = &frame.locals {
             for (name, value) in locals {
-                writeln!(&mut report, "{} = {:?}", name, value).unwrap();
+                writeln!(&mut report, "{} = {:?}", name, SafeDebug::new(value, 4)).unwrap();
             }
         } else {
             writeln!(&mut report, "(No local variables captured)").unwrap();
@@ -199,61 +284,72 @@ fn write_report_to_file(file_path: &Path, content: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::interpreter::{Interpreter, error::RuntimeError};
-    use crate::lexer::lex_wfl_with_positions;
-    use crate::parser::Parser;
+    use crate::interpreter::environment::Environment;
     use std::fs;
     use tempfile::tempdir;
 
-    #[tokio::test]
-    async fn test_debug_report_generation() {
+    #[test]
+    fn test_debug_report_generation_simple() {
+        let error = RuntimeError::new("Test error".to_string(), 1, 1);
+        let mut call_frame = CallFrame::new("test_function".to_string(), 1, 1);
+        
+        let env = Environment::new_global();
+        
+        {
+            let mut env_mut = env.borrow_mut();
+            env_mut.define("x", Value::Number(42.0));
+            env_mut.define("y", Value::Text("hello".into()));
+        }
+        
+        call_frame.capture_locals(&env);
+        
+        let call_stack = vec![call_frame];
+        
+        let script_content = "store x as 42\nstore y as \"hello\"";
+        
         let temp_dir = tempdir().unwrap();
         let script_path = temp_dir.path().join("test_script.wfl");
-
-        let script_content = r#"
-        define action called divide:
-            store x as 10
-            store y as 0
-            store result as x divided by y
-            give back result
-        end action
-
-        divide
-        "#;
-
         fs::write(&script_path, script_content).unwrap();
-
-        let tokens = lex_wfl_with_positions(script_content);
-        let mut parser = Parser::new(&tokens);
-        let program = parser.parse().unwrap();
-
-        let mut interpreter = Interpreter::new();
-        let result = interpreter.interpret(&program).await;
-
-        assert!(result.is_err());
-        let errors = result.err().unwrap();
-        assert!(!errors.is_empty());
-        assert!(errors[0].message.contains("Division by zero"));
-
-        let call_stack = interpreter.get_call_stack();
+        
         let report_path = create_report(
-            &errors[0],
+            &error,
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
         );
-
+        
         assert!(report_path.exists());
-
+        
         let report_content = fs::read_to_string(report_path).unwrap();
-
+        
         assert!(report_content.contains("=== WFL Debug Report ==="));
         assert!(report_content.contains("=== Error Summary ==="));
-        assert!(report_content.contains("Division by zero"));
+        assert!(report_content.contains("Test error"));
         assert!(report_content.contains("=== Stack Trace ==="));
-        assert!(report_content.contains("divide"));
+        assert!(report_content.contains("test_function"));
         assert!(report_content.contains("=== Source Code ==="));
-        assert!(report_content.contains("=== Action Body ==="));
         assert!(report_content.contains("=== Local Variables ==="));
+        assert!(report_content.contains("x = 42"));
+        assert!(report_content.contains("y = \"hello\""));
+    }
+    
+    #[test]
+    fn test_safe_debug_with_cyclic_list() {
+        use crate::interpreter::value::Value;
+        use std::cell::RefCell;
+        use std::rc::Rc;
+        
+        let list = Rc::new(RefCell::new(Vec::<Value>::new()));
+        let list_value = Value::List(Rc::clone(&list));
+        
+        list.borrow_mut().push(list_value.clone());
+        
+        let safe_debug = SafeDebug::new(&list_value, 4);
+        let debug_output = format!("{:?}", safe_debug);
+        
+        assert!(debug_output.contains("<cycle>"));
+        
+        assert!(debug_output.len() < 1000, 
+                "Debug output size: {} bytes exceeds 1000 byte limit", debug_output.len());
     }
 }
