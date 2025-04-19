@@ -36,15 +36,55 @@ pub struct WflDiagnostic {
     pub message: String,
     pub labels: Vec<(Span, String)>,
     pub notes: Vec<String>,
+    pub code: String,
+    pub file_id: usize,
+    pub line: usize,
+    pub column: usize,
 }
 
 impl WflDiagnostic {
+    pub fn new(
+        severity: Severity,
+        message: impl Into<String>,
+        note: Option<impl Into<String>>,
+        code: impl Into<String>,
+        file_id: usize,
+        line: usize,
+        column: usize,
+        span: Option<Span>,
+    ) -> Self {
+        let mut diagnostic = WflDiagnostic {
+            severity,
+            message: message.into(),
+            labels: Vec::new(),
+            notes: Vec::new(),
+            code: code.into(),
+            file_id,
+            line,
+            column,
+        };
+        
+        if let Some(note) = note {
+            diagnostic.notes.push(note.into());
+        }
+        
+        if let Some(span) = span {
+            diagnostic.labels.push((span, "Here".to_string()));
+        }
+        
+        diagnostic
+    }
+    
     pub fn error(message: impl Into<String>) -> Self {
         WflDiagnostic {
             severity: Severity::Error,
             message: message.into(),
             labels: Vec::new(),
             notes: Vec::new(),
+            code: "ERROR".to_string(),
+            file_id: 0,
+            line: 0,
+            column: 0,
         }
     }
 
@@ -54,6 +94,10 @@ impl WflDiagnostic {
             message: message.into(),
             labels: Vec::new(),
             notes: Vec::new(),
+            code: "WARNING".to_string(),
+            file_id: 0,
+            line: 0,
+            column: 0,
         }
     }
 
