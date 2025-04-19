@@ -2,12 +2,15 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::process;
 use wfl::Interpreter;
-use wfl::analyzer::Analyzer;
+use wfl::analyzer::{Analyzer, StaticAnalyzer};
 use wfl::config;
 use wfl::debug_report;
-use wfl::diagnostics::DiagnosticReporter;
+use wfl::diagnostics::{DiagnosticReporter, Severity, WflDiagnostic};
+use wfl::fixer::{CodeFixer, FixerOutputMode};
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
+use wfl::linter::Linter;
 use wfl::logging;
 use wfl::parser::Parser;
 use wfl::repl;
@@ -25,17 +28,249 @@ async fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    let input = fs::read_to_string(&args[1])?;
+    let mut lint_mode = false;
+    let mut analyze_mode = false;
+    let mut fix_mode = false;
+    let mut fix_in_place = false;
+    let mut fix_diff = false;
+    let mut file_path = String::new();
 
-    let tokens = lex_wfl(&input);
-    let tokens_with_pos = lex_wfl_with_positions(&input);
-
-    println!("Lexer output:");
-    for (i, token) in tokens.iter().enumerate() {
-        println!("{}: {:?}", i, token);
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--lint" => {
+                if lint_mode || analyze_mode || fix_mode {
+                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                    process::exit(2);
+                }
+                lint_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                } else {
+                    eprintln!("Error: --lint requires a file path");
+                    process::exit(2);
+                }
+            },
+            "--analyze" => {
+                if lint_mode || analyze_mode || fix_mode {
+                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                    process::exit(2);
+                }
+                analyze_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                } else {
+                    eprintln!("Error: --analyze requires a file path");
+                    process::exit(2);
+                }
+            },
+            "--fix" => {
+                if lint_mode || analyze_mode || fix_mode {
+                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                    process::exit(2);
+                }
+                fix_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                } else {
+                    eprintln!("Error: --fix requires a file path");
+                    process::exit(2);
+                }
+                
+                while i < args.len() && args[i].starts_with("--") {
+                    match args[i].as_str() {
+                        "--in-place" => {
+                            if fix_diff {
+                                eprintln!("Error: --in-place and --diff flags are mutually exclusive");
+                                process::exit(2);
+                            }
+                            fix_in_place = true;
+                            i += 1;
+                        },
+                        "--diff" => {
+                            if fix_in_place {
+                                eprintln!("Error: --in-place and --diff flags are mutually exclusive");
+                                process::exit(2);
+                            }
+                            fix_diff = true;
+                            i += 1;
+                        },
+                        _ => {
+                            break;
+                        }
+                    }
+                }
+            },
+            _ => {
+                if file_path.is_empty() {
+                    file_path = args[i].clone();
+                }
+                i += 1;
+            }
+        }
     }
 
-    println!("\nTotal tokens: {}", tokens.len());
+    if file_path.is_empty() {
+        eprintln!("Error: No file path provided");
+        process::exit(2);
+    }
+
+    let input = fs::read_to_string(&file_path)?;
+    let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
+    let config = config::load_config(script_dir);
+    
+    if lint_mode {
+        let tokens_with_pos = lex_wfl_with_positions(&input);
+        match Parser::new(&tokens_with_pos).parse() {
+            Ok(program) => {
+                let mut linter = Linter::new();
+                linter.load_config(script_dir);
+                
+                let (diagnostics, success) = linter.lint(&program, &input, &file_path);
+                
+                if !diagnostics.is_empty() {
+                    eprintln!("Lint warnings:");
+                    
+                    let mut reporter = DiagnosticReporter::new();
+                    let file_id = reporter.add_file(&file_path, &input);
+                    
+                    for diagnostic in diagnostics {
+                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                            eprintln!("Error displaying diagnostic: {}", e);
+                            eprintln!("{}", diagnostic.message);
+                        }
+                    }
+                    
+                    process::exit(1);
+                } else {
+                    println!("No lint warnings found.");
+                    process::exit(0);
+                }
+            }
+            Err(errors) => {
+                eprintln!("Parse errors:");
+                
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
+                
+                for error in errors {
+                    let diagnostic = reporter.convert_parse_error(file_id, &error);
+                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                        eprintln!("Error displaying diagnostic: {}", e);
+                        eprintln!("Error: {}", error);
+                    }
+                }
+                
+                process::exit(2);
+            }
+        }
+    } else if analyze_mode {
+        let tokens_with_pos = lex_wfl_with_positions(&input);
+        match Parser::new(&tokens_with_pos).parse() {
+            Ok(program) => {
+                let mut analyzer = Analyzer::new();
+                
+                let diagnostics = analyzer.static_analyze(&program);
+                
+                if !diagnostics.is_empty() {
+                    eprintln!("Static analysis warnings:");
+                    
+                    let mut reporter = DiagnosticReporter::new();
+                    let file_id = reporter.add_file(&file_path, &input);
+                    
+                    for diagnostic in diagnostics {
+                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                            eprintln!("Error displaying diagnostic: {}", e);
+                            eprintln!("{}", diagnostic.message);
+                        }
+                    }
+                    
+                    process::exit(1);
+                } else {
+                    println!("No static analysis warnings found.");
+                    process::exit(0);
+                }
+            }
+            Err(errors) => {
+                eprintln!("Parse errors:");
+                
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
+                
+                for error in errors {
+                    let diagnostic = reporter.convert_parse_error(file_id, &error);
+                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                        eprintln!("Error displaying diagnostic: {}", e);
+                        eprintln!("Error: {}", error);
+                    }
+                }
+                
+                process::exit(2);
+            }
+        }
+    } else if fix_mode {
+        let tokens_with_pos = lex_wfl_with_positions(&input);
+        match Parser::new(&tokens_with_pos).parse() {
+            Ok(program) => {
+                let mut fixer = CodeFixer::new();
+                fixer.set_indent_size(config.indent_size);
+                fixer.load_config(script_dir);
+                
+                let output_mode = if fix_in_place {
+                    FixerOutputMode::InPlace
+                } else if fix_diff {
+                    FixerOutputMode::Diff
+                } else {
+                    FixerOutputMode::Stdout
+                };
+                
+                match fixer.fix_file(Path::new(&file_path), output_mode) {
+                    Ok(summary) => {
+                        println!("Code fixing summary:");
+                        println!("  Lines reformatted: {}", summary.lines_reformatted);
+                        println!("  Variables renamed: {}", summary.vars_renamed);
+                        println!("  Dead code removed: {}", summary.dead_code_removed);
+                        process::exit(0);
+                    }
+                    Err(e) => {
+                        eprintln!("Error fixing code: {}", e);
+                        process::exit(1);
+                    }
+                }
+            }
+            Err(errors) => {
+                eprintln!("Parse errors:");
+                
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
+                
+                for error in errors {
+                    let diagnostic = reporter.convert_parse_error(file_id, &error);
+                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                        eprintln!("Error displaying diagnostic: {}", e);
+                        eprintln!("Error: {}", error);
+                    }
+                }
+                
+                process::exit(2);
+            }
+        }
+    } else {
+        let tokens = lex_wfl(&input);
+        let tokens_with_pos = lex_wfl_with_positions(&input);
+
+        println!("Lexer output:");
+        for (i, token) in tokens.iter().enumerate() {
+            println!("{}: {:?}", i, token);
+        }
+
+        println!("\nTotal tokens: {}", tokens.len());
 
     let keyword_count = tokens
         .iter()
@@ -142,14 +377,7 @@ async fn main() -> io::Result<()> {
                         Ok(_) => {
                             println!("Type checking passed.");
 
-                            let script_dir = args
-                                .get(1)
-                                .map(|path| Path::new(path).parent().unwrap_or(Path::new(".")))
-                                .unwrap_or_else(|| Path::new("."));
-
                             println!("Script directory: {:?}", script_dir);
-
-                            let config = config::load_config(script_dir);
                             println!("Timeout seconds: {}", config.timeout_seconds);
 
                             if config.logging_enabled {
@@ -157,7 +385,7 @@ async fn main() -> io::Result<()> {
                                 if let Err(e) = logging::init_logger(config.log_level, &log_path) {
                                     eprintln!("Failed to initialize logging: {}", e);
                                 } else {
-                                    info!("WFL started with script: {}", &args[1]);
+                                    info!("WebFirst Language started with script: {}", &file_path);
                                 }
                             }
 
@@ -181,7 +409,7 @@ async fn main() -> io::Result<()> {
                                     eprintln!("Runtime errors:");
 
                                     let mut reporter = DiagnosticReporter::new();
-                                    let file_id = reporter.add_file(&args[1], &input);
+                                    let file_id = reporter.add_file(&file_path, &input);
 
                                     if config.debug_report_enabled && !errors.is_empty() {
                                         let error = &errors[0]; // Take the first error
@@ -190,7 +418,7 @@ async fn main() -> io::Result<()> {
                                             error,
                                             &call_stack,
                                             &input,
-                                            &args[1],
+                                            &file_path,
                                         );
 
                                         let report_msg = format!(
@@ -221,7 +449,7 @@ async fn main() -> io::Result<()> {
                             eprintln!("Type errors:");
 
                             let mut reporter = DiagnosticReporter::new();
-                            let file_id = reporter.add_file(&args[1], &input);
+                            let file_id = reporter.add_file(&file_path, &input);
 
                             for error in errors {
                                 let diagnostic = reporter.convert_type_error(file_id, &error);
@@ -237,7 +465,7 @@ async fn main() -> io::Result<()> {
                     eprintln!("Semantic errors:");
 
                     let mut reporter = DiagnosticReporter::new();
-                    let file_id = reporter.add_file(&args[1], &input);
+                    let file_id = reporter.add_file(&file_path, &input);
 
                     for error in errors {
                         let diagnostic = reporter.convert_semantic_error(file_id, &error);
@@ -253,7 +481,7 @@ async fn main() -> io::Result<()> {
             eprintln!("Parse errors:");
 
             let mut reporter = DiagnosticReporter::new();
-            let file_id = reporter.add_file(&args[1], &input);
+            let file_id = reporter.add_file(&file_path, &input);
 
             for error in errors {
                 let diagnostic = reporter.convert_parse_error(file_id, &error);
