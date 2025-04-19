@@ -172,7 +172,7 @@ impl ReplState {
 
 pub fn run_repl() -> RustylineResult<()> {
     let runtime = Runtime::new().expect("Failed to create Tokio runtime");
-    
+
     let mut repl_state = ReplState::new();
     let mut rl = DefaultEditor::new()?;
 
