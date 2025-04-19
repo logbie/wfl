@@ -203,6 +203,10 @@ impl Interpreter {
         self.call_stack.borrow().clone()
     }
 
+    pub fn clear_call_stack(&self) {
+        self.call_stack.borrow_mut().clear();
+    }
+
     fn check_time(&self) -> Result<(), RuntimeError> {
         if self.started.elapsed() > self.max_duration {
             Err(RuntimeError::new(
@@ -218,6 +222,16 @@ impl Interpreter {
         }
     }
 
+    fn assert_invariants(&self) {
+        debug_assert_eq!(
+            *self.in_count_loop.borrow(),
+            self.current_count.borrow().is_some()
+        );
+        
+        debug_assert!(self.call_stack.borrow().len() < 10_000);
+        
+    }
+
     fn native_display(args: Vec<Value>) -> Result<Value, RuntimeError> {
         for (i, arg) in args.iter().enumerate() {
             if i > 0 {
@@ -230,6 +244,7 @@ impl Interpreter {
     }
 
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
+        self.assert_invariants();
         self.call_stack.borrow_mut().clear();
 
         let mut last_value = Value::Null;
@@ -248,6 +263,7 @@ impl Interpreter {
                 Ok(value) => last_value = value,
                 Err(err) => {
                     errors.push(err);
+                    self.clear_call_stack();
                     break; // Stop on first runtime error
                 }
             }
@@ -265,12 +281,17 @@ impl Interpreter {
             if let Some(main_func) = main_func_opt {
                 match self.call_function(&main_func, vec![], 0, 0).await {
                     Ok(value) => last_value = value,
-                    Err(err) => errors.push(err),
+                    Err(err) => {
+                        errors.push(err);
+                        self.clear_call_stack();
+                    },
                 }
             }
 
+            self.assert_invariants();
             Ok(last_value)
         } else {
+            self.assert_invariants();
             Err(errors)
         }
     }
@@ -688,12 +709,14 @@ impl Interpreter {
         statements: &[Statement],
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
+        self.assert_invariants();
         let mut last_value = Value::Null;
 
         for statement in statements {
             last_value = self.execute_statement(statement, Rc::clone(&env)).await?;
         }
 
+        self.assert_invariants();
         Ok(last_value)
     }
 
@@ -710,9 +733,10 @@ impl Interpreter {
         expr: &Expression,
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
+        self.assert_invariants();
         self.check_time()?;
 
-        match expr {
+        let result = match expr {
             &Expression::AwaitExpression {
                 ref expression,
                 line: _line,
@@ -1008,7 +1032,9 @@ impl Interpreter {
                 let args = vec![text_val, pattern_val];
                 crate::stdlib::pattern::native_pattern_split(args)
             }
-        }
+        };
+        self.assert_invariants();
+        result
     }
 
     async fn call_function(
@@ -1053,12 +1079,15 @@ impl Interpreter {
                 Ok(value)
             }
             Err(err) => {
-                let mut stack = self.call_stack.borrow_mut();
-                if let Some(last_frame) = stack.last_mut() {
+                if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
                     last_frame.capture_locals(&call_env);
                 }
-                stack.pop();
-                Err(err)
+                
+                let error_with_stack = err.clone();
+                
+                self.call_stack.borrow_mut().pop();
+                
+                Err(error_with_stack)
             }
         }
     }
