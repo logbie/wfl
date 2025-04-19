@@ -5,6 +5,7 @@ use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode,
     WriteLogger,
 };
+use time;
 use std::fs::File;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -21,7 +22,7 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     let level_filter = log_level.to_level_filter();
 
     let config = ConfigBuilder::new()
-        .set_time_format_custom("%H:%M:%S%.3f")
+        .set_time_format_custom(time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap())
         .set_location_level(LevelFilter::Debug) // Include file:line for all levels
         .build();
 
