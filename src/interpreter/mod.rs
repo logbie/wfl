@@ -1055,6 +1055,7 @@ impl Interpreter {
                 if let Some(last_frame) = stack.last_mut() {
                     last_frame.capture_locals(&call_env);
                 }
+                stack.pop();
                 Err(err)
             }
         }
