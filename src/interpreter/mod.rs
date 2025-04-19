@@ -1043,7 +1043,7 @@ impl Interpreter {
         );
         self.call_stack.borrow_mut().push(frame);
 
-        let result = self.execute_block(&func.body, call_env).await;
+        let result = self.execute_block(&func.body, call_env.clone()).await;
 
         match result {
             Ok(value) => {

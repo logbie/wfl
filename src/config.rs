@@ -1,6 +1,4 @@
 use std::path::Path;
-use std::fs;
-use std::io::Write;
 
 #[derive(Debug, Clone)]
 pub struct WflConfig {

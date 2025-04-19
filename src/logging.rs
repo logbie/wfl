@@ -2,7 +2,7 @@ use crate::config::LogLevel;
 use chrono::Local;
 use log::{LevelFilter, SetLoggerError};
 use simplelog::{
-    ColorChoice, CombinedLogger, Config, ConfigBuilder, SharedLogger, TermLogger, TerminalMode,
+    ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode,
     WriteLogger,
 };
 use std::fs::File;
@@ -21,7 +21,7 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     let level_filter = log_level.to_level_filter();
 
     let config = ConfigBuilder::new()
-        .set_time_format_str("%H:%M:%S%.3f")
+        .set_time_format_custom("%H:%M:%S%.3f")
         .set_location_level(LevelFilter::Debug) // Include file:line for all levels
         .build();
 
