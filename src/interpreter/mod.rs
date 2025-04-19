@@ -7,6 +7,7 @@ pub mod value;
 use self::environment::Environment;
 use self::error::RuntimeError;
 use self::value::{FunctionValue, Value};
+use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
 use std::cell::RefCell;
@@ -26,6 +27,7 @@ pub struct Interpreter {
     in_count_loop: RefCell<bool>,
     started: Instant,
     max_duration: Duration,
+    call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
 }
@@ -185,6 +187,7 @@ impl Interpreter {
             in_count_loop: RefCell::new(false),
             started: Instant::now(),
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
+            call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
         }
     }
@@ -194,6 +197,10 @@ impl Interpreter {
         interpreter.started = Instant::now();
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
+    }
+
+    pub fn get_call_stack(&self) -> Vec<CallFrame> {
+        self.call_stack.borrow().clone()
     }
 
     fn check_time(&self) -> Result<(), RuntimeError> {
@@ -223,6 +230,8 @@ impl Interpreter {
     }
 
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
+        self.call_stack.borrow_mut().clear();
+
         let mut last_value = Value::Null;
         let mut errors = Vec::new();
 
@@ -237,7 +246,10 @@ impl Interpreter {
                 .await
             {
                 Ok(value) => last_value = value,
-                Err(err) => errors.push(err),
+                Err(err) => {
+                    errors.push(err);
+                    break; // Stop on first runtime error
+                }
             }
         }
 
@@ -1024,7 +1036,31 @@ impl Interpreter {
             call_env.borrow_mut().define(param, arg);
         }
 
-        self.execute_block(&func.body, call_env).await
+        let frame = CallFrame::new(
+            func.name
+                .clone()
+                .unwrap_or_else(|| "<anonymous>".to_string()),
+            line,
+            column,
+        );
+        self.call_stack.borrow_mut().push(frame);
+
+        let result = self.execute_block(&func.body, call_env.clone()).await;
+
+        match result {
+            Ok(value) => {
+                self.call_stack.borrow_mut().pop();
+                Ok(value)
+            }
+            Err(err) => {
+                let mut stack = self.call_stack.borrow_mut();
+                if let Some(last_frame) = stack.last_mut() {
+                    last_frame.capture_locals(&call_env);
+                }
+                stack.pop();
+                Err(err)
+            }
+        }
     }
 
     fn add(

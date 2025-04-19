@@ -1,8 +1,10 @@
 pub mod analyzer;
 pub mod config;
+pub mod debug_report;
 pub mod diagnostics;
 pub mod interpreter;
 pub mod lexer;
+pub mod logging;
 pub mod parser;
 pub mod repl;
 pub mod stdlib;
