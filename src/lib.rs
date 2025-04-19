@@ -1,3 +1,5 @@
+#![deny(clippy::await_holding_refcell_ref)]
+
 pub mod analyzer;
 pub mod config;
 pub mod debug_report;
