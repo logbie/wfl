@@ -160,13 +160,21 @@ impl DiagnosticReporter {
             .unwrap_or(0);
         let end_offset = start_offset + 1;
 
-        WflDiagnostic::error(message).with_primary_label(
+        let mut diag = WflDiagnostic::error(message.clone()).with_primary_label(
             Span {
                 start: start_offset,
                 end: end_offset,
             },
             "Error occurred here",
-        )
+        );
+
+        if message.contains("Expected 'as' after identifier") {
+            diag = diag.with_note("Did you forget to use 'as' before assigning a value? For example: `store a as 4`");
+        } else if message.contains("Expected 'to' after identifier") {
+            diag = diag.with_note("Did you forget to use 'to' before assigning a value? For example: `change a to 4`");
+        }
+
+        diag
     }
 
     pub fn convert_type_error(

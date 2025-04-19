@@ -152,12 +152,15 @@ impl<'a> Parser<'a> {
 
     fn parse_variable_declaration(&mut self) -> Result<Statement, ParseError> {
         let token_pos = self.tokens.next().unwrap();
-        let _is_store = matches!(token_pos.token, Token::KeywordStore);
+        let is_store = matches!(token_pos.token, Token::KeywordStore);
+        let keyword = if is_store { "store" } else { "create" };
 
         let mut name = String::new();
+        let mut has_identifier = false;
 
         while let Some(token) = self.tokens.peek() {
             if let Token::Identifier(id) = &token.token {
+                has_identifier = true;
                 if !name.is_empty() {
                     name.push(' ');
                 }
@@ -166,15 +169,24 @@ impl<'a> Parser<'a> {
             } else if let Token::KeywordAs = &token.token {
                 break;
             } else {
-                return Err(ParseError::new(
-                    format!("Expected identifier or 'as', found {:?}", token.token),
-                    token.line,
-                    token.column,
-                ));
+                // Provide a more specific error message if we've seen at least one identifier
+                if has_identifier {
+                    return Err(ParseError::new(
+                        format!("Expected 'as' after identifier(s), but found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                } else {
+                    return Err(ParseError::new(
+                        format!("Expected identifier or 'as', found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
             }
         }
 
-        self.expect_token(Token::KeywordAs, "Expected 'as' after variable name")?;
+        self.expect_token(Token::KeywordAs, &format!("Expected 'as' after variable name in {} statement", keyword))?;
 
         let value = self.parse_expression()?;
 
@@ -1433,9 +1445,11 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Consume "change"
 
         let mut name = String::new();
+        let mut has_identifier = false;
 
         while let Some(token) = self.tokens.peek() {
             if let Token::Identifier(id) = &token.token {
+                has_identifier = true;
                 if !name.is_empty() {
                     name.push(' ');
                 }
@@ -1444,15 +1458,24 @@ impl<'a> Parser<'a> {
             } else if let Token::KeywordTo = &token.token {
                 break;
             } else {
-                return Err(ParseError::new(
-                    format!("Expected identifier or 'to', found {:?}", token.token),
-                    token.line,
-                    token.column,
-                ));
+                // Provide a more specific error message if we've seen at least one identifier
+                if has_identifier {
+                    return Err(ParseError::new(
+                        format!("Expected 'to' after identifier(s), but found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                } else {
+                    return Err(ParseError::new(
+                        format!("Expected identifier or 'to', found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
             }
         }
 
-        self.expect_token(Token::KeywordTo, "Expected 'to' after variable name")?;
+        self.expect_token(Token::KeywordTo, "Expected 'to' after variable name in change statement")?;
 
         let value = self.parse_expression()?;
 

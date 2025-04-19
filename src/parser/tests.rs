@@ -202,3 +202,48 @@ fn test_parse_wait_for_open_file() {
         }
     }
 }
+
+#[test]
+fn test_missing_as_in_store_statement() {
+    let input = "store greeting 42";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+
+    let result = parser.parse_statement();
+    assert!(result.is_err());
+
+    if let Err(error) = result {
+        assert!(error.message.contains("Expected 'as' after identifier(s)"));
+        assert!(error.message.contains("42"));
+    }
+}
+
+#[test]
+fn test_missing_as_in_create_statement() {
+    let input = "create user \"John\"";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+
+    let result = parser.parse_statement();
+    assert!(result.is_err());
+
+    if let Err(error) = result {
+        assert!(error.message.contains("Expected 'as' after identifier(s)"));
+        assert!(error.message.contains("StringLiteral"));
+    }
+}
+
+#[test]
+fn test_missing_to_in_change_statement() {
+    let input = "change counter 10";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+
+    let result = parser.parse_statement();
+    assert!(result.is_err());
+
+    if let Err(error) = result {
+        assert!(error.message.contains("Expected 'to' after identifier(s)"));
+        assert!(error.message.contains("10"));
+    }
+}
