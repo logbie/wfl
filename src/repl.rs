@@ -102,9 +102,8 @@ impl ReplState {
         let mut parser = Parser::new(tokens);
         match parser.parse() {
             Err(errors) => errors.iter().any(|e| {
-                e.message.contains("Unexpected end of input")
-                    || e.message.contains("expected")
-                    || e.message.contains("Expected")
+                e.message.contains("Unexpected end of input") ||
+                (e.message.contains("expected") && e.message.contains("end"))
             }),
             Ok(_) => false, // Successfully parsed, input is complete
         }
