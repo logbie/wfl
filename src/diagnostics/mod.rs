@@ -169,9 +169,13 @@ impl DiagnosticReporter {
         );
 
         if message.contains("Expected 'as' after identifier") {
-            diag = diag.with_note("Did you forget to use 'as' before assigning a value? For example: `store a as 4`");
+            diag = diag.with_note(
+                "Did you forget to use 'as' before assigning a value? For example: `store a as 4`",
+            );
         } else if message.contains("Expected 'to' after identifier") {
-            diag = diag.with_note("Did you forget to use 'to' before assigning a value? For example: `change a to 4`");
+            diag = diag.with_note(
+                "Did you forget to use 'to' before assigning a value? For example: `change a to 4`",
+            );
         }
 
         diag

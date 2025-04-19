@@ -172,7 +172,10 @@ impl<'a> Parser<'a> {
                 // Provide a more specific error message if we've seen at least one identifier
                 if has_identifier {
                     return Err(ParseError::new(
-                        format!("Expected 'as' after identifier(s), but found {:?}", token.token),
+                        format!(
+                            "Expected 'as' after identifier(s), but found {:?}",
+                            token.token
+                        ),
                         token.line,
                         token.column,
                     ));
@@ -186,7 +189,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_token(Token::KeywordAs, &format!("Expected 'as' after variable name in {} statement", keyword))?;
+        self.expect_token(
+            Token::KeywordAs,
+            &format!("Expected 'as' after variable name in {} statement", keyword),
+        )?;
 
         let value = self.parse_expression()?;
 
@@ -1461,7 +1467,10 @@ impl<'a> Parser<'a> {
                 // Provide a more specific error message if we've seen at least one identifier
                 if has_identifier {
                     return Err(ParseError::new(
-                        format!("Expected 'to' after identifier(s), but found {:?}", token.token),
+                        format!(
+                            "Expected 'to' after identifier(s), but found {:?}",
+                            token.token
+                        ),
                         token.line,
                         token.column,
                     ));
@@ -1475,7 +1484,10 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_token(Token::KeywordTo, "Expected 'to' after variable name in change statement")?;
+        self.expect_token(
+            Token::KeywordTo,
+            "Expected 'to' after variable name in change statement",
+        )?;
 
         let value = self.parse_expression()?;
 
