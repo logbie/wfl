@@ -155,10 +155,7 @@ impl<'a> Parser<'a> {
         let is_store = matches!(token_pos.token, Token::KeywordStore);
         let _keyword = if is_store { "store" } else { "create" };
 
-        let name = match self.parse_variable_name_list() {
-            Ok(name) => name,
-            Err(e) => return Err(e),
-        };
+        let name = self.parse_variable_name_list()?;
 
         if let Some(token) = self.tokens.peek() {
             if !matches!(token.token, Token::KeywordAs) {
