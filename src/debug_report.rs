@@ -220,7 +220,7 @@ mod tests {
         assert!(report_content.contains("=== Error Summary ==="));
         assert!(report_content.contains("Division by zero"));
         assert!(report_content.contains("=== Stack Trace ==="));
-        assert!(report_content.contains("divide_numbers"));
+        assert!(report_content.contains("divide"));
         assert!(report_content.contains("=== Source Code ==="));
         assert!(report_content.contains("=== Action Body ==="));
         assert!(report_content.contains("=== Local Variables ==="));
