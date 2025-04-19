@@ -1,25 +1,23 @@
-name: Auto-Format
+name: Auto Format
+
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
+  push:
+    branches: [ master ]
+
 jobs:
-  apply-fmt:
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+  format-on-failure:
+    if: ${{ failure() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           override: true
           components: rustfmt
-      - name: Run cargo fmt
+      - name: Apply rustfmt
         run: cargo fmt --all
-      - name: Commit & push
+      - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "style: apply rustfmt"
+          commit_message: "style: auto-format on CI failure"
