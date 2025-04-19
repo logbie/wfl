@@ -757,25 +757,40 @@ impl Interpreter {
                 line: _,
                 column: _,
             } => self.execute_statement(inner, Rc::clone(&env)).await,
-            Statement::TryStatement { body, error_name, when_block, otherwise_block, line: _line, column: _column } => {
+            Statement::TryStatement {
+                body,
+                error_name,
+                when_block,
+                otherwise_block,
+                line: _line,
+                column: _column,
+            } => {
                 let child_env = Environment::new_child_env(&env);
-                
+
                 match self.execute_block(body, Rc::clone(&child_env)).await {
-                    Ok(val) => Ok(val),  // Success path: just bubble result
+                    Ok(val) => Ok(val), // Success path: just bubble result
                     Err(err) => {
-                        child_env.borrow_mut().define(error_name, Value::Text(err.message.into()));
-                        
+                        child_env
+                            .borrow_mut()
+                            .define(error_name, Value::Text(err.message.into()));
+
                         let result = self.execute_block(when_block, Rc::clone(&child_env)).await;
-                        
+
                         if result.is_ok() || otherwise_block.is_none() {
                             result
                         } else {
-                            self.execute_block(otherwise_block.as_ref().unwrap(), child_env).await
+                            self.execute_block(otherwise_block.as_ref().unwrap(), child_env)
+                                .await
                         }
                     }
                 }
-            },
-            Statement::HttpGetStatement { url, variable_name, line, column } => {
+            }
+            Statement::HttpGetStatement {
+                url,
+                variable_name,
+                line,
+                column,
+            } => {
                 let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
                 let url_str = match &url_val {
                     Value::Text(s) => s.clone(),
@@ -790,16 +805,23 @@ impl Interpreter {
 
                 match self.io_client.http_get(&url_str).await {
                     Ok(body) => {
-                        env.borrow_mut().define(variable_name, Value::Text(body.into()));
+                        env.borrow_mut()
+                            .define(variable_name, Value::Text(body.into()));
                         Ok(Value::Null)
-                    },
+                    }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
-            },
-            Statement::HttpPostStatement { url, data, variable_name, line, column } => {
+            }
+            Statement::HttpPostStatement {
+                url,
+                data,
+                variable_name,
+                line,
+                column,
+            } => {
                 let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
                 let data_val = self.evaluate_expression(data, Rc::clone(&env)).await?;
-                
+
                 let url_str = match &url_val {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -810,7 +832,7 @@ impl Interpreter {
                         ));
                     }
                 };
-                
+
                 let data_str = match &data_val {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -824,12 +846,13 @@ impl Interpreter {
 
                 match self.io_client.http_post(&url_str, &data_str).await {
                     Ok(body) => {
-                        env.borrow_mut().define(variable_name, Value::Text(body.into()));
+                        env.borrow_mut()
+                            .define(variable_name, Value::Text(body.into()));
                         Ok(Value::Null)
-                    },
+                    }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
-            },
+            }
         }
     }
 
@@ -1194,7 +1217,7 @@ impl Interpreter {
         }
 
         let func_env = func.env.clone();
-        
+
         let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
