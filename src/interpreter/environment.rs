@@ -24,6 +24,14 @@ impl Environment {
         }))
     }
 
+    #[inline]
+    pub fn new_child_env(parent: &Rc<RefCell<Environment>>) -> Rc<RefCell<Self>> {
+        Rc::new(RefCell::new(Self {
+            values: HashMap::new(),
+            parent: Some(Rc::downgrade(parent)),
+        }))
+    }
+
     pub fn define(&mut self, name: &str, value: Value) {
         self.values.insert(name.to_string(), value);
     }

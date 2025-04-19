@@ -85,7 +85,24 @@ async fn test_http_get() {
     let mut interpreter = Interpreter::new();
     
     let source = r#"
-    open url at "https://httpbin.org/get" and read content as response
+    wait for open url at "https://httpbin.org/status/200" and read content as response
+    display response
+    "#;
+    
+    let tokens = lex_wfl_with_positions(source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let result = interpreter.interpret(&program).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_http_post() {
+    let mut interpreter = Interpreter::new();
+    
+    let source = r#"
+    wait for open url at "https://httpbin.org/post" with data "name=alice" and read content as response
     display response
     "#;
     
@@ -116,4 +133,25 @@ async fn test_try_when_statement() {
     
     let result = interpreter.interpret(&program).await;
     assert!(result.is_ok(), "Try/when statement should handle the error gracefully");
+}
+
+#[tokio::test]
+async fn test_try_when_error_propagation() {
+    let mut interpreter = Interpreter::new();
+    
+    let source = r#"
+    try:
+        open url at "https://non-existent-url.example.com" and read content as response
+        display response
+    when error:
+        display error_that_doesnt_exist
+    end try
+    "#;
+    
+    let tokens = lex_wfl_with_positions(source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let result = interpreter.interpret(&program).await;
+    assert!(result.is_err(), "Error in when block should propagate upward");
 }
