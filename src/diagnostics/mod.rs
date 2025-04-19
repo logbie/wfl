@@ -153,6 +153,10 @@ impl DiagnosticReporter {
         let mut diag =
             Diagnostic::new(diagnostic.severity.into()).with_message(diagnostic.message.clone());
 
+        if !diagnostic.code.is_empty() {
+            diag = diag.with_code(diagnostic.code.clone());
+        }
+
         for (span, message) in &diagnostic.labels {
             diag = diag.with_labels(vec![
                 Label::primary(file_id, span.start..span.end).with_message(message.clone()),
@@ -304,12 +308,77 @@ impl DiagnosticReporter {
                 1
             });
 
-        let mut diag = WflDiagnostic::error(message).with_primary_label(
-            Span {
-                start: start_offset,
-                end: end_offset,
-            },
-            "Semantic error occurred here",
+        let span = Span {
+            start: start_offset,
+            end: end_offset,
+        };
+
+        if error.message.contains("unused variable") || error.message.contains("Unused variable") {
+            return WflDiagnostic::new(
+                Severity::Warning,
+                message,
+                Some("Consider removing this variable if it's not needed".to_string()),
+                "ANALYZE-UNUSED".to_string(),
+                file_id,
+                error.line,
+                error.column,
+                Some(span),
+            );
+        } else if error.message.contains("unreachable code") || error.message.contains("Unreachable code") {
+            return WflDiagnostic::new(
+                Severity::Warning,
+                message,
+                Some("This code will never be executed".to_string()),
+                "ANALYZE-UNREACHABLE".to_string(),
+                file_id,
+                error.line,
+                error.column,
+                Some(span),
+            );
+        } else if error.message.contains("dead branch") || error.message.contains("Dead branch") {
+            return WflDiagnostic::new(
+                Severity::Warning,
+                message,
+                Some("This branch will never be taken".to_string()),
+                "ANALYZE-DEADBRANCH".to_string(),
+                file_id,
+                error.line,
+                error.column,
+                Some(span),
+            );
+        } else if error.message.contains("shadows") {
+            return WflDiagnostic::new(
+                Severity::Warning,
+                message,
+                Some("Variable shadowing can lead to confusion and bugs".to_string()),
+                "ANALYZE-SHADOW".to_string(),
+                file_id,
+                error.line,
+                error.column,
+                Some(span),
+            );
+        } else if error.message.contains("inconsistent return") || error.message.contains("return paths") {
+            return WflDiagnostic::new(
+                Severity::Warning,
+                message,
+                Some("Ensure all code paths return a value".to_string()),
+                "ANALYZE-RETURN".to_string(),
+                file_id,
+                error.line,
+                error.column,
+                Some(span),
+            );
+        }
+
+        let mut diag = WflDiagnostic::new(
+            Severity::Error,
+            message,
+            None,
+            "SEMANTIC".to_string(),
+            file_id,
+            error.line,
+            error.column,
+            Some(span),
         );
 
         if error.message.contains("already defined") {
