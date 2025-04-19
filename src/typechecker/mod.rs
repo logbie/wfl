@@ -129,16 +129,11 @@ impl TypeChecker {
     fn check_statement_types(&mut self, statement: &Statement) {
         match statement {
             Statement::WaitForStatement {
-                expression,
-                body,
+                inner,
                 line: _line,
                 column: _column,
             } => {
-                let _expr_type = self.infer_expression_type(expression);
-
-                for stmt in body {
-                    self.check_statement_types(stmt);
-                }
+                self.check_statement_types(inner);
             }
             Statement::TryStatement {
                 body,
@@ -566,12 +561,12 @@ impl TypeChecker {
                 }
             }
             Statement::ReadFileStatement {
-                file,
+                path,
                 variable_name,
                 line,
                 column,
             } => {
-                let file_type = self.infer_expression_type(file);
+                let file_type = self.infer_expression_type(path);
                 if file_type != Type::Custom("File".to_string())
                     && file_type != Type::Unknown
                     && file_type != Type::Error
