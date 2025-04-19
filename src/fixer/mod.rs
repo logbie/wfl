@@ -1,7 +1,10 @@
-use crate::parser::ast::{Program, Statement, Expression, Literal};
+use crate::parser::ast::{Program, Statement, Expression, Literal, Type, Operator, UnaryOperator};
 use crate::parser::Parser;
 use crate::lexer::lex_wfl_with_positions;
+use crate::analyzer::{Analyzer, StaticAnalyzer};
 use std::path::Path;
+use std::fs;
+use std::io::{self, Write};
 
 pub struct CodeFixer {
     indent_size: usize,
@@ -31,14 +34,19 @@ impl CodeFixer {
     }
     
     pub fn fix(&self, program: &Program, source: &str) -> (String, FixerSummary) {
+        let mut analyzer = Analyzer::new();
+        let mut dead_code = Vec::new();
+        
+        let simplified_program = self.simplify_program(program, &dead_code);
+        
         let mut output = String::new();
         let mut summary = FixerSummary {
             lines_reformatted: 0,
             vars_renamed: 0,
-            dead_code_removed: 0,
+            dead_code_removed: dead_code.len(),
         };
         
-        self.pretty_print(program, &mut output, 0, &mut summary);
+        self.pretty_print(&simplified_program, &mut output, 0, &mut summary);
         
         let tokens = lex_wfl_with_positions(&output);
         let mut parser = Parser::new(&tokens);
@@ -51,6 +59,120 @@ impl CodeFixer {
         }
         
         (output, summary)
+    }
+    
+    pub fn fix_file(&self, path: &Path, mode: FixerOutputMode) -> io::Result<FixerSummary> {
+        let source = fs::read_to_string(path)?;
+        
+        let tokens = lex_wfl_with_positions(&source);
+        let mut parser = Parser::new(&tokens);
+        let program = match parser.parse() {
+            Ok(program) => program,
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidData,
+                    format!("Failed to parse file: {}", err),
+                ));
+            }
+        };
+        
+        let (fixed_code, summary) = self.fix(&program, &source);
+        
+        match mode {
+            FixerOutputMode::Stdout => {
+                io::stdout().write_all(fixed_code.as_bytes())?;
+            }
+            FixerOutputMode::InPlace => {
+                fs::write(path, fixed_code)?;
+            }
+            FixerOutputMode::Diff => {
+                let diff = self.generate_diff(&source, &fixed_code);
+                io::stdout().write_all(diff.as_bytes())?;
+            }
+        }
+        
+        Ok(summary)
+    }
+    
+    fn simplify_program(&self, program: &Program, dead_code: &[usize]) -> Program {
+        let mut simplified_statements = Vec::new();
+        
+        for (i, statement) in program.statements.iter().enumerate() {
+            if dead_code.contains(&i) {
+                continue;
+            }
+            
+            let simplified = self.simplify_statement(statement);
+            simplified_statements.push(simplified);
+        }
+        
+        Program {
+            statements: simplified_statements,
+        }
+    }
+    
+    fn simplify_statement(&self, statement: &Statement) -> Statement {
+        match statement {
+            Statement::IfStatement {
+                condition,
+                then_block,
+                else_block,
+                line,
+                column,
+            } => {
+                let simplified_condition = self.simplify_boolean_expression(condition);
+                
+                let mut simplified_then = Vec::new();
+                for stmt in then_block {
+                    simplified_then.push(self.simplify_statement(stmt));
+                }
+                
+                let simplified_else = if let Some(else_stmts) = else_block {
+                    let mut simplified = Vec::new();
+                    for stmt in else_stmts {
+                        simplified.push(self.simplify_statement(stmt));
+                    }
+                    Some(simplified)
+                } else {
+                    None
+                };
+                
+                Statement::IfStatement {
+                    condition: simplified_condition,
+                    then_block: simplified_then,
+                    else_block: simplified_else,
+                    line: *line,
+                    column: *column,
+                }
+            }
+            _ => statement.clone(),
+        }
+    }
+    
+    fn simplify_boolean_expression(&self, expression: &Expression) -> Expression {
+        match expression {
+            Expression::BinaryOperation {
+                left,
+                operator,
+                right,
+                line,
+                column,
+            } => {
+                let simplified_left = self.simplify_boolean_expression(left);
+                let simplified_right = self.simplify_boolean_expression(right);
+                
+                match (simplified_left, simplified_right) {
+                    _ => Expression::BinaryOperation {
+                        left: Box::new(simplified_left),
+                        operator: *operator,
+                        right: Box::new(simplified_right),
+                        line: *line,
+                        column: *column,
+                    },
+                }
+            }
+            _ => expression.clone(),
+        }
     }
     
     fn pretty_print(&self, program: &Program, output: &mut String, indent_level: usize, summary: &mut FixerSummary) {
@@ -73,6 +195,182 @@ impl CodeFixer {
                 output.push('\n');
                 summary.lines_reformatted += 1;
             },
+            Statement::Assignment { name, value, .. } => {
+                let fixed_name = self.fix_identifier_name(name, summary);
+                output.push_str(&indent);
+                output.push_str("change ");
+                output.push_str(&fixed_name);
+                output.push_str(" to ");
+                self.pretty_print_expression(value, output, indent_level, summary);
+                output.push('\n');
+                summary.lines_reformatted += 1;
+            },
+            Statement::ActionDefinition { name, parameters, body, return_type, .. } => {
+                let fixed_name = self.fix_identifier_name(name, summary);
+                output.push_str(&indent);
+                output.push_str("define action called ");
+                output.push_str(&fixed_name);
+                
+                if !parameters.is_empty() {
+                    output.push_str(" with parameters ");
+                    for (i, param) in parameters.iter().enumerate() {
+                        if i > 0 {
+                            output.push_str(", ");
+                        }
+                        let fixed_param_name = self.fix_identifier_name(&param.name, summary);
+                        output.push_str(&fixed_param_name);
+                        
+                        if let Some(param_type) = &param.param_type {
+                            output.push_str(" as ");
+                            output.push_str(&format!("{:?}", param_type));
+                        }
+                        
+                        if let Some(default_value) = &param.default_value {
+                            output.push_str(" default ");
+                            self.pretty_print_expression(default_value, output, indent_level, summary);
+                        }
+                    }
+                }
+                
+                if let Some(ret_type) = return_type {
+                    output.push_str(" returning ");
+                    output.push_str(&format!("{:?}", ret_type));
+                }
+                
+                output.push_str(":\n");
+                
+                for stmt in body {
+                    self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                output.push_str(&indent);
+                output.push_str("end action\n");
+                summary.lines_reformatted += 1;
+            },
+            Statement::IfStatement { condition, then_block, else_block, .. } => {
+                output.push_str(&indent);
+                output.push_str("check if ");
+                self.pretty_print_expression(condition, output, indent_level, summary);
+                output.push_str(":\n");
+                
+                for stmt in then_block {
+                    self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if let Some(else_stmts) = else_block {
+                    output.push_str(&indent);
+                    output.push_str("otherwise:\n");
+                    
+                    for stmt in else_stmts {
+                        self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                    }
+                }
+                
+                output.push_str(&indent);
+                output.push_str("end check\n");
+                summary.lines_reformatted += 1;
+            },
+            Statement::SingleLineIf { condition, then_stmt, else_stmt, .. } => {
+                output.push_str(&indent);
+                output.push_str("if ");
+                self.pretty_print_expression(condition, output, indent_level, summary);
+                output.push_str(" then ");
+                
+                let mut then_output = String::new();
+                self.pretty_print_statement(then_stmt, &mut then_output, 0, summary);
+                let then_str = then_output.trim();
+                output.push_str(then_str);
+                
+                if let Some(else_stmt) = else_stmt {
+                    output.push_str(" otherwise ");
+                    
+                    let mut else_output = String::new();
+                    self.pretty_print_statement(else_stmt, &mut else_output, 0, summary);
+                    let else_str = else_output.trim();
+                    output.push_str(else_str);
+                }
+                
+                output.push('\n');
+                summary.lines_reformatted += 1;
+            },
+            Statement::ForEachLoop { item_name, collection, body, .. } => {
+                let fixed_item_name = self.fix_identifier_name(item_name, summary);
+                output.push_str(&indent);
+                output.push_str("for each ");
+                output.push_str(&fixed_item_name);
+                output.push_str(" in ");
+                self.pretty_print_expression(collection, output, indent_level, summary);
+                output.push_str(":\n");
+                
+                for stmt in body {
+                    self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                output.push_str(&indent);
+                output.push_str("end for each\n");
+                summary.lines_reformatted += 1;
+            },
+            Statement::CountLoop { start, end, step, body, .. } => {
+                output.push_str(&indent);
+                output.push_str("count from ");
+                self.pretty_print_expression(start, output, indent_level, summary);
+                output.push_str(" to ");
+                self.pretty_print_expression(end, output, indent_level, summary);
+                
+                if let Some(step_expr) = step {
+                    output.push_str(" by ");
+                    self.pretty_print_expression(step_expr, output, indent_level, summary);
+                }
+                
+                output.push_str(":\n");
+                
+                for stmt in body {
+                    self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                output.push_str(&indent);
+                output.push_str("end count\n");
+                summary.lines_reformatted += 1;
+            },
+            Statement::WhileLoop { condition, body, .. } => {
+                output.push_str(&indent);
+                output.push_str("while ");
+                self.pretty_print_expression(condition, output, indent_level, summary);
+                output.push_str(":\n");
+                
+                for stmt in body {
+                    self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                output.push_str(&indent);
+                output.push_str("end while\n");
+                summary.lines_reformatted += 1;
+            },
+            Statement::DisplayStatement { value, .. } => {
+                output.push_str(&indent);
+                output.push_str("display ");
+                self.pretty_print_expression(value, output, indent_level, summary);
+                output.push('\n');
+                summary.lines_reformatted += 1;
+            },
+            Statement::ReturnStatement { value, .. } => {
+                output.push_str(&indent);
+                output.push_str("return");
+                
+                if let Some(expr) = value {
+                    output.push(' ');
+                    self.pretty_print_expression(expr, output, indent_level, summary);
+                }
+                
+                output.push('\n');
+                summary.lines_reformatted += 1;
+            },
+            Statement::ExpressionStatement { expression, .. } => {
+                output.push_str(&indent);
+                self.pretty_print_expression(expression, output, indent_level, summary);
+                output.push('\n');
+                summary.lines_reformatted += 1;
+            },
             _ => {
                 output.push_str(&indent);
                 output.push_str(&format!("{:?}\n", statement));
@@ -81,7 +379,7 @@ impl CodeFixer {
         }
     }
     
-    fn pretty_print_expression(&self, expression: &Expression, output: &mut String, _indent_level: usize, _summary: &mut FixerSummary) {
+    fn pretty_print_expression(&self, expression: &Expression, output: &mut String, indent_level: usize, summary: &mut FixerSummary) {
         match expression {
             Expression::Literal(literal, ..) => {
                 match literal {
@@ -108,6 +406,107 @@ impl CodeFixer {
                         output.push('/');
                     },
                 }
+            },
+            Expression::Variable(name, ..) => {
+                let fixed_name = self.fix_identifier_name(name, summary);
+                output.push_str(&fixed_name);
+            },
+            Expression::BinaryOperation { left, operator, right, .. } => {
+                output.push('(');
+                self.pretty_print_expression(left, output, indent_level, summary);
+                
+                match operator {
+                    Operator::Add => output.push_str(" + "),
+                    Operator::Subtract => output.push_str(" - "),
+                    Operator::Multiply => output.push_str(" * "),
+                    Operator::Divide => output.push_str(" / "),
+                    Operator::Equal => output.push_str(" == "),
+                    Operator::NotEqual => output.push_str(" != "),
+                    Operator::LessThan => output.push_str(" < "),
+                    Operator::LessThanOrEqual => output.push_str(" <= "),
+                    Operator::GreaterThan => output.push_str(" > "),
+                    Operator::GreaterThanOrEqual => output.push_str(" >= "),
+                    Operator::And => output.push_str(" and "),
+                    Operator::Or => output.push_str(" or "),
+                    Operator::Modulo => output.push_str(" % "),
+                    Operator::Power => output.push_str(" ^ "),
+                }
+                
+                self.pretty_print_expression(right, output, indent_level, summary);
+                output.push(')');
+            },
+            Expression::UnaryOperation { operator, expression: expr, .. } => {
+                match operator {
+                    UnaryOperator::Negate => output.push('-'),
+                    UnaryOperator::Not => output.push_str("not "),
+                }
+                
+                self.pretty_print_expression(expr, output, indent_level, summary);
+            },
+            Expression::FunctionCall { function, arguments, .. } => {
+                self.pretty_print_expression(function, output, indent_level, summary);
+                output.push('(');
+                
+                for (i, arg) in arguments.iter().enumerate() {
+                    if i > 0 {
+                        output.push_str(", ");
+                    }
+                    
+                    if let Some(name) = &arg.name {
+                        let fixed_name = self.fix_identifier_name(name, summary);
+                        output.push_str(&fixed_name);
+                        output.push_str(": ");
+                    }
+                    
+                    self.pretty_print_expression(&arg.value, output, indent_level, summary);
+                }
+                
+                output.push(')');
+            },
+            Expression::MemberAccess { object, property, .. } => {
+                self.pretty_print_expression(object, output, indent_level, summary);
+                output.push('.');
+                output.push_str(property);
+            },
+            Expression::IndexAccess { collection, index, .. } => {
+                self.pretty_print_expression(collection, output, indent_level, summary);
+                output.push('[');
+                self.pretty_print_expression(index, output, indent_level, summary);
+                output.push(']');
+            },
+            Expression::Concatenation { left, right, .. } => {
+                self.pretty_print_expression(left, output, indent_level, summary);
+                output.push_str(" & ");
+                self.pretty_print_expression(right, output, indent_level, summary);
+            },
+            Expression::PatternMatch { text, pattern, .. } => {
+                self.pretty_print_expression(text, output, indent_level, summary);
+                output.push_str(" matches ");
+                self.pretty_print_expression(pattern, output, indent_level, summary);
+            },
+            Expression::PatternFind { text, pattern, .. } => {
+                output.push_str("find ");
+                self.pretty_print_expression(pattern, output, indent_level, summary);
+                output.push_str(" in ");
+                self.pretty_print_expression(text, output, indent_level, summary);
+            },
+            Expression::PatternReplace { text, pattern, replacement, .. } => {
+                output.push_str("replace ");
+                self.pretty_print_expression(pattern, output, indent_level, summary);
+                output.push_str(" with ");
+                self.pretty_print_expression(replacement, output, indent_level, summary);
+                output.push_str(" in ");
+                self.pretty_print_expression(text, output, indent_level, summary);
+            },
+            Expression::PatternSplit { text, pattern, .. } => {
+                output.push_str("split ");
+                self.pretty_print_expression(text, output, indent_level, summary);
+                output.push_str(" by ");
+                self.pretty_print_expression(pattern, output, indent_level, summary);
+            },
+            Expression::AwaitExpression { expression: expr, .. } => {
+                output.push_str("await ");
+                self.pretty_print_expression(expr, output, indent_level, summary);
             },
             _ => {
                 output.push_str(&format!("{:?}", expression));
