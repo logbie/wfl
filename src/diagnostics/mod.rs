@@ -303,6 +303,8 @@ impl DiagnosticReporter {
             diag = diag.with_note("Make sure your index is within the valid range of the list");
         } else if error.message.contains("file not found") {
             diag = diag.with_note("Verify that the file exists and the path is correct");
+        } else if error.message.contains("Feature not implemented") {
+            diag = diag.with_note("This feature is not implemented in the current build");
         }
 
         diag

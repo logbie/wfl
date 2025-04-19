@@ -4,7 +4,7 @@ use crate::parser::ast::Statement;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
 #[derive(Clone)]
 pub enum Value {
@@ -26,7 +26,7 @@ pub struct FunctionValue {
     pub name: Option<String>,
     pub params: Vec<String>,
     pub body: Vec<Statement>,
-    pub env: Rc<RefCell<Environment>>,
+    pub env: Weak<RefCell<Environment>>,
     pub line: usize,
     pub column: usize,
 }
