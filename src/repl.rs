@@ -7,6 +7,7 @@ use crate::parser::{
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
+use tokio::runtime::Runtime;
 
 pub struct ReplState {
     interpreter: Interpreter,
@@ -33,7 +34,7 @@ impl ReplState {
         }
     }
 
-    pub fn process_line(&mut self, line: &str) -> Result<Option<String>, String> {
+    pub async fn process_line(&mut self, line: &str) -> Result<Option<String>, String> {
         if line.trim().starts_with('.') {
             return self.handle_repl_command(line.trim());
         }
@@ -57,7 +58,7 @@ impl ReplState {
             self.history.push(input.clone());
         }
 
-        let result = self.process_complete_input(&input);
+        let result = self.process_complete_input(&input).await;
 
         self.input_buffer.clear();
 
@@ -107,7 +108,7 @@ impl ReplState {
         }
     }
 
-    fn process_complete_input(&mut self, input: &str) -> Result<Option<String>, String> {
+    async fn process_complete_input(&mut self, input: &str) -> Result<Option<String>, String> {
         let tokens = lex_wfl_with_positions(input);
 
         let mut parser = Parser::new(&tokens);
@@ -140,7 +141,7 @@ impl ReplState {
                         statements: vec![last_stmt.clone()],
                     };
 
-                    match self.interpreter.interpret(&expr_program) {
+                    match self.interpreter.interpret(&expr_program).await {
                         Ok(value) => {
                             result_output = Some(format!("{:?}", value));
                         }
@@ -149,7 +150,7 @@ impl ReplState {
                         }
                     }
                 }
-                _ => match self.interpreter.interpret(&program) {
+                _ => match self.interpreter.interpret(&program).await {
                     Ok(_) => {}
                     Err(errors) => {
                         result_output = Some(format!("Runtime error: {:?}", errors));
@@ -157,7 +158,7 @@ impl ReplState {
                 },
             }
         } else {
-            match self.interpreter.interpret(&program) {
+            match self.interpreter.interpret(&program).await {
                 Ok(_) => {}
                 Err(errors) => {
                     result_output = Some(format!("Runtime error: {:?}", errors));
@@ -170,6 +171,8 @@ impl ReplState {
 }
 
 pub fn run_repl() -> RustylineResult<()> {
+    let runtime = Runtime::new().expect("Failed to create Tokio runtime");
+    
     let mut repl_state = ReplState::new();
     let mut rl = DefaultEditor::new()?;
 
@@ -185,7 +188,7 @@ pub fn run_repl() -> RustylineResult<()> {
             Ok(line) => {
                 rl.add_history_entry(&line)?;
 
-                match repl_state.process_line(&line) {
+                match runtime.block_on(repl_state.process_line(&line)) {
                     Ok(Some(output)) => println!("{}", output),
                     Ok(None) => {} // No output needed
                     Err(error) => println!("Error: {}", error),
