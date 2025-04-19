@@ -193,8 +193,8 @@ mod tests {
         let config = load_config(temp_dir.path());
 
         assert_eq!(config.timeout_seconds, 60);
-        assert_eq!(config.logging_enabled, false);
-        assert_eq!(config.debug_report_enabled, true);
+        assert!(!config.logging_enabled);
+        assert!(config.debug_report_enabled);
         assert_eq!(config.log_level, LogLevel::Info);
     }
 
@@ -217,8 +217,8 @@ mod tests {
         let config = load_config(temp_dir.path());
 
         assert_eq!(config.timeout_seconds, 120);
-        assert_eq!(config.logging_enabled, true);
-        assert_eq!(config.debug_report_enabled, false);
+        assert!(config.logging_enabled);
+        assert!(!config.debug_report_enabled);
         assert_eq!(config.log_level, LogLevel::Debug);
     }
 
@@ -239,8 +239,8 @@ mod tests {
         let config = load_config(temp_dir.path());
 
         assert_eq!(config.timeout_seconds, 30);
-        assert_eq!(config.logging_enabled, false); // Default
-        assert_eq!(config.debug_report_enabled, true); // Default
+        assert!(!config.logging_enabled); // Default
+        assert!(config.debug_report_enabled); // Default
         assert_eq!(config.log_level, LogLevel::Error);
     }
 
