@@ -213,7 +213,7 @@ fn test_missing_as_in_store_statement() {
     assert!(result.is_err());
 
     if let Err(error) = result {
-        assert!(error.message.contains("Expected 'as' after identifier(s)"));
+        assert!(error.message.contains("Expected 'as' after variable name"));
         assert!(error.message.contains("42"));
     }
 }
@@ -228,7 +228,7 @@ fn test_missing_as_in_create_statement() {
     assert!(result.is_err());
 
     if let Err(error) = result {
-        assert!(error.message.contains("Expected 'as' after identifier(s)"));
+        assert!(error.message.contains("Expected 'as' after variable name"));
         assert!(error.message.contains("StringLiteral"));
     }
 }
@@ -245,5 +245,124 @@ fn test_missing_to_in_change_statement() {
     if let Err(error) = result {
         assert!(error.message.contains("Expected 'to' after identifier(s)"));
         assert!(error.message.contains("10"));
+    }
+}
+
+#[test]
+fn test_valid_store_statements() {
+    let input = "store x as 1";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_ok());
+
+    let input = "store first name as \"Alice\"";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_store_without_variable_name() {
+    let input = "store";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message.contains("Expected variable name"),
+            "Got error: {}",
+            e[0]
+        );
+    }
+}
+
+#[test]
+fn test_store_with_incomplete_statement() {
+    let input = "store a";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message.contains("Expected 'as'"),
+            "Got error: {}",
+            e[0]
+        );
+    }
+}
+
+#[test]
+fn test_store_with_missing_as() {
+    let input = "store a a";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message.contains("Expected 'as'"),
+            "Got error: {}",
+            e[0]
+        );
+    }
+}
+
+#[test]
+fn test_store_with_number_as_variable_name() {
+    let input = "store 1 as 1";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message
+                .contains("Cannot use a number as a variable name"),
+            "Got error: {}",
+            e[0]
+        );
+    }
+}
+
+#[test]
+fn test_store_with_number_as_variable_name_without_as() {
+    let input = "store 1 b";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message
+                .contains("Cannot use a number as a variable name"),
+            "Got error: {}",
+            e[0]
+        );
+    }
+}
+
+#[test]
+fn test_store_with_keyword_as_variable_name() {
+    let input = "store if as 1";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let result = parser.parse();
+    assert!(result.is_err());
+
+    if let Err(e) = result {
+        assert!(
+            e[0].message.contains("Cannot use keyword"),
+            "Got error: {}",
+            e[0]
+        );
     }
 }

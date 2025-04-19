@@ -197,3 +197,51 @@ impl TokenWithPosition {
         }
     }
 }
+
+impl Token {
+    pub fn is_keyword(&self) -> bool {
+        matches!(
+            self,
+            Token::KeywordStore
+                | Token::KeywordCreate
+                | Token::KeywordDisplay
+                | Token::KeywordCheck
+                | Token::KeywordIf
+                | Token::KeywordThen
+                | Token::KeywordOtherwise
+                | Token::KeywordEnd
+                | Token::KeywordFor
+                | Token::KeywordEach
+                | Token::KeywordIn
+                | Token::KeywordReversed
+                | Token::KeywordFrom
+                | Token::KeywordTo
+                | Token::KeywordBy
+                | Token::KeywordCount
+                | Token::KeywordRepeat
+                | Token::KeywordWhile
+                | Token::KeywordUntil
+                | Token::KeywordForever
+                | Token::KeywordAction
+                | Token::KeywordCalled
+                | Token::KeywordWith
+                | Token::KeywordNot
+                | Token::KeywordBreak
+                | Token::KeywordContinue
+                | Token::KeywordReturn
+                | Token::KeywordGive
+                | Token::KeywordBack
+                | Token::KeywordAs
+                | Token::KeywordAt
+                | Token::KeywordDefine
+                | Token::KeywordNeeds
+                | Token::KeywordChange
+                | Token::KeywordAnd
+                | Token::KeywordOr
+                | Token::KeywordPattern
+                | Token::KeywordRead
+                | Token::KeywordWait
+                | Token::KeywordSkip
+        )
+    }
+}
