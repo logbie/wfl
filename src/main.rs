@@ -12,7 +12,7 @@ use wfl::logging;
 use wfl::parser::Parser;
 use wfl::repl;
 use wfl::typechecker::TypeChecker;
-use wfl::{debug, info, warn, error};
+use wfl::{error, info};
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -148,10 +148,10 @@ async fn main() -> io::Result<()> {
                                 .unwrap_or_else(|| Path::new("."));
 
                             println!("Script directory: {:?}", script_dir);
-                            
+
                             let config = config::load_config(script_dir);
                             println!("Timeout seconds: {}", config.timeout_seconds);
-                            
+
                             if config.logging_enabled {
                                 let log_path = script_dir.join("wfl.log");
                                 if let Err(e) = logging::init_logger(config.log_level, &log_path) {
@@ -160,7 +160,7 @@ async fn main() -> io::Result<()> {
                                     info!("WFL started with script: {}", &args[1]);
                                 }
                             }
-                            
+
                             let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
                             let interpret_result = interpreter.interpret(&program).await;
                             match interpret_result {
@@ -172,17 +172,17 @@ async fn main() -> io::Result<()> {
                                         "Execution completed successfully. Result: {:?}",
                                         result
                                     )
-                                },
+                                }
                                 Err(errors) => {
                                     if config.logging_enabled {
                                         error!("Runtime errors occurred");
                                     }
-                                    
+
                                     eprintln!("Runtime errors:");
 
                                     let mut reporter = DiagnosticReporter::new();
                                     let file_id = reporter.add_file(&args[1], &input);
-                                    
+
                                     if config.debug_report_enabled && !errors.is_empty() {
                                         let error = &errors[0]; // Take the first error
                                         let call_stack = interpreter.get_call_stack();
@@ -192,10 +192,13 @@ async fn main() -> io::Result<()> {
                                             &input,
                                             &args[1],
                                         );
-                                        
-                                        let report_msg = format!("Debug report created: {}", report_path.display());
+
+                                        let report_msg = format!(
+                                            "Debug report created: {}",
+                                            report_path.display()
+                                        );
                                         eprintln!("{}", report_msg);
-                                        
+
                                         if config.logging_enabled {
                                             info!("{}", report_msg);
                                         }

@@ -1,23 +1,21 @@
 use crate::config::LogLevel;
 use chrono::Local;
 use log::{LevelFilter, SetLoggerError};
+use once_cell::sync::Lazy;
 use simplelog::{
-    ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode,
-    WriteLogger,
+    ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode, WriteLogger,
 };
-use time;
-use time::format_description::FormatItem;
 use std::fs::File;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Instant;
-use once_cell::sync::Lazy;
+use time;
+use time::format_description::FormatItem;
 
 static LOGGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
-static TIME_FORMAT: Lazy<Vec<FormatItem>> = Lazy::new(|| {
-    time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap()
-});
+static TIME_FORMAT: Lazy<Vec<FormatItem>> =
+    Lazy::new(|| time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap());
 
 pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLoggerError> {
     if LOGGER_INITIALIZED.load(Ordering::Relaxed) {
@@ -47,7 +45,10 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     CombinedLogger::init(vec![file_logger, term_logger])?;
     LOGGER_INITIALIZED.store(true, Ordering::Relaxed);
 
-    log::info!("WFL logging initialized at {}", Local::now().format("%Y-%m-%d %H:%M:%S"));
+    log::info!(
+        "WFL logging initialized at {}",
+        Local::now().format("%Y-%m-%d %H:%M:%S")
+    );
     Ok(())
 }
 
@@ -93,12 +94,12 @@ mod tests {
     fn test_logger_initialization() {
         let temp_dir = tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let result = init_logger(LogLevel::Debug, &log_path);
         assert!(result.is_ok());
-        
+
         log::info!("Test log message");
-        
+
         assert!(log_path.exists());
         let log_content = fs::read_to_string(log_path).unwrap();
         assert!(log_content.contains("Test log message"));

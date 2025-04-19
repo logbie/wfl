@@ -198,7 +198,7 @@ impl Interpreter {
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
     }
-    
+
     pub fn get_call_stack(&self) -> Vec<CallFrame> {
         self.call_stack.borrow().clone()
     }
@@ -231,7 +231,7 @@ impl Interpreter {
 
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
         self.call_stack.borrow_mut().clear();
-        
+
         let mut last_value = Value::Null;
         let mut errors = Vec::new();
 
@@ -1037,7 +1037,9 @@ impl Interpreter {
         }
 
         let frame = CallFrame::new(
-            func.name.clone().unwrap_or_else(|| "<anonymous>".to_string()),
+            func.name
+                .clone()
+                .unwrap_or_else(|| "<anonymous>".to_string()),
             line,
             column,
         );

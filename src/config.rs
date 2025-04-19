@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::str::FromStr;
 
 #[derive(Debug, Clone)]
 pub struct WflConfig {
@@ -27,17 +28,38 @@ impl Default for WflConfig {
     }
 }
 
-impl LogLevel {
-    pub fn from_str(s: &str) -> Self {
-        match s.trim().to_lowercase().as_str() {
+// For the FromStr trait implementation
+#[derive(Debug)]
+pub struct ParseLogLevelError;
+
+impl std::fmt::Display for ParseLogLevelError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "failed to parse log level")
+    }
+}
+
+impl std::error::Error for ParseLogLevelError {}
+
+impl FromStr for LogLevel {
+    type Err = ParseLogLevelError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s.trim().to_lowercase().as_str() {
             "debug" => LogLevel::Debug,
             "info" => LogLevel::Info,
             "warn" | "warning" => LogLevel::Warn,
             "error" => LogLevel::Error,
             _ => LogLevel::Info, // Default to Info for unrecognized values
-        }
+        })
     }
-    
+}
+
+impl LogLevel {
+    // Keep this for backward compatibility
+    pub fn parse_str(s: &str) -> Self {
+        s.parse().unwrap_or(LogLevel::Info)
+    }
+
     pub fn to_level_filter(&self) -> log::LevelFilter {
         match self {
             LogLevel::Debug => log::LevelFilter::Debug,
@@ -58,11 +80,11 @@ pub fn load_config(dir: &Path) -> WflConfig {
             if line.is_empty() || line.starts_with('#') {
                 continue;
             }
-            
+
             if let Some((key, rest)) = line.split_once('=') {
                 let key = key.trim();
                 let value = rest.trim();
-                
+
                 match key {
                     "timeout_seconds" => {
                         if let Ok(timeout) = value.parse::<u64>() {
@@ -73,7 +95,7 @@ pub fn load_config(dir: &Path) -> WflConfig {
                                 file.display()
                             );
                         }
-                    },
+                    }
                     "logging_enabled" => {
                         if let Ok(enabled) = value.parse::<bool>() {
                             config.logging_enabled = enabled;
@@ -83,7 +105,7 @@ pub fn load_config(dir: &Path) -> WflConfig {
                                 file.display()
                             );
                         }
-                    },
+                    }
                     "debug_report_enabled" => {
                         if let Ok(enabled) = value.parse::<bool>() {
                             config.debug_report_enabled = enabled;
@@ -93,15 +115,15 @@ pub fn load_config(dir: &Path) -> WflConfig {
                                 file.display()
                             );
                         }
-                    },
+                    }
                     "log_level" => {
-                        config.log_level = LogLevel::from_str(value);
+                        config.log_level = LogLevel::parse_str(value);
                         log::debug!(
                             "Loaded log_level: {:?} from {}",
                             config.log_level,
                             file.display()
                         );
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -164,12 +186,12 @@ mod tests {
         let timeout = load_timeout(temp_dir.path());
         assert_eq!(timeout, 60); // Should fall back to default
     }
-    
+
     #[test]
     fn test_load_config_defaults() {
         let temp_dir = tempfile::tempdir().unwrap();
         let config = load_config(temp_dir.path());
-        
+
         assert_eq!(config.timeout_seconds, 60);
         assert_eq!(config.logging_enabled, false);
         assert_eq!(config.debug_report_enabled, true);
@@ -180,7 +202,7 @@ mod tests {
     fn test_load_config_custom() {
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join(".wflcfg");
-        
+
         let config_content = r#"
         # WFL Configuration
         timeout_seconds = 120
@@ -188,12 +210,12 @@ mod tests {
         debug_report_enabled = false
         log_level = debug
         "#;
-        
+
         let mut file = fs::File::create(&config_path).unwrap();
         file.write_all(config_content.as_bytes()).unwrap();
-        
+
         let config = load_config(temp_dir.path());
-        
+
         assert_eq!(config.timeout_seconds, 120);
         assert_eq!(config.logging_enabled, true);
         assert_eq!(config.debug_report_enabled, false);
@@ -204,19 +226,18 @@ mod tests {
     fn test_load_config_partial() {
         let temp_dir = tempfile::tempdir().unwrap();
         let config_path = temp_dir.path().join(".wflcfg");
-        
-        
+
         let config_content = r#"
         # Only specify some settings
         timeout_seconds = 30
         log_level = error
         "#;
-        
+
         let mut file = fs::File::create(&config_path).unwrap();
         file.write_all(config_content.as_bytes()).unwrap();
-        
+
         let config = load_config(temp_dir.path());
-        
+
         assert_eq!(config.timeout_seconds, 30);
         assert_eq!(config.logging_enabled, false); // Default
         assert_eq!(config.debug_report_enabled, true); // Default
@@ -225,11 +246,11 @@ mod tests {
 
     #[test]
     fn test_log_level_parsing() {
-        assert_eq!(LogLevel::from_str("debug"), LogLevel::Debug);
-        assert_eq!(LogLevel::from_str("INFO"), LogLevel::Info);
-        assert_eq!(LogLevel::from_str("Warning"), LogLevel::Warn);
-        assert_eq!(LogLevel::from_str("warn"), LogLevel::Warn);
-        assert_eq!(LogLevel::from_str("ERROR"), LogLevel::Error);
-        assert_eq!(LogLevel::from_str("unknown"), LogLevel::Info); // Default
+        assert_eq!("debug".parse::<LogLevel>().unwrap(), LogLevel::Debug);
+        assert_eq!("INFO".parse::<LogLevel>().unwrap(), LogLevel::Info);
+        assert_eq!("Warning".parse::<LogLevel>().unwrap(), LogLevel::Warn);
+        assert_eq!("warn".parse::<LogLevel>().unwrap(), LogLevel::Warn);
+        assert_eq!("ERROR".parse::<LogLevel>().unwrap(), LogLevel::Error);
+        assert_eq!("unknown".parse::<LogLevel>().unwrap(), LogLevel::Info); // Default
     }
 }
