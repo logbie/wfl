@@ -209,6 +209,11 @@ impl Interpreter {
 
     fn check_time(&self) -> Result<(), RuntimeError> {
         if self.started.elapsed() > self.max_duration {
+            if *self.in_count_loop.borrow() {
+                *self.in_count_loop.borrow_mut() = false;
+                *self.current_count.borrow_mut() = None;
+            }
+            
             Err(RuntimeError::new(
                 format!(
                     "Execution exceeded timeout ({}s)",
