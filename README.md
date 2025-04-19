@@ -125,6 +125,8 @@ display "Type of list: " with typeof of my list
   - `typechecker/`: Static type checker
   - `interpreter/`: Runtime interpreter (in progress)
   - `stdlib/`: Standard library implementation
+  - `logging/`: Structured logging system
+  - `debug_report/`: Error reporting and debugging tools
   - `bytecode/`: Bytecode compiler (planned)
 - `Docs/`: Documentation
   - `wfl-spec.md`: Language specification
@@ -134,6 +136,44 @@ display "Type of list: " with typeof of my list
   - `wfl-interpretor.md`: Interpreter design
   - `implementation_progress_2025-04-17.md`: Implementation status
 - `Test Programs/`: Example WFL programs
+
+## Logging and Debugging
+
+WFL includes structured logging and automatic debug report generation to help with troubleshooting.
+
+### Configuration
+
+These features can be configured in a `.wflcfg` file in the same directory as your script:
+
+```
+# Enable structured logging (default: false)
+logging_enabled = true
+
+# Set log level: debug, info, warn, error (default: info)
+log_level = debug
+
+# Enable automatic debug reports on errors (default: true)
+debug_report_enabled = true
+
+# Set execution timeout in seconds (default: 60)
+timeout_seconds = 120
+```
+
+### Logging
+
+When enabled, logs are written to both the console (info level and above) and to a `wfl.log` file (all levels).
+Each log entry includes a timestamp, message, source location, and elapsed time.
+
+### Debug Reports
+
+When a runtime error occurs, WFL automatically generates a `<script>_debug.txt` file containing:
+- Error summary
+- Stack trace
+- Source code around the error
+- Full action body (if inside an action)
+- Local variables at the time of the error
+
+This makes it easier to diagnose and fix issues in your WFL scripts.
 
 ## Contributing
 

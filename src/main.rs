@@ -2,14 +2,18 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
+use std::process;
 use wfl::Interpreter;
 use wfl::analyzer::Analyzer;
 use wfl::config;
+use wfl::debug_report;
 use wfl::diagnostics::DiagnosticReporter;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
+use wfl::logging;
 use wfl::parser::Parser;
 use wfl::repl;
 use wfl::typechecker::TypeChecker;
+use wfl::{debug, info, warn, error};
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -145,20 +149,58 @@ async fn main() -> io::Result<()> {
                                 .unwrap_or_else(|| Path::new("."));
 
                             println!("Script directory: {:?}", script_dir);
-                            let timeout_secs = config::load_timeout(script_dir);
-                            println!("Timeout seconds: {}", timeout_secs);
-                            let mut interpreter = Interpreter::with_timeout(timeout_secs);
+                            
+                            let config = config::load_config(script_dir);
+                            println!("Timeout seconds: {}", config.timeout_seconds);
+                            
+                            if config.logging_enabled {
+                                let log_path = script_dir.join("wfl.log");
+                                if let Err(e) = logging::init_logger(config.log_level, &log_path) {
+                                    eprintln!("Failed to initialize logging: {}", e);
+                                } else {
+                                    info!("WFL started with script: {}", &args[1]);
+                                }
+                            }
+                            
+                            let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
                             let interpret_result = interpreter.interpret(&program).await;
                             match interpret_result {
-                                Ok(result) => println!(
-                                    "Execution completed successfully. Result: {:?}",
-                                    result
-                                ),
+                                Ok(result) => {
+                                    if config.logging_enabled {
+                                        info!("Program executed successfully");
+                                    }
+                                    println!(
+                                        "Execution completed successfully. Result: {:?}",
+                                        result
+                                    )
+                                },
                                 Err(errors) => {
+                                    if config.logging_enabled {
+                                        error!("Runtime errors occurred");
+                                    }
+                                    
                                     eprintln!("Runtime errors:");
 
                                     let mut reporter = DiagnosticReporter::new();
                                     let file_id = reporter.add_file(&args[1], &input);
+                                    
+                                    if config.debug_report_enabled && !errors.is_empty() {
+                                        let error = &errors[0]; // Take the first error
+                                        let call_stack = interpreter.get_call_stack();
+                                        let report_path = debug_report::create_report(
+                                            error,
+                                            &call_stack,
+                                            &input,
+                                            &args[1],
+                                        );
+                                        
+                                        let report_msg = format!("Debug report created: {}", report_path.display());
+                                        eprintln!("{}", report_msg);
+                                        
+                                        if config.logging_enabled {
+                                            info!("{}", report_msg);
+                                        }
+                                    }
 
                                     for error in errors {
                                         let diagnostic =

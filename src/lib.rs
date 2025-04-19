@@ -1,14 +1,17 @@
 pub mod analyzer;
 pub mod config;
+pub mod debug_report;
 pub mod diagnostics;
 pub mod interpreter;
 pub mod lexer;
+pub mod logging;
 pub mod parser;
 pub mod repl;
 pub mod stdlib;
 pub mod typechecker;
 
 pub use interpreter::Interpreter;
+pub use logging::{debug, info, warn, error};
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
