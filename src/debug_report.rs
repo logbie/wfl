@@ -180,14 +180,14 @@ mod tests {
         let script_path = temp_dir.path().join("test_script.wfl");
         
         let script_content = r#"
-        define action called divide_numbers:
+        define action called divide:
             store x as 10
             store y as 0
             store result as x divided by y
             give back result
         end action
 
-        divide_numbers
+        divide
         "#;
         
         fs::write(&script_path, script_content).unwrap();
