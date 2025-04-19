@@ -105,7 +105,10 @@ impl ReplState {
                 io::stdout().flush().unwrap();
                 Ok(CommandResult::ClearedScreen)
             }
-            _ => Ok(CommandResult::Unknown(format!("Unknown command: {}", command))),
+            _ => Ok(CommandResult::Unknown(format!(
+                "Unknown command: {}",
+                command
+            ))),
         }
     }
 
@@ -275,7 +278,7 @@ impl ReplState {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_clear_command() {
         let mut repl = ReplState::new();

@@ -36,27 +36,31 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
             file,
         )
     });
-    
+
     if let Err(e) = &file_logger_result {
-        eprintln!("Warning: Could not create log file at {}: {}", file_path.display(), e);
-        
+        eprintln!(
+            "Warning: Could not create log file at {}: {}",
+            file_path.display(),
+            e
+        );
+
         let term_logger = TermLogger::new(
             level_filter.min(LevelFilter::Info), // Terminal gets info and above
             config.clone(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         );
-        
+
         CombinedLogger::init(vec![term_logger])?;
         LOGGER_INITIALIZED.store(true, Ordering::Relaxed);
-        
+
         log::info!(
             "WFL logging initialized at {} (console-only mode)",
             Local::now().format("%Y-%m-%d %H:%M:%S")
         );
         return Ok(());
     }
-    
+
     let file_logger = file_logger_result.unwrap();
 
     let term_logger = TermLogger::new(
@@ -124,28 +128,27 @@ mod tests {
         assert!(result.is_ok());
 
         log::info!("Test log message");
-
     }
-    
+
     #[test]
     fn test_logger_fallback_when_file_creation_fails() {
         let temp_dir = tempdir().unwrap();
         let dir_path = temp_dir.path();
-        
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
             std::fs::set_permissions(dir_path, std::fs::Permissions::from_mode(0o555)).unwrap();
         }
-        
+
         #[cfg(not(unix))]
         let dir_path = temp_dir.path().join("non_existent_directory");
-        
+
         let log_path = dir_path.join("test.log");
-        
+
         let result = init_logger(LogLevel::Debug, &log_path);
         assert!(result.is_ok());
-        
+
         log::info!("This should not panic");
     }
 }

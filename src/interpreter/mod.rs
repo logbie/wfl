@@ -98,13 +98,13 @@ impl IoClient {
         {
             Ok(file) => {
                 let mut file_handles = self.file_handles.lock().await;
-                
+
                 for (id, (existing_path, _)) in file_handles.iter() {
                     if existing_path == &path_buf {
                         return Err(format!("File already open with handle {}", id));
                     }
                 }
-                
+
                 file_handles.insert(handle_id.clone(), (path_buf, file));
                 Ok(handle_id)
             }
@@ -115,18 +115,18 @@ impl IoClient {
     #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
         let mut file_handles = self.file_handles.lock().await;
-        
+
         if !file_handles.contains_key(handle_id) {
             return Err(format!("Invalid file handle: {}", handle_id));
         }
-        
+
         let mut file_clone = match file_handles.get_mut(handle_id).unwrap().1.try_clone().await {
             Ok(clone) => clone,
             Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
         };
-        
+
         drop(file_handles);
-        
+
         let mut contents = String::new();
         match AsyncReadExt::read_to_string(&mut file_clone, &mut contents).await {
             Ok(_) => Ok(contents),
@@ -137,18 +137,18 @@ impl IoClient {
     #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.lock().await;
-        
+
         if !file_handles.contains_key(handle_id) {
             return Err(format!("Invalid file handle: {}", handle_id));
         }
-        
+
         let mut file_clone = match file_handles.get_mut(handle_id).unwrap().1.try_clone().await {
             Ok(clone) => clone,
             Err(e) => return Err(format!("Failed to clone file handle: {}", e)),
         };
-        
+
         drop(file_handles);
-        
+
         match AsyncSeekExt::seek(&mut file_clone, std::io::SeekFrom::Start(0)).await {
             Ok(_) => match file_clone.set_len(0).await {
                 Ok(_) => {
@@ -166,11 +166,11 @@ impl IoClient {
     #[allow(dead_code)]
     async fn close_file(&self, handle_id: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.lock().await;
-        
+
         if !file_handles.contains_key(handle_id) {
             return Err(format!("Invalid file handle: {}", handle_id));
         }
-        
+
         file_handles.remove(handle_id);
         Ok(())
     }
@@ -704,7 +704,7 @@ impl Interpreter {
             } => {
                 let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
                 let content_value = self.evaluate_expression(content, Rc::clone(&env)).await?;
-                
+
                 let file_str = match &file_value {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -715,7 +715,7 @@ impl Interpreter {
                         ));
                     }
                 };
-                
+
                 let content_str = match &content_value {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -726,19 +726,15 @@ impl Interpreter {
                         ));
                     }
                 };
-                
+
                 match self.io_client.write_file(&file_str, &content_str).await {
                     Ok(_) => Ok(Value::Null),
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
-            Statement::CloseFileStatement {
-                file,
-                line,
-                column,
-            } => {
+            Statement::CloseFileStatement { file, line, column } => {
                 let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
-                
+
                 let file_str = match &file_value {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -749,7 +745,7 @@ impl Interpreter {
                         ));
                     }
                 };
-                
+
                 match self.io_client.close_file(&file_str).await {
                     Ok(_) => Ok(Value::Null),
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -760,21 +756,21 @@ impl Interpreter {
                 line: _,
                 column: _,
             } => self.execute_statement(inner, Rc::clone(&env)).await,
-            Statement::TryStatement { 
-                line, 
-                column, 
-                .. 
-            } => Err(RuntimeError::new("Feature not implemented: Try statement".to_string(), *line, *column)),
-            Statement::HttpGetStatement { 
-                line, 
-                column, 
-                .. 
-            } => Err(RuntimeError::new("Feature not implemented: HttpGet statement".to_string(), *line, *column)),
-            Statement::HttpPostStatement { 
-                line, 
-                column, 
-                .. 
-            } => Err(RuntimeError::new("Feature not implemented: HttpPost statement".to_string(), *line, *column))
+            Statement::TryStatement { line, column, .. } => Err(RuntimeError::new(
+                "Feature not implemented: Try statement".to_string(),
+                *line,
+                *column,
+            )),
+            Statement::HttpGetStatement { line, column, .. } => Err(RuntimeError::new(
+                "Feature not implemented: HttpGet statement".to_string(),
+                *line,
+                *column,
+            )),
+            Statement::HttpPostStatement { line, column, .. } => Err(RuntimeError::new(
+                "Feature not implemented: HttpPost statement".to_string(),
+                *line,
+                *column,
+            )),
         }
     }
 
@@ -1140,11 +1136,13 @@ impl Interpreter {
 
         let func_env = match func.env.upgrade() {
             Some(env) => env,
-            None => return Err(RuntimeError::new(
-                "Parent environment no longer exists".to_string(),
-                line,
-                column,
-            )),
+            None => {
+                return Err(RuntimeError::new(
+                    "Parent environment no longer exists".to_string(),
+                    line,
+                    column,
+                ));
+            }
         };
 
         let call_env = Environment::new(&func_env);
