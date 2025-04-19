@@ -5,6 +5,7 @@ use std::path::Path;
 use wfl::Interpreter;
 use wfl::analyzer::Analyzer;
 use wfl::config;
+use wfl::diagnostics::DiagnosticReporter;
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::parser::Parser;
 use wfl::repl;
@@ -155,31 +156,67 @@ async fn main() -> io::Result<()> {
                                 ),
                                 Err(errors) => {
                                     eprintln!("Runtime errors:");
+
+                                    let mut reporter = DiagnosticReporter::new();
+                                    let file_id = reporter.add_file(&args[1], &input);
+
                                     for error in errors {
-                                        eprintln!("{}", error);
+                                        let diagnostic =
+                                            reporter.convert_runtime_error(file_id, &error);
+                                        if let Err(e) =
+                                            reporter.report_diagnostic(file_id, &diagnostic)
+                                        {
+                                            eprintln!("Error displaying diagnostic: {}", e);
+                                            eprintln!("{}", error); // Fallback to simple error display
+                                        }
                                     }
                                 }
                             }
                         }
                         Err(errors) => {
                             eprintln!("Type errors:");
+
+                            let mut reporter = DiagnosticReporter::new();
+                            let file_id = reporter.add_file(&args[1], &input);
+
                             for error in errors {
-                                eprintln!("{}", error);
+                                let diagnostic = reporter.convert_type_error(file_id, &error);
+                                if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                                    eprintln!("Error displaying diagnostic: {}", e);
+                                    eprintln!("{}", error); // Fallback to simple error display
+                                }
                             }
                         }
                     }
                 }
                 Err(errors) => {
                     eprintln!("Semantic errors:");
+
+                    let mut reporter = DiagnosticReporter::new();
+                    let file_id = reporter.add_file(&args[1], &input);
+
                     for error in errors {
-                        eprintln!("{}", error);
+                        let diagnostic = reporter.convert_semantic_error(file_id, &error);
+                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                            eprintln!("Error displaying diagnostic: {}", e);
+                            eprintln!("{}", error); // Fallback to simple error display
+                        }
                     }
                 }
             }
         }
         Err(errors) => {
+            eprintln!("Parse errors:");
+
+            let mut reporter = DiagnosticReporter::new();
+            let file_id = reporter.add_file(&args[1], &input);
+
             for error in errors {
-                eprintln!("Error: {}", error);
+                let diagnostic = reporter.convert_parse_error(file_id, &error);
+                if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                    eprintln!("Error displaying diagnostic: {}", e);
+                    eprintln!("Error: {}", error); // Fallback to simple error display
+                }
             }
         }
     }

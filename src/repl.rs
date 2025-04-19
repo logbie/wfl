@@ -1,9 +1,12 @@
+use crate::diagnostics::DiagnosticReporter;
 use crate::interpreter::Interpreter;
 use crate::lexer::{lex_wfl_with_positions, token::TokenWithPosition};
 use crate::parser::{
     Parser,
     ast::{Program, Statement},
 };
+use codespan_reporting::term;
+use codespan_reporting::term::termcolor::Buffer;
 use rustyline::error::ReadlineError;
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
@@ -115,15 +118,32 @@ impl ReplState {
         let program = match parser.parse() {
             Ok(prog) => prog,
             Err(errors) => {
-                let error_messages: Vec<String> = errors
-                    .iter()
-                    .map(|e| {
-                        format!(
+                let mut error_messages = Vec::new();
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file("repl", input);
+
+                for error in &errors {
+                    let diagnostic = reporter.convert_parse_error(file_id, error);
+
+                    let mut buffer = Buffer::ansi();
+                    let config = term::Config::default();
+                    if let Err(_e) = term::emit(
+                        &mut buffer,
+                        &config,
+                        &reporter.files,
+                        &diagnostic.to_codespan_diagnostic(file_id),
+                    ) {
+                        error_messages.push(format!(
                             "Parse error at line {}, column {}: {}",
-                            e.line, e.column, e.message
-                        )
-                    })
-                    .collect();
+                            error.line, error.column, error.message
+                        ));
+                        continue;
+                    }
+
+                    let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                    error_messages.push(output);
+                }
+
                 return Ok(Some(error_messages.join("\n")));
             }
         };
@@ -146,14 +166,60 @@ impl ReplState {
                             result_output = Some(format!("{:?}", value));
                         }
                         Err(errors) => {
-                            result_output = Some(format!("Runtime error: {:?}", errors));
+                            let mut error_messages = Vec::new();
+                            let mut reporter = DiagnosticReporter::new();
+                            let file_id = reporter.add_file("repl", input);
+
+                            for error in &errors {
+                                let diagnostic = reporter.convert_runtime_error(file_id, error);
+
+                                let mut buffer = Buffer::ansi();
+                                let config = term::Config::default();
+                                if let Err(_e) = term::emit(
+                                    &mut buffer,
+                                    &config,
+                                    &reporter.files,
+                                    &diagnostic.to_codespan_diagnostic(file_id),
+                                ) {
+                                    error_messages.push(format!("Runtime error: {}", error));
+                                    continue;
+                                }
+
+                                let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                                error_messages.push(output);
+                            }
+
+                            result_output = Some(error_messages.join("\n"));
                         }
                     }
                 }
                 _ => match self.interpreter.interpret(&program).await {
                     Ok(_) => {}
                     Err(errors) => {
-                        result_output = Some(format!("Runtime error: {:?}", errors));
+                        let mut error_messages = Vec::new();
+                        let mut reporter = DiagnosticReporter::new();
+                        let file_id = reporter.add_file("repl", input);
+
+                        for error in &errors {
+                            let diagnostic = reporter.convert_runtime_error(file_id, error);
+
+                            let mut buffer = Buffer::ansi();
+                            let config = term::Config::default();
+                            if let Err(_e) = term::emit(
+                                &mut buffer,
+                                &config,
+                                &reporter.files,
+                                &diagnostic.to_codespan_diagnostic(file_id),
+                            ) {
+                                error_messages.push(format!("Runtime error: {}", error));
+                                continue;
+                            }
+
+                            let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                            error_messages.push(output);
+                        }
+
+                        result_output = Some(error_messages.join("\n"));
                     }
                 },
             }
@@ -161,7 +227,30 @@ impl ReplState {
             match self.interpreter.interpret(&program).await {
                 Ok(_) => {}
                 Err(errors) => {
-                    result_output = Some(format!("Runtime error: {:?}", errors));
+                    let mut error_messages = Vec::new();
+                    let mut reporter = DiagnosticReporter::new();
+                    let file_id = reporter.add_file("repl", input);
+
+                    for error in &errors {
+                        let diagnostic = reporter.convert_runtime_error(file_id, error);
+
+                        let mut buffer = Buffer::ansi();
+                        let config = term::Config::default();
+                        if let Err(_e) = term::emit(
+                            &mut buffer,
+                            &config,
+                            &reporter.files,
+                            &diagnostic.to_codespan_diagnostic(file_id),
+                        ) {
+                            error_messages.push(format!("Runtime error: {}", error));
+                            continue;
+                        }
+
+                        let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                        error_messages.push(output);
+                    }
+
+                    result_output = Some(error_messages.join("\n"));
                 }
             }
         }

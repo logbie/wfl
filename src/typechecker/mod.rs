@@ -687,7 +687,8 @@ impl TypeChecker {
                         if left_type == Type::Number && right_type == Type::Number {
                             Type::Number
                         } else if *operator == Operator::Plus
-                            && (left_type == Type::Text || right_type == Type::Text)
+                            && left_type == Type::Text
+                            && right_type == Type::Text
                         {
                             Type::Text
                         } else {
@@ -1428,10 +1429,14 @@ mod tests {
             statements: vec![Statement::VariableDeclaration {
                 name: "x".to_string(),
                 value: Expression::BinaryOperation {
-                    left: Box::new(Expression::Literal(Literal::Integer(10), 1, 5)),
+                    left: Box::new(Expression::Literal(
+                        Literal::String("hello".to_string()),
+                        1,
+                        5,
+                    )),
                     operator: crate::parser::ast::Operator::Plus,
                     right: Box::new(Expression::Literal(
-                        Literal::String("hello".to_string()),
+                        Literal::String("world".to_string()),
                         1,
                         10,
                     )),
