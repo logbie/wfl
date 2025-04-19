@@ -1,0 +1,461 @@
+name: Nightly Build
+
+on:
+  schedule:
+    # Run at 5:00 UTC (12:00 AM America/Chicago during DST, 6:00 UTC during standard time - November to March)
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      previous_sha:
+        description: 'Last successful build SHA (leave empty to compare with last nightly release)'
+        required: false
+        type: string
+
+env:
+  CARGO_TERM_COLOR: always
+  SIGNING_SKIP: true
+
+jobs:
+  check-for-changes:
+    name: Check for changes since last build
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.check.outputs.should_build }}
+      version: ${{ steps.set-version.outputs.version }}
+      short_sha: ${{ steps.set-version.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install GitHub CLI
+        run: |
+          type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && sudo apt update \
+          && sudo apt install gh -y
+      
+      - name: GitHub CLI Authentication
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+      
+      - name: Check for changes
+        id: check
+        run: |
+          LAST_SHA=""
+          if [ -n "${{ inputs.previous_sha }}" ]; then
+            LAST_SHA="${{ inputs.previous_sha }}"
+          else
+            LAST_SHA=$(gh release view nightly --json body -q '.body' | grep -o 'SHA: [a-f0-9]*' | cut -d' ' -f2 || echo "")
+          fi
+          
+          HEAD_SHA=$(git rev-parse HEAD)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "HEAD: $HEAD_SHA"
+          echo "LAST: $LAST_SHA"
+          
+          if [ -z "$LAST_SHA" ] || [ "$HEAD_SHA" != "$LAST_SHA" ]; then
+            # Check for any file changes, including deletions, renames, etc.
+            HAS_CHANGES=$(git diff --name-status $LAST_SHA $HEAD_SHA 2>/dev/null | grep -E '\.rs$|Cargo\.toml$|\.github/|build\.rs$' || echo "")
+            if [ -n "$HAS_CHANGES" ]; then
+              echo "should_build=true" >> $GITHUB_OUTPUT
+              echo "Detected code changes since last build, proceeding with build"
+            else
+              echo "No code changes detected, skipping build"
+              echo "should_build=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "No changes since last build, skipping"
+            echo "should_build=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Set version
+        id: set-version
+        run: |
+          DATE=$(date +"%Y%m%d")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION="0.0.0-nightly.${DATE}+${SHORT_SHA}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+  build:
+    name: Build WFL for ${{ matrix.os }}
+    needs: check-for-changes
+    if: needs.check-for-changes.outputs.should_build == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: wfl-${{ needs.check-for-changes.outputs.version }}.msi
+            artifact_path: wfl-*.msi
+            updater_name: wfl-Updater.exe
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz
+            artifact_path: "wfl-*.{tar.gz,deb}"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: wfl-${{ needs.check-for-changes.outputs.version }}.pkg
+            artifact_path: wfl-*.pkg
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install GitHub CLI
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+      
+      - name: Install GitHub CLI (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew install gh
+      
+      - name: Install GitHub CLI (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install gh
+      
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ${{ matrix.target }}
+      
+      - name: Install packaging tools (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install wix
+          cargo install cargo-wix
+      
+      - name: Install packaging tools (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cargo install cargo-deb
+      
+      - name: Install packaging tools (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cargo install cargo-bundle
+      
+      - name: Build WFL
+        run: |
+          cargo build --release --locked --target ${{ matrix.target }}
+      
+      - name: Run tests
+        run: |
+          cargo test --release --locked --target ${{ matrix.target }}
+      
+      - name: Create wix.toml for Windows
+        if: matrix.os == 'windows-latest'
+        run: |
+          cat > wix.toml << EOF
+          [package]
+          name = "WFL Compiler"
+          manufacturer = "Logbie"
+          version = "${{ needs.check-for-changes.outputs.version }}"
+          license = "LICENSE"
+          
+          [wix]
+          upgrade-guid = "a85bd84e-99e1-4f5a-bc38-d9e3837d5dbf"
+          path-guid = "*"
+          product-name = "WFL"
+          
+          [[wix.component]]
+          name = "WFL Configuration"
+          path = "target/${{ matrix.target }}/release/package/.wflcfg"
+          install-path = "%ProgramFiles%\\WFL\\"
+          
+          [[wix.component]]
+          name = "WFL Updater"
+          path = "target/${{ matrix.target }}/release/package/wfl-Updater.exe"
+          install-path = "%ProgramFiles%\\WFL\\"
+          
+          [[wix.component]]
+          name = "WFL Start Menu"
+          shortcuts = [
+            { name = "WFL Compiler", description = "WebFirst Language Compiler", target = "bin/wfl.exe" }
+          ]
+          
+          [wix.binary]
+          name = "bin/wfl.exe"
+          source = "target/${{ matrix.target }}/release/wfl.exe"
+          
+          [wix.environment]
+          path = ["%ProgramFiles%\\WFL"]
+          EOF
+
+      - name: Create Cargo.toml deb section (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # Back up original Cargo.toml
+          cp Cargo.toml Cargo.toml.bak
+          
+          # Append deb metadata
+          cat >> Cargo.toml << EOF
+          
+          [package.metadata.deb]
+          name = "wfl"
+          version = "${{ needs.check-for-changes.outputs.version }}"
+          maintainer = "Logbie"
+          copyright = "MIT License"
+          license-file = ["LICENSE", "0"]
+          extended-description = """
+          WFL (WebFirst Language) is a programming language designed to be readable and intuitive,
+          using natural language constructs to lower the barrier to entry for new programmers
+          while still providing powerful features for experienced developers.
+          """
+          depends = "\$auto"
+          section = "devel"
+          priority = "optional"
+          assets = [
+            ["target/${{ matrix.target }}/release/wfl", "usr/bin/", "755"],
+            ["target/${{ matrix.target }}/release/package/.wflcfg", "opt/wfl/.wflcfg", "644"],
+            ["README.md", "usr/share/doc/wfl/README.md", "644"],
+          ]
+          EOF
+
+      - name: Create bundle.toml (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          cat > bundle.toml << EOF
+          [package]
+          name = "WFL"
+          identifier = "com.logbie.wfl"
+          version = "${{ needs.check-for-changes.outputs.version }}"
+          copyright = "© Logbie"
+          category = "Developer Tool"
+          short_description = "WFL Compiler"
+          long_description = """
+          WFL (WebFirst Language) is a programming language designed to be readable and intuitive,
+          using natural language constructs to lower the barrier to entry for new programmers
+          while still providing powerful features for experienced developers.
+          """
+          
+          [target.macos]
+          frameworks = []
+          resources = ["target/${{ matrix.target }}/release/package/.wflcfg"]
+          icon = []
+          minimum_system_version = "10.13"
+          EOF
+      
+      - name: Package WFL (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p target/${{ matrix.target }}/release/package
+          
+          # Create default .wflcfg
+          echo "timeout_seconds = 60" > target/${{ matrix.target }}/release/package/.wflcfg
+          echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "log_level = info" >> target/${{ matrix.target }}/release/package/.wflcfg
+          
+          # Create WinSparkle updater config with version dynamically injected
+          $appcastContent = @"
+          <?xml version="1.0" encoding="UTF-8"?>
+          <rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+            <channel>
+              <title>WFL Updates</title>
+              <item>
+                <title>Version ${{ needs.check-for-changes.outputs.version }}</title>
+                <sparkle:version>${{ needs.check-for-changes.outputs.version }}</sparkle:version>
+                <enclosure url="https://github.com/logbie/wfl/releases/latest/download/wfl-${{ needs.check-for-changes.outputs.version }}.msi" sparkle:os="windows" />
+              </item>
+            </channel>
+          </rss>
+          "@
+          
+          Set-Content -Path target/${{ matrix.target }}/release/package/wfl-appcast.xml -Value $appcastContent
+          
+          # For this nightly implementation, we'll use a placeholder updater exe
+          echo "This is a placeholder for the WFL Updater" > target/${{ matrix.target }}/release/package/wfl-Updater.exe
+          
+          # Run cargo-wix with version parameter
+          cargo wix --no-build --nocapture --output target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi --define Version=${{ needs.check-for-changes.outputs.version }}
+
+      - name: Package WFL (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p target/${{ matrix.target }}/release/package
+          
+          # Create default .wflcfg
+          echo "timeout_seconds = 60" > target/${{ matrix.target }}/release/package/.wflcfg
+          echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "log_level = info" >> target/${{ matrix.target }}/release/package/.wflcfg
+          
+          # Create .deb package
+          cargo deb --no-build --target ${{ matrix.target }}
+          
+          # Create tar.gz package
+          mkdir -p target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}
+          cp target/${{ matrix.target }}/release/wfl target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}/
+          cp target/${{ matrix.target }}/release/package/.wflcfg target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}/
+          tar -C target/${{ matrix.target }}/release -czvf target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz wfl-${{ needs.check-for-changes.outputs.version }}
+          
+          # Restore original Cargo.toml
+          mv Cargo.toml.bak Cargo.toml
+
+      - name: Package WFL (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p target/${{ matrix.target }}/release/package
+          
+          # Create default .wflcfg
+          echo "timeout_seconds = 60" > target/${{ matrix.target }}/release/package/.wflcfg
+          echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
+          echo "log_level = info" >> target/${{ matrix.target }}/release/package/.wflcfg
+          
+          # Use cargo-bundle to create app bundle
+          cargo bundle --release --target ${{ matrix.target }}
+          
+          # Use productbuild to create installer package
+          mkdir -p target/${{ matrix.target }}/release/pkg-root/Applications
+          cp -R target/${{ matrix.target }}/release/bundle/osx/WFL.app target/${{ matrix.target }}/release/pkg-root/Applications/
+          cp target/${{ matrix.target }}/release/package/.wflcfg target/${{ matrix.target }}/release/pkg-root/Applications/WFL.app/Contents/MacOS/
+          
+          # Create bin symlink
+          mkdir -p target/${{ matrix.target }}/release/pkg-root/usr/local/bin
+          ln -sf /Applications/WFL.app/Contents/MacOS/wfl target/${{ matrix.target }}/release/pkg-root/usr/local/bin/wfl
+          
+          # Build the pkg installer with sign "-" for unsigned builds
+          productbuild --root target/${{ matrix.target }}/release/pkg-root --install-location / --sign "-" target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg
+
+      - name: Smoke test installer (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Install the MSI silently
+          Start-Process msiexec.exe -Wait -ArgumentList "/i target\${{ matrix.target }}\release\wfl-${{ needs.check-for-changes.outputs.version }}.msi /qn"
+          
+          # Test that WFL is available
+          $wflPath = "$env:ProgramFiles\WFL\bin\wfl.exe"
+          Write-Host "Testing WFL installation at $wflPath"
+          if (Test-Path $wflPath) {
+            & $wflPath --version
+            if ($LASTEXITCODE -ne 0) {
+              throw "WFL smoke test failed with exit code $LASTEXITCODE"
+            }
+          } else {
+            throw "WFL binary not found at expected path $wflPath"
+          }
+
+      - name: Smoke test installer (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          # For .deb testing
+          # Extract filename of the .deb package
+          DEB_FILE=$(find target/${{ matrix.target }}/release -name "*.deb")
+          if [ -n "$DEB_FILE" ]; then
+            sudo dpkg -i "$DEB_FILE"
+            wfl --version || { echo "WFL .deb smoke test failed"; exit 1; }
+            sudo dpkg -r wfl
+          fi
+          
+          # For tar.gz testing in a temporary directory
+          mkdir -p ~/wfl-test
+          tar -xzf target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz -C ~/wfl-test
+          ~/wfl-test/wfl-${{ needs.check-for-changes.outputs.version }}/wfl --version || { echo "WFL tar.gz smoke test failed"; exit 1; }
+          rm -rf ~/wfl-test
+
+      - name: Smoke test installer (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Install the pkg
+          sudo installer -pkg target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg -target /
+          
+          # Test the installed binary
+          /Applications/WFL.app/Contents/MacOS/wfl --version || { echo "WFL pkg smoke test failed"; exit 1; }
+          
+          # Test the symlink
+          wfl --version || { echo "WFL symlink smoke test failed"; exit 1; }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            target/${{ matrix.target }}/release/${{ matrix.artifact_path }}
+          if-no-files-found: error
+
+  release:
+    name: Create or Update Nightly Release
+    needs: [check-for-changes, build]
+    if: needs.check-for-changes.outputs.should_build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+      
+      - name: GitHub CLI Authentication
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      
+      - name: Create nightly tag
+        run: |
+          DATE=$(date +"%Y-%m-%d")
+          TAG_NAME="nightly-${DATE}"
+          
+          # Delete existing tag if it exists
+          git tag -d $TAG_NAME || true
+          git push --delete origin $TAG_NAME || true
+          
+          # Create new tag
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
+      
+      - name: Create/Update Nightly Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          DATE=$(date +"%Y-%m-%d")
+          TAG_NAME="nightly-${DATE}"
+          VERSION="${{ needs.check-for-changes.outputs.version }}"
+          SHORT_SHA="${{ needs.check-for-changes.outputs.short_sha }}"
+          
+          # Check if release exists
+          RELEASE_EXISTS=$(gh release view $TAG_NAME 2>/dev/null || echo "")
+          
+          if [ -n "$RELEASE_EXISTS" ]; then
+            # Update existing release
+            gh release delete $TAG_NAME --yes || true
+          fi
+          
+          # Create release with unsigned warning
+          gh release create $TAG_NAME \
+            --title "WFL Nightly Build $DATE" \
+            --notes "⚠️ Installers are unsigned test builds. Do not use in production environments.
+
+          WFL Nightly Build $DATE
+          Version: $VERSION
+          SHA: $COMMIT_SHA" \
+            --prerelease
+          
+          # Upload assets
+          find artifacts -type f \( -name "*.msi" -o -name "*.tar.gz" -o -name "*.deb" -o -name "*.pkg" \) | while read -r file; do
+            gh release upload $TAG_NAME "$file"
+          done
