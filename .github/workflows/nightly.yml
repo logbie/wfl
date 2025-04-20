@@ -233,8 +233,7 @@ jobs:
           ln -sf /Applications/WFL.app/Contents/MacOS/wfl \
                  target/${{ matrix.target }}/release/pkg-root/usr/local/bin/wfl
 
-          productbuild --root target/${{ matrix.target }}/release/pkg-root \
-                       --install-location / \
+          productbuild --root target/${{ matrix.target }}/release/pkg-root / \
                        --sign "-" \
                        target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg
 
