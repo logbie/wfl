@@ -426,21 +426,30 @@ async fn main() -> io::Result<()> {
                                         if config.debug_report_enabled && !errors.is_empty() {
                                             let error = &errors[0]; // Take the first error
                                             let call_stack = interpreter.get_call_stack();
-                                            let report_path = debug_report::create_report(
+                                            match debug_report::create_report(
                                                 error,
                                                 &call_stack,
                                                 &input,
                                                 &file_path,
-                                            );
+                                            ) {
+                                                Ok(report_path) => {
+                                                    let report_msg = format!(
+                                                        "Debug report created: {}",
+                                                        report_path.display()
+                                                    );
+                                                    eprintln!("{}", report_msg);
 
-                                            let report_msg = format!(
-                                                "Debug report created: {}",
-                                                report_path.display()
-                                            );
-                                            eprintln!("{}", report_msg);
-
-                                            if config.logging_enabled {
-                                                info!("{}", report_msg);
+                                                    if config.logging_enabled {
+                                                        info!("{}", report_msg);
+                                                    }
+                                                },
+                                                Err(_) => {
+                                                    eprintln!("Could not create debug report");
+                                                    
+                                                    if config.logging_enabled {
+                                                        error!("Could not create debug report");
+                                                    }
+                                                }
                                             }
                                         }
 
