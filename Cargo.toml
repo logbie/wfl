@@ -3,6 +3,16 @@ name = "wfl"
 version = "0.1.0"
 edition = "2024"
 
+[package.metadata.bundle]
+name = "WFL"
+identifier = "com.logbie.wfl"
+icon = ["icons/wfl.png"]
+version = "0.1.0"
+copyright = "© 2025 Logbie LLC"
+category = "Developer Tool"
+short_description = "WebFirst Language Compiler and Runtime"
+long_description = "WFL (WebFirst Language) is a programming language designed to be readable and intuitive using natural language constructs."
+
 [workspace]
 members = [
     ".",
