@@ -124,18 +124,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ---------- install gh (for each runner) ----------
-      - name: Install GitHub CLI (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y gh
-
-      - name: Install GitHub CLI (macOS)
-        if: matrix.os == 'macos-latest'
-        run: brew install gh
-
-      - name: Install GitHub CLI (Windows)
-        if: matrix.os == 'windows-latest'
-        run: choco install gh
+      # GitHub CLI is not needed in build jobs, only in check-for-changes and release jobs
+      # Removed unnecessary GitHub CLI installation to speed up builds
 
       # ---------- Rust toolchain ----------
       - name: Install Rust toolchain
@@ -155,15 +145,15 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           choco install wix
-          cargo install cargo-wix
+          cargo install cargo-wix@0.3.3 --locked
 
       - name: Install packaging tools (Linux)
         if: matrix.os == 'ubuntu-latest'
-        run: cargo install cargo-deb
+        run: cargo install cargo-deb@2.0.1 --locked
 
       - name: Install packaging tools (macOS)
         if: matrix.os == 'macos-latest'
-        run: cargo install cargo-bundle
+        run: cargo install cargo-bundle@0.6.0 --locked
 
       # ---------- Build & test ----------
       - name: Build WFL
@@ -215,24 +205,50 @@ jobs:
       - name: Package WFL (macOS)
         if: matrix.os == 'macos-latest'
         run: |
+          # Install Rosetta if running on ARM64 macOS runner
+          if [[ "$(uname -m)" == "arm64" ]]; then
+            echo "Running on ARM64 macOS, installing Rosetta for x86_64 binary compatibility"
+            softwareupdate --install-rosetta --agree-to-license
+          fi
+
+          # Create config file
           mkdir -p target/${{ matrix.target }}/release/package
           echo "timeout_seconds = 60"   > target/${{ matrix.target }}/release/package/.wflcfg
           echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
           echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
           echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
 
+          # Bundle the application
           cargo bundle --release --target ${{ matrix.target }}
 
+          # Verify bundle was created correctly
+          echo "Verifying bundle contents..."
+          ls -la target/${{ matrix.target }}/release/bundle/osx/WFL.app/Contents/MacOS/ || exit 1
+          if [[ ! -f target/${{ matrix.target }}/release/bundle/osx/WFL.app/Contents/MacOS/wfl ]]; then
+            echo "ERROR: wfl binary missing from app bundle"
+            exit 1
+          fi
+          
+          # Ensure binary is executable
+          chmod 755 target/${{ matrix.target }}/release/bundle/osx/WFL.app/Contents/MacOS/wfl
+
+          # Create package root structure
           mkdir -p target/${{ matrix.target }}/release/pkg-root/Applications
           cp -R target/${{ matrix.target }}/release/bundle/osx/WFL.app \
                 target/${{ matrix.target }}/release/pkg-root/Applications/
           cp target/${{ matrix.target }}/release/package/.wflcfg \
                 target/${{ matrix.target }}/release/pkg-root/Applications/WFL.app/Contents/MacOS/
 
+          # Create symlink in /usr/local/bin
           mkdir -p target/${{ matrix.target }}/release/pkg-root/usr/local/bin
           ln -sf /Applications/WFL.app/Contents/MacOS/wfl \
                  target/${{ matrix.target }}/release/pkg-root/usr/local/bin/wfl
+          
+          # Verify symlink was created correctly
+          echo "Verifying symlink..."
+          ls -la target/${{ matrix.target }}/release/pkg-root/usr/local/bin/wfl || exit 1
 
+          # Build the package
           if [[ "$SIGNING_SKIP" == "true" ]]; then
             productbuild --root target/${{ matrix.target }}/release/pkg-root / \
                        target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg
@@ -263,8 +279,29 @@ jobs:
       - name: Smoke test installer (macOS)
         if: matrix.os == 'macos-latest'
         run: |
+          # Install the package
           sudo installer -pkg target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg -target /
+          
+          # Verify installation paths
+          echo "Verifying installation..."
+          if [[ ! -x /Applications/WFL.app/Contents/MacOS/wfl ]]; then
+            echo "ERROR: WFL binary not installed or not executable in /Applications"
+            exit 1
+          fi
+          
+          if [[ ! -L /usr/local/bin/wfl ]]; then
+            echo "ERROR: Symlink /usr/local/bin/wfl not found"
+            exit 1
+          fi
+          
+          # Ensure /usr/local/bin is in PATH (for non-login shell)
+          export PATH="/usr/local/bin:${PATH}"
+          
+          # Test CLI via direct path and via PATH
+          echo "Testing direct binary execution..."
           /Applications/WFL.app/Contents/MacOS/wfl --version
+          
+          echo "Testing symlinked binary execution..."
           wfl --version
 
       # ---------- Upload artifacts ----------
