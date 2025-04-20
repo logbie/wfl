@@ -1,21 +1,21 @@
 // This file has various issues that should be caught by the linter and analyzer
 
-define action called CalculateSum needs number a, number b:
+define action called CalculateSum needs number a number b:
     give back a plus b
 end action
 
 define action called main:
     store FirstNumber as 10
     store SecondNumber as 20
-    store unusedVar as 30
+    store unused var as 30
     
-    store Result as CalculateSum(FirstNumber, SecondNumber)
+    store Result as CalculateSum FirstNumber SecondNumber
     
-    if Result > 25 then
+    check if Result is greater than 25:
       display "Result is greater than 25"
-    otherwise
+    otherwise:
     display "Result is not greater than 25"
-    end
+    end check
     
     // Unreachable code
     give back

@@ -1,7 +1,7 @@
-use crate::parser::ast::{Program, Statement, Expression, Literal, Type, Operator, UnaryOperator};
+use crate::parser::ast::{Program, Statement, Expression, Literal, Operator, UnaryOperator};
 use crate::parser::Parser;
 use crate::lexer::lex_wfl_with_positions;
-use crate::analyzer::{Analyzer, StaticAnalyzer};
+use crate::analyzer::Analyzer;
 use std::path::Path;
 use std::fs;
 use std::io::{self, Write};
@@ -33,9 +33,9 @@ impl CodeFixer {
         self.indent_size = size;
     }
     
-    pub fn fix(&self, program: &Program, source: &str) -> (String, FixerSummary) {
-        let mut analyzer = Analyzer::new();
-        let mut dead_code = Vec::new();
+    pub fn fix(&self, program: &Program, _source: &str) -> (String, FixerSummary) {
+        let _analyzer = Analyzer::new();
+        let dead_code = Vec::new();
         
         let simplified_program = self.simplify_program(program, &dead_code);
         
@@ -71,7 +71,7 @@ impl CodeFixer {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidData,
-                    format!("Failed to parse file: {}", err),
+                    format!("Failed to parse file: {:?}", err),
                 ));
             }
         };
@@ -161,10 +161,10 @@ impl CodeFixer {
                 let simplified_left = self.simplify_boolean_expression(left);
                 let simplified_right = self.simplify_boolean_expression(right);
                 
-                match (simplified_left, simplified_right) {
+                match (simplified_left.clone(), simplified_right.clone()) {
                     _ => Expression::BinaryOperation {
                         left: Box::new(simplified_left),
-                        operator: *operator,
+                        operator: operator.clone(),
                         right: Box::new(simplified_right),
                         line: *line,
                         column: *column,
@@ -416,20 +416,19 @@ impl CodeFixer {
                 self.pretty_print_expression(left, output, indent_level, summary);
                 
                 match operator {
-                    Operator::Add => output.push_str(" + "),
-                    Operator::Subtract => output.push_str(" - "),
+                    Operator::Plus => output.push_str(" + "),
+                    Operator::Minus => output.push_str(" - "),
                     Operator::Multiply => output.push_str(" * "),
                     Operator::Divide => output.push_str(" / "),
-                    Operator::Equal => output.push_str(" == "),
-                    Operator::NotEqual => output.push_str(" != "),
+                    Operator::Equals => output.push_str(" == "),
+                    Operator::NotEquals => output.push_str(" != "),
                     Operator::LessThan => output.push_str(" < "),
                     Operator::LessThanOrEqual => output.push_str(" <= "),
                     Operator::GreaterThan => output.push_str(" > "),
                     Operator::GreaterThanOrEqual => output.push_str(" >= "),
                     Operator::And => output.push_str(" and "),
                     Operator::Or => output.push_str(" or "),
-                    Operator::Modulo => output.push_str(" % "),
-                    Operator::Power => output.push_str(" ^ "),
+                    Operator::Contains => output.push_str(" contains "),
                 }
                 
                 self.pretty_print_expression(right, output, indent_level, summary);
@@ -437,7 +436,7 @@ impl CodeFixer {
             },
             Expression::UnaryOperation { operator, expression: expr, .. } => {
                 match operator {
-                    UnaryOperator::Negate => output.push('-'),
+                    UnaryOperator::Minus => output.push('-'),
                     UnaryOperator::Not => output.push_str("not "),
                 }
                 
@@ -572,8 +571,8 @@ impl CodeFixer {
     }
     
     pub fn load_config(&mut self, dir: &Path) {
-        if let Ok(config) = crate::config::load_config(dir) {
-        }
+        let config = crate::config::load_config(dir);
+        self.indent_size = config.indent_size;
     }
 }
 

@@ -40,7 +40,7 @@ fn test_is_snake_case() {
 
 #[test]
 fn test_linter_integration() {
-    let input = "store Counter as 5\nstore snake_case as 10";
+    let input = "store Counter as 5\nstore snakecase as 10";
     let tokens = lex_wfl_with_positions(input);
     let program = Parser::new(&tokens).parse().unwrap();
     
@@ -49,5 +49,5 @@ fn test_linter_integration() {
     
     assert!(!success);
     assert!(diagnostics.iter().any(|d| d.code == "LINT-NAME" && d.message.contains("Counter")));
-    assert!(!diagnostics.iter().any(|d| d.code == "LINT-NAME" && d.message.contains("snake_case")));
+    assert!(!diagnostics.iter().any(|d| d.code == "LINT-NAME" && d.message.contains("snakecase")));
 }

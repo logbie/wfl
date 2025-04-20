@@ -1,6 +1,6 @@
 use crate::parser::ast::{Program, Statement, Expression, Type};
-use crate::diagnostics::{DiagnosticReporter, WflDiagnostic, Severity, Span};
-use super::{Analyzer, SemanticError, Scope, Symbol, SymbolKind};
+use crate::diagnostics::{WflDiagnostic, Severity, DiagnosticReporter};
+use super::Analyzer;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
@@ -109,7 +109,7 @@ impl StaticAnalyzer for Analyzer {
                 diagnostics.push(WflDiagnostic::new(
                     Severity::Error,
                     error.message.clone(),
-                    None,
+                    None::<String>,
                     "ANALYZE-SEMANTIC".to_string(),
                     file_id,
                     error.line,
@@ -204,12 +204,10 @@ impl StaticAnalyzer for Analyzer {
     
     fn check_shadowing(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
-        let mut scope_stack = Vec::new();
         let mut global_scope = HashMap::new();
+        let parent_scopes: Vec<HashMap<String, (usize, usize)>> = Vec::new();
         
-        scope_stack.push(&mut global_scope);
-        
-        self.check_shadowing_in_statements(&program.statements, &mut scope_stack, file_id, &mut diagnostics);
+        self.check_shadowing_in_statements(&program.statements, &mut global_scope, &parent_scopes, file_id, &mut diagnostics);
         
         diagnostics
     }
@@ -222,7 +220,7 @@ impl StaticAnalyzer for Analyzer {
                 if let Some(ret_type) = return_type {
                     if *ret_type != Type::Nothing {
                         let mut has_return = false;
-                        let mut all_paths_return = self.check_all_paths_return(body, &mut has_return);
+                        let all_paths_return = self.check_all_paths_return(body, &mut has_return);
                         
                         if has_return && !all_paths_return {
                             diagnostics.push(WflDiagnostic::new(
@@ -418,8 +416,56 @@ impl Analyzer {
                 _ => {
                     let node_idx = cfg.add_node(CFGNode::Statement {
                         stmt_idx: idx,
-                        line: statement.line(),
-                        column: statement.column(),
+                        line: match statement {
+                            Statement::VariableDeclaration { line, .. } => *line,
+                            Statement::Assignment { line, .. } => *line,
+                            Statement::IfStatement { line, .. } => *line,
+                            Statement::SingleLineIf { line, .. } => *line,
+                            Statement::ForEachLoop { line, .. } => *line,
+                            Statement::CountLoop { line, .. } => *line,
+                            Statement::WhileLoop { line, .. } => *line,
+                            Statement::RepeatUntilLoop { line, .. } => *line,
+                            Statement::ForeverLoop { line, .. } => *line,
+                            Statement::DisplayStatement { line, .. } => *line,
+                            Statement::ActionDefinition { line, .. } => *line,
+                            Statement::ReturnStatement { line, .. } => *line,
+                            Statement::ExpressionStatement { line, .. } => *line,
+                            Statement::BreakStatement { line, .. } => *line,
+                            Statement::ContinueStatement { line, .. } => *line,
+                            Statement::OpenFileStatement { line, .. } => *line,
+                            Statement::ReadFileStatement { line, .. } => *line,
+                            Statement::WriteFileStatement { line, .. } => *line,
+                            Statement::CloseFileStatement { line, .. } => *line,
+                            Statement::WaitForStatement { line, .. } => *line,
+                            Statement::TryStatement { line, .. } => *line,
+                            Statement::HttpGetStatement { line, .. } => *line,
+                            Statement::HttpPostStatement { line, .. } => *line,
+                        },
+                        column: match statement {
+                            Statement::VariableDeclaration { column, .. } => *column,
+                            Statement::Assignment { column, .. } => *column,
+                            Statement::IfStatement { column, .. } => *column,
+                            Statement::SingleLineIf { column, .. } => *column,
+                            Statement::ForEachLoop { column, .. } => *column,
+                            Statement::CountLoop { column, .. } => *column,
+                            Statement::WhileLoop { column, .. } => *column,
+                            Statement::RepeatUntilLoop { column, .. } => *column,
+                            Statement::ForeverLoop { column, .. } => *column,
+                            Statement::DisplayStatement { column, .. } => *column,
+                            Statement::ActionDefinition { column, .. } => *column,
+                            Statement::ReturnStatement { column, .. } => *column,
+                            Statement::ExpressionStatement { column, .. } => *column,
+                            Statement::BreakStatement { column, .. } => *column,
+                            Statement::ContinueStatement { column, .. } => *column,
+                            Statement::OpenFileStatement { column, .. } => *column,
+                            Statement::ReadFileStatement { column, .. } => *column,
+                            Statement::WriteFileStatement { column, .. } => *column,
+                            Statement::CloseFileStatement { column, .. } => *column,
+                            Statement::WaitForStatement { column, .. } => *column,
+                            Statement::TryStatement { column, .. } => *column,
+                            Statement::HttpGetStatement { column, .. } => *column,
+                            Statement::HttpPostStatement { column, .. } => *column,
+                        },
                     });
                     stmt_nodes.push(node_idx);
                 }
@@ -444,8 +490,56 @@ impl Analyzer {
                     for (idx, stmt) in then_block.iter().enumerate() {
                         let then_node_idx = cfg.add_node(CFGNode::Statement {
                             stmt_idx: program.statements.len() + idx,
-                            line: stmt.line(),
-                            column: stmt.column(),
+                            line: match stmt {
+                                Statement::VariableDeclaration { line, .. } => *line,
+                                Statement::Assignment { line, .. } => *line,
+                                Statement::IfStatement { line, .. } => *line,
+                                Statement::SingleLineIf { line, .. } => *line,
+                                Statement::ForEachLoop { line, .. } => *line,
+                                Statement::CountLoop { line, .. } => *line,
+                                Statement::WhileLoop { line, .. } => *line,
+                                Statement::RepeatUntilLoop { line, .. } => *line,
+                                Statement::ForeverLoop { line, .. } => *line,
+                                Statement::DisplayStatement { line, .. } => *line,
+                                Statement::ActionDefinition { line, .. } => *line,
+                                Statement::ReturnStatement { line, .. } => *line,
+                                Statement::ExpressionStatement { line, .. } => *line,
+                                Statement::BreakStatement { line, .. } => *line,
+                                Statement::ContinueStatement { line, .. } => *line,
+                                Statement::OpenFileStatement { line, .. } => *line,
+                                Statement::ReadFileStatement { line, .. } => *line,
+                                Statement::WriteFileStatement { line, .. } => *line,
+                                Statement::CloseFileStatement { line, .. } => *line,
+                                Statement::WaitForStatement { line, .. } => *line,
+                                Statement::TryStatement { line, .. } => *line,
+                                Statement::HttpGetStatement { line, .. } => *line,
+                                Statement::HttpPostStatement { line, .. } => *line,
+                            },
+                            column: match stmt {
+                                Statement::VariableDeclaration { column, .. } => *column,
+                                Statement::Assignment { column, .. } => *column,
+                                Statement::IfStatement { column, .. } => *column,
+                                Statement::SingleLineIf { column, .. } => *column,
+                                Statement::ForEachLoop { column, .. } => *column,
+                                Statement::CountLoop { column, .. } => *column,
+                                Statement::WhileLoop { column, .. } => *column,
+                                Statement::RepeatUntilLoop { column, .. } => *column,
+                                Statement::ForeverLoop { column, .. } => *column,
+                                Statement::DisplayStatement { column, .. } => *column,
+                                Statement::ActionDefinition { column, .. } => *column,
+                                Statement::ReturnStatement { column, .. } => *column,
+                                Statement::ExpressionStatement { column, .. } => *column,
+                                Statement::BreakStatement { column, .. } => *column,
+                                Statement::ContinueStatement { column, .. } => *column,
+                                Statement::OpenFileStatement { column, .. } => *column,
+                                Statement::ReadFileStatement { column, .. } => *column,
+                                Statement::WriteFileStatement { column, .. } => *column,
+                                Statement::CloseFileStatement { column, .. } => *column,
+                                Statement::WaitForStatement { column, .. } => *column,
+                                Statement::TryStatement { column, .. } => *column,
+                                Statement::HttpGetStatement { column, .. } => *column,
+                                Statement::HttpPostStatement { column, .. } => *column,
+                            },
                         });
                         then_nodes.push(then_node_idx);
                     }
@@ -462,8 +556,56 @@ impl Analyzer {
                         for (idx, stmt) in else_stmts.iter().enumerate() {
                             let else_node_idx = cfg.add_node(CFGNode::Statement {
                                 stmt_idx: program.statements.len() + then_block.len() + idx,
-                                line: stmt.line(),
-                                column: stmt.column(),
+                                line: match stmt {
+                                    Statement::VariableDeclaration { line, .. } => *line,
+                                    Statement::Assignment { line, .. } => *line,
+                                    Statement::IfStatement { line, .. } => *line,
+                                    Statement::SingleLineIf { line, .. } => *line,
+                                    Statement::ForEachLoop { line, .. } => *line,
+                                    Statement::CountLoop { line, .. } => *line,
+                                    Statement::WhileLoop { line, .. } => *line,
+                                    Statement::RepeatUntilLoop { line, .. } => *line,
+                                    Statement::ForeverLoop { line, .. } => *line,
+                                    Statement::DisplayStatement { line, .. } => *line,
+                                    Statement::ActionDefinition { line, .. } => *line,
+                                    Statement::ReturnStatement { line, .. } => *line,
+                                    Statement::ExpressionStatement { line, .. } => *line,
+                                    Statement::BreakStatement { line, .. } => *line,
+                                    Statement::ContinueStatement { line, .. } => *line,
+                                    Statement::OpenFileStatement { line, .. } => *line,
+                                    Statement::ReadFileStatement { line, .. } => *line,
+                                    Statement::WriteFileStatement { line, .. } => *line,
+                                    Statement::CloseFileStatement { line, .. } => *line,
+                                    Statement::WaitForStatement { line, .. } => *line,
+                                    Statement::TryStatement { line, .. } => *line,
+                                    Statement::HttpGetStatement { line, .. } => *line,
+                                    Statement::HttpPostStatement { line, .. } => *line,
+                                },
+                                column: match stmt {
+                                    Statement::VariableDeclaration { column, .. } => *column,
+                                    Statement::Assignment { column, .. } => *column,
+                                    Statement::IfStatement { column, .. } => *column,
+                                    Statement::SingleLineIf { column, .. } => *column,
+                                    Statement::ForEachLoop { column, .. } => *column,
+                                    Statement::CountLoop { column, .. } => *column,
+                                    Statement::WhileLoop { column, .. } => *column,
+                                    Statement::RepeatUntilLoop { column, .. } => *column,
+                                    Statement::ForeverLoop { column, .. } => *column,
+                                    Statement::DisplayStatement { column, .. } => *column,
+                                    Statement::ActionDefinition { column, .. } => *column,
+                                    Statement::ReturnStatement { column, .. } => *column,
+                                    Statement::ExpressionStatement { column, .. } => *column,
+                                    Statement::BreakStatement { column, .. } => *column,
+                                    Statement::ContinueStatement { column, .. } => *column,
+                                    Statement::OpenFileStatement { column, .. } => *column,
+                                    Statement::ReadFileStatement { column, .. } => *column,
+                                    Statement::WriteFileStatement { column, .. } => *column,
+                                    Statement::CloseFileStatement { column, .. } => *column,
+                                    Statement::WaitForStatement { column, .. } => *column,
+                                    Statement::TryStatement { column, .. } => *column,
+                                    Statement::HttpGetStatement { column, .. } => *column,
+                                    Statement::HttpPostStatement { column, .. } => *column,
+                                },
                             });
                             else_nodes.push(else_node_idx);
                         }
@@ -480,25 +622,25 @@ impl Analyzer {
                         let next_idx = stmt_nodes[i + 1];
                         
                         if !then_nodes.is_empty() {
-                            cfg.add_edge(then_nodes.last().unwrap(), next_idx);
+                            cfg.add_edge(*then_nodes.last().unwrap(), next_idx);
                         } else {
                             cfg.add_edge(node_idx, next_idx);
                         }
                         
                         if !else_nodes.is_empty() {
-                            cfg.add_edge(else_nodes.last().unwrap(), next_idx);
+                            cfg.add_edge(*else_nodes.last().unwrap(), next_idx);
                         } else if else_block.is_some() {
                             cfg.add_edge(node_idx, next_idx);
                         }
                     } else {
                         if !then_nodes.is_empty() {
-                            cfg.add_edge(then_nodes.last().unwrap(), 1);
+                            cfg.add_edge(*then_nodes.last().unwrap(), 1);
                         } else {
                             cfg.add_edge(node_idx, 1);
                         }
                         
                         if !else_nodes.is_empty() {
-                            cfg.add_edge(else_nodes.last().unwrap(), 1);
+                            cfg.add_edge(*else_nodes.last().unwrap(), 1);
                         } else if else_block.is_some() {
                             cfg.add_edge(node_idx, 1);
                         }
@@ -520,14 +662,15 @@ impl Analyzer {
     fn check_shadowing_in_statements(
         &self,
         statements: &[Statement],
-        scope_stack: &mut Vec<&mut HashMap<String, (usize, usize)>>,
+        current_scope: &mut HashMap<String, (usize, usize)>,
+        parent_scopes: &[HashMap<String, (usize, usize)>],
         file_id: usize,
         diagnostics: &mut Vec<WflDiagnostic>
     ) {
         for statement in statements {
             match statement {
                 Statement::VariableDeclaration { name, line, column, .. } => {
-                    for scope in scope_stack.iter().rev().skip(1) {
+                    for scope in parent_scopes.iter() {
                         if let Some(&(def_line, def_col)) = scope.get(name) {
                             diagnostics.push(WflDiagnostic::new(
                                 Severity::Warning,
@@ -543,9 +686,20 @@ impl Analyzer {
                         }
                     }
                     
-                    if let Some(scope) = scope_stack.last_mut() {
-                        scope.insert(name.clone(), (*line, *column));
+                    if let Some(&(def_line, def_col)) = current_scope.get(name) {
+                        diagnostics.push(WflDiagnostic::new(
+                            Severity::Warning,
+                            format!("Variable '{}' shadows another variable with the same name", name),
+                            Some(format!("Previously defined at line {}, column {}", def_line, def_col)),
+                            "ANALYZE-SHADOW".to_string(),
+                            file_id,
+                            *line,
+                            *column,
+                            None
+                        ));
                     }
+                    
+                    current_scope.insert(name.clone(), (*line, *column));
                 }
                 Statement::ActionDefinition { parameters, body, .. } => {
                     let mut action_scope = HashMap::new();
@@ -554,30 +708,33 @@ impl Analyzer {
                         action_scope.insert(param.name.clone(), (0, 0)); // We don't have line/column for parameters yet
                     }
                     
-                    scope_stack.push(&mut action_scope);
-                    self.check_shadowing_in_statements(body, scope_stack, file_id, diagnostics);
-                    scope_stack.pop();
+                    let mut new_parent_scopes = parent_scopes.to_vec();
+                    new_parent_scopes.push(current_scope.clone());
+                    
+                    self.check_shadowing_in_statements(body, &mut action_scope, &new_parent_scopes, file_id, diagnostics);
                 }
                 Statement::IfStatement { then_block, else_block, .. } => {
                     let mut then_scope = HashMap::new();
-                    scope_stack.push(&mut then_scope);
-                    self.check_shadowing_in_statements(then_block, scope_stack, file_id, diagnostics);
-                    scope_stack.pop();
+                    
+                    let mut new_parent_scopes = parent_scopes.to_vec();
+                    new_parent_scopes.push(current_scope.clone());
+                    
+                    self.check_shadowing_in_statements(then_block, &mut then_scope, &new_parent_scopes, file_id, diagnostics);
                     
                     if let Some(else_stmts) = else_block {
                         let mut else_scope = HashMap::new();
-                        scope_stack.push(&mut else_scope);
-                        self.check_shadowing_in_statements(else_stmts, scope_stack, file_id, diagnostics);
-                        scope_stack.pop();
+                        self.check_shadowing_in_statements(else_stmts, &mut else_scope, &new_parent_scopes, file_id, diagnostics);
                     }
                 }
                 Statement::WhileLoop { body, .. } |
                 Statement::ForEachLoop { body, .. } |
                 Statement::CountLoop { body, .. } => {
                     let mut loop_scope = HashMap::new();
-                    scope_stack.push(&mut loop_scope);
-                    self.check_shadowing_in_statements(body, scope_stack, file_id, diagnostics);
-                    scope_stack.pop();
+                    
+                    let mut new_parent_scopes = parent_scopes.to_vec();
+                    new_parent_scopes.push(current_scope.clone());
+                    
+                    self.check_shadowing_in_statements(body, &mut loop_scope, &new_parent_scopes, file_id, diagnostics);
                 }
                 _ => {}
             }
@@ -619,7 +776,7 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::ast::{Literal, Argument};
+    use crate::parser::ast::Literal;
     
     #[test]
     fn test_unused_variable() {

@@ -7,7 +7,7 @@ use wfl::Interpreter;
 use wfl::analyzer::{Analyzer, StaticAnalyzer};
 use wfl::config;
 use wfl::debug_report;
-use wfl::diagnostics::{DiagnosticReporter, Severity, WflDiagnostic};
+use wfl::diagnostics::DiagnosticReporter;
 use wfl::fixer::{CodeFixer, FixerOutputMode};
 use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
 use wfl::linter::Linter;
@@ -132,7 +132,7 @@ async fn main() -> io::Result<()> {
                 let mut linter = Linter::new();
                 linter.load_config(script_dir);
                 
-                let (diagnostics, success) = linter.lint(&program, &input, &file_path);
+                let (diagnostics, _success) = linter.lint(&program, &input, &file_path);
                 
                 if !diagnostics.is_empty() {
                     eprintln!("Lint warnings:");
@@ -176,7 +176,9 @@ async fn main() -> io::Result<()> {
             Ok(program) => {
                 let mut analyzer = Analyzer::new();
                 
-                let diagnostics = analyzer.static_analyze(&program);
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
+                let diagnostics = analyzer.analyze_static(&program, file_id);
                 
                 if !diagnostics.is_empty() {
                     eprintln!("Static analysis warnings:");
@@ -217,7 +219,7 @@ async fn main() -> io::Result<()> {
     } else if fix_mode {
         let tokens_with_pos = lex_wfl_with_positions(&input);
         match Parser::new(&tokens_with_pos).parse() {
-            Ok(program) => {
+            Ok(_program) => {
                 let mut fixer = CodeFixer::new();
                 fixer.set_indent_size(config.indent_size);
                 fixer.load_config(script_dir);
@@ -272,12 +274,12 @@ async fn main() -> io::Result<()> {
 
         println!("\nTotal tokens: {}", tokens.len());
 
-    let keyword_count = tokens
-        .iter()
-        .filter(|t| {
-            matches!(
-                t,
-                Token::KeywordStore
+        let keyword_count = tokens
+            .iter()
+            .filter(|t| {
+                matches!(
+                    t,
+                    Token::KeywordStore
                     | Token::KeywordCreate
                     | Token::KeywordDisplay
                     | Token::KeywordIf
@@ -335,159 +337,160 @@ async fn main() -> io::Result<()> {
                     | Token::KeywordLess
                     | Token::KeywordNot
                     | Token::KeywordIs
-            )
-        })
-        .count();
-    println!("Keywords: {}", keyword_count);
+                )
+            })
+            .count();
+        println!("Keywords: {}", keyword_count);
 
-    let identifier_count = tokens
-        .iter()
-        .filter(|t| matches!(t, Token::Identifier(_)))
-        .count();
-    println!("Identifiers: {}", identifier_count);
+        let identifier_count = tokens
+            .iter()
+            .filter(|t| matches!(t, Token::Identifier(_)))
+            .count();
+        println!("Identifiers: {}", identifier_count);
 
-    let literal_count = tokens
-        .iter()
-        .filter(|t| {
-            matches!(
-                t,
-                Token::StringLiteral(_)
-                    | Token::IntLiteral(_)
-                    | Token::FloatLiteral(_)
-                    | Token::BooleanLiteral(_)
-                    | Token::NothingLiteral
-            )
-        })
-        .count();
-    println!("Literals: {}", literal_count);
+        let literal_count = tokens
+            .iter()
+            .filter(|t| {
+                matches!(
+                    t,
+                    Token::StringLiteral(_)
+                        | Token::IntLiteral(_)
+                        | Token::FloatLiteral(_)
+                        | Token::BooleanLiteral(_)
+                        | Token::NothingLiteral
+                )
+            })
+            .count();
+        println!("Literals: {}", literal_count);
 
-    println!("\nParser output:");
-    let mut parser = Parser::new(&tokens_with_pos);
-    match parser.parse() {
-        Ok(program) => {
-            println!("AST:\n{:#?}", program);
+        println!("\nParser output:");
+        let mut parser = Parser::new(&tokens_with_pos);
+        match parser.parse() {
+            Ok(program) => {
+                println!("AST:\n{:#?}", program);
 
-            let mut analyzer = Analyzer::new();
-            match analyzer.analyze(&program) {
-                Ok(_) => {
-                    println!("Semantic analysis passed.");
+                let mut analyzer = Analyzer::new();
+                match analyzer.analyze(&program) {
+                    Ok(_) => {
+                        println!("Semantic analysis passed.");
 
-                    let mut type_checker = TypeChecker::new();
-                    match type_checker.check_types(&program) {
-                        Ok(_) => {
-                            println!("Type checking passed.");
+                        let mut type_checker = TypeChecker::new();
+                        match type_checker.check_types(&program) {
+                            Ok(_) => {
+                                println!("Type checking passed.");
 
-                            println!("Script directory: {:?}", script_dir);
-                            println!("Timeout seconds: {}", config.timeout_seconds);
+                                println!("Script directory: {:?}", script_dir);
+                                println!("Timeout seconds: {}", config.timeout_seconds);
 
-                            if config.logging_enabled {
-                                let log_path = script_dir.join("wfl.log");
-                                if let Err(e) = logging::init_logger(config.log_level, &log_path) {
-                                    eprintln!("Failed to initialize logging: {}", e);
-                                } else {
-                                    info!("WebFirst Language started with script: {}", &file_path);
-                                }
-                            }
-
-                            let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
-                            let interpret_result = interpreter.interpret(&program).await;
-                            match interpret_result {
-                                Ok(result) => {
-                                    if config.logging_enabled {
-                                        info!("Program executed successfully");
+                                if config.logging_enabled {
+                                    let log_path = script_dir.join("wfl.log");
+                                    if let Err(e) = logging::init_logger(config.log_level, &log_path) {
+                                        eprintln!("Failed to initialize logging: {}", e);
+                                    } else {
+                                        info!("WebFirst Language started with script: {}", &file_path);
                                     }
-                                    println!(
-                                        "Execution completed successfully. Result: {:?}",
-                                        result
-                                    )
                                 }
-                                Err(errors) => {
-                                    if config.logging_enabled {
-                                        error!("Runtime errors occurred");
-                                    }
 
-                                    eprintln!("Runtime errors:");
-
-                                    let mut reporter = DiagnosticReporter::new();
-                                    let file_id = reporter.add_file(&file_path, &input);
-
-                                    if config.debug_report_enabled && !errors.is_empty() {
-                                        let error = &errors[0]; // Take the first error
-                                        let call_stack = interpreter.get_call_stack();
-                                        let report_path = debug_report::create_report(
-                                            error,
-                                            &call_stack,
-                                            &input,
-                                            &file_path,
-                                        );
-
-                                        let report_msg = format!(
-                                            "Debug report created: {}",
-                                            report_path.display()
-                                        );
-                                        eprintln!("{}", report_msg);
-
+                                let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                                let interpret_result = interpreter.interpret(&program).await;
+                                match interpret_result {
+                                    Ok(result) => {
                                         if config.logging_enabled {
-                                            info!("{}", report_msg);
+                                            info!("Program executed successfully");
                                         }
+                                        println!(
+                                            "Execution completed successfully. Result: {:?}",
+                                            result
+                                        )
                                     }
+                                    Err(errors) => {
+                                        if config.logging_enabled {
+                                            error!("Runtime errors occurred");
+                                        }
 
-                                    for error in errors {
-                                        let diagnostic =
-                                            reporter.convert_runtime_error(file_id, &error);
-                                        if let Err(e) =
-                                            reporter.report_diagnostic(file_id, &diagnostic)
-                                        {
-                                            eprintln!("Error displaying diagnostic: {}", e);
-                                            eprintln!("{}", error); // Fallback to simple error display
+                                        eprintln!("Runtime errors:");
+
+                                        let mut reporter = DiagnosticReporter::new();
+                                        let file_id = reporter.add_file(&file_path, &input);
+
+                                        if config.debug_report_enabled && !errors.is_empty() {
+                                            let error = &errors[0]; // Take the first error
+                                            let call_stack = interpreter.get_call_stack();
+                                            let report_path = debug_report::create_report(
+                                                error,
+                                                &call_stack,
+                                                &input,
+                                                &file_path,
+                                            );
+
+                                            let report_msg = format!(
+                                                "Debug report created: {}",
+                                                report_path.display()
+                                            );
+                                            eprintln!("{}", report_msg);
+
+                                            if config.logging_enabled {
+                                                info!("{}", report_msg);
+                                            }
+                                        }
+
+                                        for error in errors {
+                                            let diagnostic =
+                                                reporter.convert_runtime_error(file_id, &error);
+                                            if let Err(e) =
+                                                reporter.report_diagnostic(file_id, &diagnostic)
+                                            {
+                                                eprintln!("Error displaying diagnostic: {}", e);
+                                                eprintln!("{}", error); // Fallback to simple error display
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        Err(errors) => {
-                            eprintln!("Type errors:");
+                            Err(errors) => {
+                                eprintln!("Type errors:");
 
-                            let mut reporter = DiagnosticReporter::new();
-                            let file_id = reporter.add_file(&file_path, &input);
+                                let mut reporter = DiagnosticReporter::new();
+                                let file_id = reporter.add_file(&file_path, &input);
 
-                            for error in errors {
-                                let diagnostic = reporter.convert_type_error(file_id, &error);
-                                if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
-                                    eprintln!("Error displaying diagnostic: {}", e);
-                                    eprintln!("{}", error); // Fallback to simple error display
+                                for error in errors {
+                                    let diagnostic = reporter.convert_type_error(file_id, &error);
+                                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                                        eprintln!("Error displaying diagnostic: {}", e);
+                                        eprintln!("{}", error); // Fallback to simple error display
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                Err(errors) => {
-                    eprintln!("Semantic errors:");
+                    Err(errors) => {
+                        eprintln!("Semantic errors:");
 
-                    let mut reporter = DiagnosticReporter::new();
-                    let file_id = reporter.add_file(&file_path, &input);
+                        let mut reporter = DiagnosticReporter::new();
+                        let file_id = reporter.add_file(&file_path, &input);
 
-                    for error in errors {
-                        let diagnostic = reporter.convert_semantic_error(file_id, &error);
-                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
-                            eprintln!("Error displaying diagnostic: {}", e);
-                            eprintln!("{}", error); // Fallback to simple error display
+                        for error in errors {
+                            let diagnostic = reporter.convert_semantic_error(file_id, &error);
+                            if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                                eprintln!("Error displaying diagnostic: {}", e);
+                                eprintln!("{}", error); // Fallback to simple error display
+                            }
                         }
                     }
                 }
             }
-        }
-        Err(errors) => {
-            eprintln!("Parse errors:");
+            Err(errors) => {
+                eprintln!("Parse errors:");
 
-            let mut reporter = DiagnosticReporter::new();
-            let file_id = reporter.add_file(&file_path, &input);
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
 
-            for error in errors {
-                let diagnostic = reporter.convert_parse_error(file_id, &error);
-                if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
-                    eprintln!("Error displaying diagnostic: {}", e);
-                    eprintln!("Error: {}", error); // Fallback to simple error display
+                for error in errors {
+                    let diagnostic = reporter.convert_parse_error(file_id, &error);
+                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                        eprintln!("Error displaying diagnostic: {}", e);
+                        eprintln!("Error: {}", error); // Fallback to simple error display
+                    }
                 }
             }
         }

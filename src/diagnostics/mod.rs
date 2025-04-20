@@ -373,7 +373,7 @@ impl DiagnosticReporter {
         let mut diag = WflDiagnostic::new(
             Severity::Error,
             message,
-            None,
+            None::<String>,
             "SEMANTIC".to_string(),
             file_id,
             error.line,

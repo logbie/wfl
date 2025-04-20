@@ -22,7 +22,7 @@ fn test_fix_indentation() {
     let program = Parser::new(&tokens).parse().unwrap();
     
     let fixer = CodeFixer::new();
-    let (fixed_code, summary) = fixer.fix(&program, input);
+    let (_fixed_code, summary) = fixer.fix(&program, input);
     
     assert!(summary.lines_reformatted > 0);
 }

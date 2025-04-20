@@ -47,20 +47,16 @@ impl Linter {
     }
     
     pub fn lint(&self, program: &Program, source: &str, file_path: &str) -> (Vec<WflDiagnostic>, bool) {
-        println!("Starting linting process...");
         let mut reporter = DiagnosticReporter::new();
         let file_id = reporter.add_file(file_path, source);
         
         let mut all_diagnostics = Vec::new();
         
         for rule in &self.rules {
-            println!("Applying rule: {}", rule.code());
             let diagnostics = rule.apply(program, &mut reporter, file_id);
-            println!("Rule {} found {} issues", rule.code(), diagnostics.len());
             all_diagnostics.extend(diagnostics);
         }
         
-        println!("Linting complete. Found {} issues", all_diagnostics.len());
         (all_diagnostics.clone(), all_diagnostics.is_empty())
     }
     
@@ -83,8 +79,7 @@ impl LintRule for NamingConventionRule {
         "Variable and action names should use snake_case"
     }
     
-    fn apply(&self, program: &Program, _reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
-        println!("  NamingConventionRule: checking variable and action names");
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         for statement in &program.statements {
@@ -155,7 +150,7 @@ impl LintRule for IndentationRule {
         "Code should be indented with 4 spaces"
     }
     
-    fn apply(&self, _program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         if let Ok(file) = reporter.files.get(file_id) {
@@ -214,7 +209,7 @@ impl LintRule for KeywordCasingRule {
         "Keywords should be lowercase"
     }
     
-    fn apply(&self, _program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         if let Ok(file) = reporter.files.get(file_id) {
@@ -277,7 +272,7 @@ impl LintRule for TrailingWhitespaceRule {
         "Lines should not have trailing whitespace"
     }
     
-    fn apply(&self, _program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         if let Ok(file) = reporter.files.get(file_id) {
@@ -318,7 +313,7 @@ impl LintRule for LineLengthRule {
         "Lines should not exceed the maximum length"
     }
     
-    fn apply(&self, _program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         let max_length = 100;
@@ -361,7 +356,7 @@ impl LintRule for NestingDepthRule {
         "Nesting depth should not exceed the maximum"
     }
     
-    fn apply(&self, program: &Program, _reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
+    fn apply(&self, program: &Program, reporter: &mut DiagnosticReporter, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         
         let max_depth = 5;
