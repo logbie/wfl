@@ -223,8 +223,6 @@ impl Interpreter {
         &self.global_env
     }
 
-
-
     fn check_time(&self) -> Result<(), RuntimeError> {
         if self.started.elapsed() > self.max_duration {
             if *self.in_count_loop.borrow() {
@@ -1223,12 +1221,14 @@ impl Interpreter {
 
         let func_env = match func.env.upgrade() {
             Some(env) => env,
-            None => return Err(RuntimeError::with_kind(
-                "Environment no longer exists".to_string(), 
-                line, 
-                column,
-                ErrorKind::EnvDropped
-            )),
+            None => {
+                return Err(RuntimeError::with_kind(
+                    "Environment no longer exists".to_string(),
+                    line,
+                    column,
+                    ErrorKind::EnvDropped,
+                ));
+            }
         };
 
         let call_env = Environment::new_child_env(&func_env);

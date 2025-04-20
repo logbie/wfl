@@ -310,7 +310,8 @@ mod tests {
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
 
         assert!(report_path.exists());
 
@@ -349,41 +350,41 @@ mod tests {
             debug_output.len()
         );
     }
-    
+
     #[test]
     #[cfg(unix)]
     fn test_report_failure_message() {
         use std::fs;
         use std::os::unix::fs::PermissionsExt;
         use tempfile::tempdir;
-        
+
         let error = RuntimeError::new("Test error".to_string(), 1, 1);
         let call_frame = CallFrame::new("test_function".to_string(), 1, 1);
         let call_stack = vec![call_frame];
         let script_content = "store x as 42";
-        
+
         let temp_dir = tempdir().unwrap();
         let script_path = temp_dir.path().join("test_script.wfl");
         fs::write(&script_path, script_content).unwrap();
-        
+
         let mut perms = temp_dir.path().metadata().unwrap().permissions();
         perms.set_mode(0o444); // read-only
         fs::set_permissions(temp_dir.path(), perms).unwrap();
-        
+
         let result = create_report(
             &error,
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
         );
-        
+
         assert!(result.is_err());
-        
+
         let mut perms = temp_dir.path().metadata().unwrap().permissions();
         perms.set_mode(0o755); // rwx for owner
         fs::set_permissions(temp_dir.path(), perms).unwrap();
     }
-    
+
     #[test]
     #[cfg(windows)]
     #[ignore]

@@ -411,10 +411,8 @@ impl DiagnosticReporter {
             end: start_offset + 1,
         };
 
-        let mut diag = WflDiagnostic::error(message).with_primary_label(
-            span,
-            "Runtime error occurred here",
-        );
+        let mut diag =
+            WflDiagnostic::error(message).with_primary_label(span, "Runtime error occurred here");
 
         if error.message.contains("division by zero") {
             diag = diag.with_note("Check your divisor to ensure it's never zero");
@@ -425,11 +423,11 @@ impl DiagnosticReporter {
         } else if error.message.contains("Feature not implemented") {
             diag = diag.with_note("This feature is not implemented in the current build");
         }
-        
+
         if matches!(error.kind, crate::interpreter::error::ErrorKind::EnvDropped) {
             diag = diag.with_note(
                 "This usually means a closure outlived its defining scope. \
-                Re-check lifetime of returned actions."
+                Re-check lifetime of returned actions.",
             );
         }
 

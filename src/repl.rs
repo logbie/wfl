@@ -328,23 +328,23 @@ mod tests {
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), CommandResult::ClearedScreen);
     }
-    
+
     #[test]
     #[cfg(unix)]
     #[ignore] // This test manipulates stdout and should be run explicitly
     fn test_clear_command_with_closed_stdout() {
         use std::os::unix::io::{AsRawFd, FromRawFd};
-        
+
         let mut repl = ReplState::new();
-        
+
         let stdout_fd = std::io::stdout().as_raw_fd();
         let _stdout_dup = unsafe { std::fs::File::from_raw_fd(libc::dup(stdout_fd)) };
         assert!(unsafe { libc::close(stdout_fd) } == 0);
-        
+
         let result = repl.handle_repl_command(".clear");
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), CommandResult::ClearedScreen);
-        
+
         unsafe { libc::dup2(_stdout_dup.as_raw_fd(), stdout_fd) };
     }
 }

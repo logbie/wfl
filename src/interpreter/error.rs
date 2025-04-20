@@ -24,7 +24,7 @@ impl RuntimeError {
             kind: ErrorKind::General,
         }
     }
-    
+
     pub fn with_kind(message: String, line: usize, column: usize, kind: ErrorKind) -> Self {
         RuntimeError {
             message,

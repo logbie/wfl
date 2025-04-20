@@ -442,10 +442,10 @@ async fn main() -> io::Result<()> {
                                                     if config.logging_enabled {
                                                         info!("{}", report_msg);
                                                     }
-                                                },
+                                                }
                                                 Err(_) => {
                                                     eprintln!("Could not create debug report");
-                                                    
+
                                                     if config.logging_enabled {
                                                         error!("Could not create debug report");
                                                     }
