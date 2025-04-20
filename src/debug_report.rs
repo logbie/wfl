@@ -124,14 +124,14 @@ pub fn create_report(
     call_stack: &[CallFrame],
     source: &str,
     script_path: &str,
-) -> PathBuf {
+) -> Result<PathBuf, std::io::Error> {
     let debug_file_path = generate_debug_filename(script_path);
 
     let report = generate_report_content(error, call_stack, source, script_path);
 
-    write_report_to_file(&debug_file_path, &report);
+    write_report_to_file(&debug_file_path, &report)?;
 
-    debug_file_path
+    Ok(debug_file_path)
 }
 
 fn generate_debug_filename(script_path: &str) -> PathBuf {
@@ -269,18 +269,10 @@ fn extract_function_body(report: &mut String, source: &str, func_name: &str) {
     }
 }
 
-fn write_report_to_file(file_path: &Path, content: &str) {
-    let mut file = match File::create(file_path) {
-        Ok(file) => file,
-        Err(e) => {
-            log::error!("Failed to create debug report file: {}", e);
-            return;
-        }
-    };
-
-    if let Err(e) = file.write_all(content.as_bytes()) {
-        log::error!("Failed to write debug report: {}", e);
-    }
+fn write_report_to_file(file_path: &Path, content: &str) -> Result<(), std::io::Error> {
+    let mut file = File::create(file_path)?;
+    file.write_all(content.as_bytes())?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -318,7 +310,8 @@ mod tests {
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
-        );
+        )
+        .unwrap();
 
         assert!(report_path.exists());
 
@@ -356,5 +349,46 @@ mod tests {
             "Debug output size: {} bytes exceeds 1000 byte limit",
             debug_output.len()
         );
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_report_failure_message() {
+        use std::fs;
+        use std::os::unix::fs::PermissionsExt;
+        use tempfile::tempdir;
+
+        let error = RuntimeError::new("Test error".to_string(), 1, 1);
+        let call_frame = CallFrame::new("test_function".to_string(), 1, 1);
+        let call_stack = vec![call_frame];
+        let script_content = "store x as 42";
+
+        let temp_dir = tempdir().unwrap();
+        let script_path = temp_dir.path().join("test_script.wfl");
+        fs::write(&script_path, script_content).unwrap();
+
+        let mut perms = temp_dir.path().metadata().unwrap().permissions();
+        perms.set_mode(0o444); // read-only
+        fs::set_permissions(temp_dir.path(), perms).unwrap();
+
+        let result = create_report(
+            &error,
+            &call_stack,
+            script_content,
+            script_path.to_str().unwrap(),
+        );
+
+        assert!(result.is_err());
+
+        let mut perms = temp_dir.path().metadata().unwrap().permissions();
+        perms.set_mode(0o755); // rwx for owner
+        fs::set_permissions(temp_dir.path(), perms).unwrap();
+    }
+
+    #[test]
+    #[cfg(windows)]
+    #[ignore]
+    fn test_report_failure_message_windows() {
+        println!("Skipping write permission test on Windows");
     }
 }

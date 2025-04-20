@@ -31,6 +31,11 @@ The WFL compiler is currently under development. Here's the current status:
 
 - There's a specific issue with how the interpreter handles the "count" keyword in expressions inside count loops. When using "count" directly in a display statement inside a count loop (e.g., `display "Count: " with count`), the interpreter may hang. A workaround is to store the count value in a separate variable and use that variable in expressions.
 
+## Current Limitations
+
+- The `wait for ... and ...` construct is currently sequential until real concurrency is implemented in a future release (tracked in issue #51).
+- The `open file` command creates the file if it doesn't exist. A future `create file` syntax is planned.
+
 ## AI-Assisted Development
 
 This project is developed with the assistance of AI:

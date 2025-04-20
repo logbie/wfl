@@ -406,15 +406,13 @@ impl DiagnosticReporter {
         let start_offset = self
             .line_col_to_offset(file_id, error.line, error.column)
             .unwrap_or(0);
-        let end_offset = start_offset + 1;
+        let span = Span {
+            start: start_offset,
+            end: start_offset + 1,
+        };
 
-        let mut diag = WflDiagnostic::error(message).with_primary_label(
-            Span {
-                start: start_offset,
-                end: end_offset,
-            },
-            "Runtime error occurred here",
-        );
+        let mut diag =
+            WflDiagnostic::error(message).with_primary_label(span, "Runtime error occurred here");
 
         if error.message.contains("division by zero") {
             diag = diag.with_note("Check your divisor to ensure it's never zero");
@@ -424,6 +422,13 @@ impl DiagnosticReporter {
             diag = diag.with_note("Verify that the file exists and the path is correct");
         } else if error.message.contains("Feature not implemented") {
             diag = diag.with_note("This feature is not implemented in the current build");
+        }
+
+        if matches!(error.kind, crate::interpreter::error::ErrorKind::EnvDropped) {
+            diag = diag.with_note(
+                "This usually means a closure outlived its defining scope. \
+                Re-check lifetime of returned actions.",
+            );
         }
 
         diag

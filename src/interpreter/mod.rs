@@ -6,7 +6,7 @@ mod tests;
 pub mod value;
 
 use self::environment::Environment;
-use self::error::RuntimeError;
+use self::error::{ErrorKind, RuntimeError};
 use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
@@ -219,6 +219,9 @@ impl Interpreter {
     pub fn clear_call_stack(&self) {
         self.call_stack.borrow_mut().clear();
     }
+    pub fn global_env(&self) -> &Rc<RefCell<Environment>> {
+        &self.global_env
+    }
 
     fn check_time(&self) -> Result<(), RuntimeError> {
         if self.started.elapsed() > self.max_duration {
@@ -411,7 +414,7 @@ impl Interpreter {
                     name: Some(name.clone()),
                     params: param_names,
                     body: body.clone(),
-                    env: Rc::clone(&env),
+                    env: Rc::downgrade(&env),
                     line: *line,
                     column: *column,
                 };
@@ -1216,7 +1219,17 @@ impl Interpreter {
             ));
         }
 
-        let func_env = func.env.clone();
+        let func_env = match func.env.upgrade() {
+            Some(env) => env,
+            None => {
+                return Err(RuntimeError::with_kind(
+                    "Environment no longer exists".to_string(),
+                    line,
+                    column,
+                    ErrorKind::EnvDropped,
+                ));
+            }
+        };
 
         let call_env = Environment::new_child_env(&func_env);
 
