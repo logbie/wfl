@@ -1,0 +1,53 @@
+// Memory leak demonstration
+// This script creates many nested functions to test for memory leaks
+// and demonstrates that closures work correctly with weak references
+
+define action called create_counter:
+    store count as 0
+    
+    define action called increment:
+        change count to count plus 1
+        return count
+    end action
+    
+    return increment
+end action
+
+define action called create_nested_funcs with depth:
+    check if depth is less than or equal to 0:
+        return create_counter
+    otherwise:
+        define action called nested_func:
+            return create_nested_funcs with depth minus 1
+        end action
+        return nested_func
+    end check
+end action
+
+// Create a large number of nested functions
+store func as create_nested_funcs with 5000
+
+// Keep calling the nested functions until we reach the counter
+define action called get_counter:
+    store current as func
+    count from 1 to 5000:
+        store current as current
+    end count
+    return current
+end action
+
+store counter as get_counter
+
+// Now use the counter and show it's working
+// Loop to allow monitoring memory usage over time
+count from 1 to 1000000:
+    store i as count
+    
+    // Increment and display counter every 1000 iterations
+    check if i mod 1000 is equal to 0:
+        store value as counter
+        display "Iteration: " with i with " | Counter value: " with value
+    end check
+end count
+
+display "Finished! Memory usage should remain stable."
