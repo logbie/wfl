@@ -115,7 +115,7 @@ impl LintRule for NamingConventionRule {
                             Severity::Warning,
                             format!("Variable name '{}' should be snake_case", name),
                             Some(format!("Rename to '{}'", snake_case_name)),
-                            format!("LINT-NAME"),
+                            "LINT-NAME".to_string(),
                             file_id,
                             *line,
                             *column,
@@ -133,7 +133,7 @@ impl LintRule for NamingConventionRule {
                             Severity::Warning,
                             format!("Action name '{}' should be snake_case", name),
                             Some(format!("Rename to '{}'", snake_case_name)),
-                            format!("LINT-NAME"),
+                            "LINT-NAME".to_string(),
                             file_id,
                             *line,
                             *column,
@@ -150,18 +150,13 @@ impl LintRule for NamingConventionRule {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum RuleSeverity {
-    Allow,  // Rule is disabled
-    Warn,   // Rule generates warnings but doesn't cause failure
-    Deny,   // Rule generates errors and causes failure
+    Allow, // Rule is disabled
+    Warn,  // Rule generates warnings but doesn't cause failure
+    #[default]
+    Deny, // Rule generates errors and causes failure
     Forbid, // Rule generates errors and cannot be overridden
-}
-
-impl Default for RuleSeverity {
-    fn default() -> Self {
-        RuleSeverity::Deny
-    }
 }
 
 struct IndentationRule;
@@ -199,14 +194,13 @@ impl LintRule for IndentationRule {
 
                 let indent_spaces = line.len() - trimmed.len();
 
-                if trimmed.starts_with("end ")
+                if (trimmed.starts_with("end ")
                     || trimmed == "end action"
                     || trimmed == "otherwise:"
-                    || trimmed == "end check"
+                    || trimmed == "end check")
+                    && expected_indent >= 4
                 {
-                    if expected_indent >= 4 {
-                        expected_indent -= 4;
-                    }
+                    expected_indent -= 4;
                 }
 
                 if indent_spaces != expected_indent {
@@ -564,3 +558,9 @@ fn line_col_from_pos(source: &str, pos: usize) -> (usize, usize) {
 
 #[cfg(test)]
 mod tests;
+
+impl Default for Linter {
+    fn default() -> Self {
+        Self::new()
+    }
+}

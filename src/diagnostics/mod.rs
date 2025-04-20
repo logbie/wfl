@@ -33,6 +33,7 @@ pub struct Span {
 #[derive(Debug, Clone)]
 pub struct WflDiagnostic {
     pub severity: Severity,
+    #[allow(clippy::too_many_arguments)]
     pub message: String,
     pub labels: Vec<(Span, String)>,
     pub notes: Vec<String>,
@@ -42,6 +43,7 @@ pub struct WflDiagnostic {
     pub column: usize,
 }
 
+#[allow(clippy::too_many_arguments)]
 impl WflDiagnostic {
     pub fn new(
         severity: Severity,

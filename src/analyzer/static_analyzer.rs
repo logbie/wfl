@@ -1,9 +1,10 @@
 use super::Analyzer;
-use crate::diagnostics::{DiagnosticReporter, Severity, WflDiagnostic};
+use crate::diagnostics::{Severity, WflDiagnostic};
 use crate::parser::ast::{Expression, Program, Statement, Type};
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct VariableUsage {
     name: String,
     defined_at: (usize, usize), // (line, column)
@@ -11,6 +12,7 @@ struct VariableUsage {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 enum CFGNode {
     Entry,
     Exit,
@@ -55,7 +57,7 @@ impl ControlFlowGraph {
     }
 
     fn add_edge(&mut self, from: usize, to: usize) {
-        self.edges.entry(from).or_insert_with(Vec::new).push(to);
+        self.edges.entry(from).or_default().push(to);
 
         if self.reachable.contains(&from) {
             self.reachable.insert(to);
@@ -218,6 +220,7 @@ impl StaticAnalyzer for Analyzer {
         diagnostics
     }
 
+    #[allow(clippy::collapsible_match)]
     fn check_inconsistent_returns(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
 
@@ -258,6 +261,7 @@ impl StaticAnalyzer for Analyzer {
 }
 
 impl Analyzer {
+    #[allow(clippy::only_used_in_recursion)]
     fn collect_variable_declarations(
         &self,
         statement: &Statement,
@@ -406,6 +410,7 @@ impl Analyzer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn mark_used_in_expression(
         &self,
         expression: &Expression,
@@ -734,6 +739,7 @@ impl Analyzer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn check_shadowing_in_statements(
         &self,
         statements: &[Statement],
@@ -860,6 +866,7 @@ impl Analyzer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn check_all_paths_return(&self, statements: &[Statement], has_return: &mut bool) -> bool {
         if statements.is_empty() {
             return false;
@@ -926,8 +933,7 @@ mod tests {
         };
 
         let mut analyzer = Analyzer::new();
-        let mut reporter = DiagnosticReporter::new();
-        let file_id = reporter.add_file("test.wfl", "");
+        let file_id = 0;
 
         let diagnostics = analyzer.check_unused_variables(&program, file_id);
 
@@ -964,8 +970,7 @@ mod tests {
         };
 
         let mut analyzer = Analyzer::new();
-        let mut reporter = DiagnosticReporter::new();
-        let file_id = reporter.add_file("test.wfl", "");
+        let file_id = 0;
 
         let diagnostics = analyzer.check_inconsistent_returns(&program, file_id);
 

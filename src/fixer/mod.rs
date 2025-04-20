@@ -147,7 +147,7 @@ impl CodeFixer {
             _ => statement.clone(),
         }
     }
-
+    #[allow(clippy::only_used_in_recursion)]
     fn simplify_boolean_expression(&self, expression: &Expression) -> Expression {
         match expression {
             Expression::BinaryOperation {
@@ -160,14 +160,12 @@ impl CodeFixer {
                 let simplified_left = self.simplify_boolean_expression(left);
                 let simplified_right = self.simplify_boolean_expression(right);
 
-                match (simplified_left.clone(), simplified_right.clone()) {
-                    _ => Expression::BinaryOperation {
-                        left: Box::new(simplified_left),
-                        operator: operator.clone(),
-                        right: Box::new(simplified_right),
-                        line: *line,
-                        column: *column,
-                    },
+                Expression::BinaryOperation {
+                    left: Box::new(simplified_left),
+                    operator: operator.clone(),
+                    right: Box::new(simplified_right),
+                    line: *line,
+                    column: *column,
                 }
             }
             _ => expression.clone(),
@@ -424,6 +422,7 @@ impl CodeFixer {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)]
     fn pretty_print_expression(
         &self,
         expression: &Expression,
@@ -580,6 +579,7 @@ impl CodeFixer {
                 output.push_str("await ");
                 self.pretty_print_expression(expr, output, indent_level, summary);
             }
+            #[allow(unreachable_patterns)]
             _ => {
                 output.push_str(&format!("{:?}", expression));
             }
@@ -651,3 +651,9 @@ impl CodeFixer {
 
 #[cfg(test)]
 mod tests;
+
+impl Default for CodeFixer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
