@@ -207,7 +207,9 @@ jobs:
       - name: Smoke test installer (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
-          DEB=$(find target/${{ matrix.target }}/release -name "*.deb" | head -n1)
+          # cargo-deb places the DEB file in target/<target>/debian/ not in target/<target>/release/
+          DEB=$(find target/${{ matrix.target }}/debian -name "*.deb" | head -n1)
+          echo "Found DEB package at: $DEB"
           sudo dpkg -i "$DEB"
           wfl --version
           sudo dpkg -r wfl
