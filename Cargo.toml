@@ -13,6 +13,7 @@ copyright = "© 2025 Logbie LLC"
 category = "Developer Tool"
 short_description = "WebFirst Language Compiler and Runtime"
 long_description = "WFL (WebFirst Language) is a programming language designed to be readable and intuitive using natural language constructs."
+executable = "wfl"
 
 [workspace]
 members = [
