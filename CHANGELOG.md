@@ -2,6 +2,16 @@
 
 All notable changes to the WFL project will be documented in this file.
 
+## [v0.0.0-nightly+CDR3] - 2025-04-20
+
+### Fixed
+- Fixed memory leak in closures by using weak references for captured environments
+- Improved debug report to return a Result and show appropriate error messages
+- Hardened `.clear` REPL command against stdout failures
+
+### Changed
+- Updated documentation to clarify sequential wait-for behavior
+
 ## [Unreleased]
 
 ### Added
