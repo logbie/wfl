@@ -233,9 +233,14 @@ jobs:
           ln -sf /Applications/WFL.app/Contents/MacOS/wfl \
                  target/${{ matrix.target }}/release/pkg-root/usr/local/bin/wfl
 
-          productbuild --root target/${{ matrix.target }}/release/pkg-root / \
+          if [[ "$SIGNING_SKIP" == "true" ]]; then
+            productbuild --root target/${{ matrix.target }}/release/pkg-root / \
+                       target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg
+          else
+            productbuild --root target/${{ matrix.target }}/release/pkg-root / \
                        --sign "-" \
                        target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.pkg
+          fi
 
       # ---------- Smoke tests ----------
       - name: Smoke test installer (Windows)
