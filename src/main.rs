@@ -52,7 +52,7 @@ async fn main() -> io::Result<()> {
                     eprintln!("Error: --lint requires a file path");
                     process::exit(2);
                 }
-            },
+            }
             "--analyze" => {
                 if lint_mode || analyze_mode || fix_mode {
                     eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
@@ -67,7 +67,7 @@ async fn main() -> io::Result<()> {
                     eprintln!("Error: --analyze requires a file path");
                     process::exit(2);
                 }
-            },
+            }
             "--fix" => {
                 if lint_mode || analyze_mode || fix_mode {
                     eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
@@ -82,31 +82,35 @@ async fn main() -> io::Result<()> {
                     eprintln!("Error: --fix requires a file path");
                     process::exit(2);
                 }
-                
+
                 while i < args.len() && args[i].starts_with("--") {
                     match args[i].as_str() {
                         "--in-place" => {
                             if fix_diff {
-                                eprintln!("Error: --in-place and --diff flags are mutually exclusive");
+                                eprintln!(
+                                    "Error: --in-place and --diff flags are mutually exclusive"
+                                );
                                 process::exit(2);
                             }
                             fix_in_place = true;
                             i += 1;
-                        },
+                        }
                         "--diff" => {
                             if fix_in_place {
-                                eprintln!("Error: --in-place and --diff flags are mutually exclusive");
+                                eprintln!(
+                                    "Error: --in-place and --diff flags are mutually exclusive"
+                                );
                                 process::exit(2);
                             }
                             fix_diff = true;
                             i += 1;
-                        },
+                        }
                         _ => {
                             break;
                         }
                     }
                 }
-            },
+            }
             _ => {
                 if file_path.is_empty() {
                     file_path = args[i].clone();
@@ -124,29 +128,29 @@ async fn main() -> io::Result<()> {
     let input = fs::read_to_string(&file_path)?;
     let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
     let config = config::load_config(script_dir);
-    
+
     if lint_mode {
         let tokens_with_pos = lex_wfl_with_positions(&input);
         match Parser::new(&tokens_with_pos).parse() {
             Ok(program) => {
                 let mut linter = Linter::new();
                 linter.load_config(script_dir);
-                
+
                 let (diagnostics, _success) = linter.lint(&program, &input, &file_path);
-                
+
                 if !diagnostics.is_empty() {
                     eprintln!("Lint warnings:");
-                    
+
                     let mut reporter = DiagnosticReporter::new();
                     let file_id = reporter.add_file(&file_path, &input);
-                    
+
                     for diagnostic in diagnostics {
                         if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
                             eprintln!("Error displaying diagnostic: {}", e);
                             eprintln!("{}", diagnostic.message);
                         }
                     }
-                    
+
                     process::exit(1);
                 } else {
                     println!("No lint warnings found.");
@@ -155,10 +159,10 @@ async fn main() -> io::Result<()> {
             }
             Err(errors) => {
                 eprintln!("Parse errors:");
-                
+
                 let mut reporter = DiagnosticReporter::new();
                 let file_id = reporter.add_file(&file_path, &input);
-                
+
                 for error in errors {
                     let diagnostic = reporter.convert_parse_error(file_id, &error);
                     if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -166,7 +170,7 @@ async fn main() -> io::Result<()> {
                         eprintln!("Error: {}", error);
                     }
                 }
-                
+
                 process::exit(2);
             }
         }
@@ -175,24 +179,24 @@ async fn main() -> io::Result<()> {
         match Parser::new(&tokens_with_pos).parse() {
             Ok(program) => {
                 let mut analyzer = Analyzer::new();
-                
+
                 let mut reporter = DiagnosticReporter::new();
                 let file_id = reporter.add_file(&file_path, &input);
                 let diagnostics = analyzer.analyze_static(&program, file_id);
-                
+
                 if !diagnostics.is_empty() {
                     eprintln!("Static analysis warnings:");
-                    
+
                     let mut reporter = DiagnosticReporter::new();
                     let file_id = reporter.add_file(&file_path, &input);
-                    
+
                     for diagnostic in diagnostics {
                         if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
                             eprintln!("Error displaying diagnostic: {}", e);
                             eprintln!("{}", diagnostic.message);
                         }
                     }
-                    
+
                     process::exit(1);
                 } else {
                     println!("No static analysis warnings found.");
@@ -201,10 +205,10 @@ async fn main() -> io::Result<()> {
             }
             Err(errors) => {
                 eprintln!("Parse errors:");
-                
+
                 let mut reporter = DiagnosticReporter::new();
                 let file_id = reporter.add_file(&file_path, &input);
-                
+
                 for error in errors {
                     let diagnostic = reporter.convert_parse_error(file_id, &error);
                     if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -212,7 +216,7 @@ async fn main() -> io::Result<()> {
                         eprintln!("Error: {}", error);
                     }
                 }
-                
+
                 process::exit(2);
             }
         }
@@ -223,7 +227,7 @@ async fn main() -> io::Result<()> {
                 let mut fixer = CodeFixer::new();
                 fixer.set_indent_size(config.indent_size);
                 fixer.load_config(script_dir);
-                
+
                 let output_mode = if fix_in_place {
                     FixerOutputMode::InPlace
                 } else if fix_diff {
@@ -231,7 +235,7 @@ async fn main() -> io::Result<()> {
                 } else {
                     FixerOutputMode::Stdout
                 };
-                
+
                 match fixer.fix_file(Path::new(&file_path), output_mode) {
                     Ok(summary) => {
                         println!("Code fixing summary:");
@@ -248,10 +252,10 @@ async fn main() -> io::Result<()> {
             }
             Err(errors) => {
                 eprintln!("Parse errors:");
-                
+
                 let mut reporter = DiagnosticReporter::new();
                 let file_id = reporter.add_file(&file_path, &input);
-                
+
                 for error in errors {
                     let diagnostic = reporter.convert_parse_error(file_id, &error);
                     if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -259,7 +263,7 @@ async fn main() -> io::Result<()> {
                         eprintln!("Error: {}", error);
                     }
                 }
-                
+
                 process::exit(2);
             }
         }
@@ -280,63 +284,63 @@ async fn main() -> io::Result<()> {
                 matches!(
                     t,
                     Token::KeywordStore
-                    | Token::KeywordCreate
-                    | Token::KeywordDisplay
-                    | Token::KeywordIf
-                    | Token::KeywordCheck
-                    | Token::KeywordOtherwise
-                    | Token::KeywordThen
-                    | Token::KeywordEnd
-                    | Token::KeywordAs
-                    | Token::KeywordTo
-                    | Token::KeywordFrom
-                    | Token::KeywordWith
-                    | Token::KeywordAnd
-                    | Token::KeywordOr
-                    | Token::KeywordCount
-                    | Token::KeywordFor
-                    | Token::KeywordEach
-                    | Token::KeywordIn
-                    | Token::KeywordReversed
-                    | Token::KeywordRepeat
-                    | Token::KeywordWhile
-                    | Token::KeywordUntil
-                    | Token::KeywordForever
-                    | Token::KeywordSkip
-                    | Token::KeywordContinue
-                    | Token::KeywordBreak
-                    | Token::KeywordExit
-                    | Token::KeywordLoop
-                    | Token::KeywordDefine
-                    | Token::KeywordAction
-                    | Token::KeywordCalled
-                    | Token::KeywordNeeds
-                    | Token::KeywordGive
-                    | Token::KeywordBack
-                    | Token::KeywordReturn
-                    | Token::KeywordOpen
-                    | Token::KeywordClose
-                    | Token::KeywordFile
-                    | Token::KeywordUrl
-                    | Token::KeywordDatabase
-                    | Token::KeywordAt
-                    | Token::KeywordRead
-                    | Token::KeywordWrite
-                    | Token::KeywordContent
-                    | Token::KeywordInto
-                    | Token::KeywordPlus
-                    | Token::KeywordMinus
-                    | Token::KeywordTimes
-                    | Token::KeywordDivided
-                    | Token::KeywordBy
-                    | Token::KeywordContains
-                    | Token::KeywordAbove
-                    | Token::KeywordBelow
-                    | Token::KeywordEqual
-                    | Token::KeywordGreater
-                    | Token::KeywordLess
-                    | Token::KeywordNot
-                    | Token::KeywordIs
+                        | Token::KeywordCreate
+                        | Token::KeywordDisplay
+                        | Token::KeywordIf
+                        | Token::KeywordCheck
+                        | Token::KeywordOtherwise
+                        | Token::KeywordThen
+                        | Token::KeywordEnd
+                        | Token::KeywordAs
+                        | Token::KeywordTo
+                        | Token::KeywordFrom
+                        | Token::KeywordWith
+                        | Token::KeywordAnd
+                        | Token::KeywordOr
+                        | Token::KeywordCount
+                        | Token::KeywordFor
+                        | Token::KeywordEach
+                        | Token::KeywordIn
+                        | Token::KeywordReversed
+                        | Token::KeywordRepeat
+                        | Token::KeywordWhile
+                        | Token::KeywordUntil
+                        | Token::KeywordForever
+                        | Token::KeywordSkip
+                        | Token::KeywordContinue
+                        | Token::KeywordBreak
+                        | Token::KeywordExit
+                        | Token::KeywordLoop
+                        | Token::KeywordDefine
+                        | Token::KeywordAction
+                        | Token::KeywordCalled
+                        | Token::KeywordNeeds
+                        | Token::KeywordGive
+                        | Token::KeywordBack
+                        | Token::KeywordReturn
+                        | Token::KeywordOpen
+                        | Token::KeywordClose
+                        | Token::KeywordFile
+                        | Token::KeywordUrl
+                        | Token::KeywordDatabase
+                        | Token::KeywordAt
+                        | Token::KeywordRead
+                        | Token::KeywordWrite
+                        | Token::KeywordContent
+                        | Token::KeywordInto
+                        | Token::KeywordPlus
+                        | Token::KeywordMinus
+                        | Token::KeywordTimes
+                        | Token::KeywordDivided
+                        | Token::KeywordBy
+                        | Token::KeywordContains
+                        | Token::KeywordAbove
+                        | Token::KeywordBelow
+                        | Token::KeywordEqual
+                        | Token::KeywordGreater
+                        | Token::KeywordLess
+                        | Token::KeywordNot
+                        | Token::KeywordIs
                 )
             })
             .count();
@@ -384,14 +388,20 @@ async fn main() -> io::Result<()> {
 
                                 if config.logging_enabled {
                                     let log_path = script_dir.join("wfl.log");
-                                    if let Err(e) = logging::init_logger(config.log_level, &log_path) {
+                                    if let Err(e) =
+                                        logging::init_logger(config.log_level, &log_path)
+                                    {
                                         eprintln!("Failed to initialize logging: {}", e);
                                     } else {
-                                        info!("WebFirst Language started with script: {}", &file_path);
+                                        info!(
+                                            "WebFirst Language started with script: {}",
+                                            &file_path
+                                        );
                                     }
                                 }
 
-                                let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                                let mut interpreter =
+                                    Interpreter::with_timeout(config.timeout_seconds);
                                 let interpret_result = interpreter.interpret(&program).await;
                                 match interpret_result {
                                     Ok(result) => {
@@ -455,7 +465,8 @@ async fn main() -> io::Result<()> {
 
                                 for error in errors {
                                     let diagnostic = reporter.convert_type_error(file_id, &error);
-                                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic)
+                                    {
                                         eprintln!("Error displaying diagnostic: {}", e);
                                         eprintln!("{}", error); // Fallback to simple error display
                                     }

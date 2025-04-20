@@ -63,18 +63,18 @@ impl WflDiagnostic {
             line,
             column,
         };
-        
+
         if let Some(note) = note {
             diagnostic.notes.push(note.into());
         }
-        
+
         if let Some(span) = span {
             diagnostic.labels.push((span, "Here".to_string()));
         }
-        
+
         diagnostic
     }
-    
+
     pub fn error(message: impl Into<String>) -> Self {
         WflDiagnostic {
             severity: Severity::Error,
@@ -324,7 +324,9 @@ impl DiagnosticReporter {
                 error.column,
                 Some(span),
             );
-        } else if error.message.contains("unreachable code") || error.message.contains("Unreachable code") {
+        } else if error.message.contains("unreachable code")
+            || error.message.contains("Unreachable code")
+        {
             return WflDiagnostic::new(
                 Severity::Warning,
                 message,
@@ -357,7 +359,9 @@ impl DiagnosticReporter {
                 error.column,
                 Some(span),
             );
-        } else if error.message.contains("inconsistent return") || error.message.contains("return paths") {
+        } else if error.message.contains("inconsistent return")
+            || error.message.contains("return paths")
+        {
             return WflDiagnostic::new(
                 Severity::Warning,
                 message,
