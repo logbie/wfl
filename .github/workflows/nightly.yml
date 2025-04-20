@@ -184,7 +184,9 @@ jobs:
           echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
           echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
 
-          cargo deb --no-build --target ${{ matrix.target }}
+          # Include .wflcfg file in the DEB package at /etc/wfl/.wflcfg
+          cargo deb --no-build --target ${{ matrix.target }} \
+            --asset "target/${{ matrix.target }}/release/package/.wflcfg:etc/wfl/.wflcfg:644"
 
           mkdir -p target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}
           cp target/${{ matrix.target }}/release/wfl \
