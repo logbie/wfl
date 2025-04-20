@@ -932,7 +932,7 @@ mod tests {
             ],
         };
 
-        let mut analyzer = Analyzer::new();
+        let analyzer = Analyzer::new();
         let file_id = 0;
 
         let diagnostics = analyzer.check_unused_variables(&program, file_id);
@@ -969,7 +969,7 @@ mod tests {
             }],
         };
 
-        let mut analyzer = Analyzer::new();
+        let analyzer = Analyzer::new();
         let file_id = 0;
 
         let diagnostics = analyzer.check_inconsistent_returns(&program, file_id);
