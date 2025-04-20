@@ -2,6 +2,7 @@
 name = "wfl"
 version = "0.1.0"
 edition = "2024"
+description = "WFL (WebFirst Language) is a programming language designed to be readable and intuitive using natural language constructs."
 
 [package.metadata.bundle]
 name = "WFL"
