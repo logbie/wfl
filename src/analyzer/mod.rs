@@ -614,6 +614,9 @@ impl Analyzer {
     }
 }
 
+pub mod static_analyzer;
+pub use static_analyzer::StaticAnalyzer;
+
 #[cfg(test)]
 mod tests {
     use super::*;

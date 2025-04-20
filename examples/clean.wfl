@@ -1,0 +1,18 @@
+// This is a clean WFL file that should pass linting
+
+define action called calculate:
+    give back 10 plus 20
+end action
+
+define action called main:
+    store first as 10
+    store second as 20
+    
+    store result as 30
+    
+    check if result greater than 25:
+        display "Result is greater than 25"
+    otherwise:
+        display "Result is not greater than 25"
+    end check
+end action

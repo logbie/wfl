@@ -7,6 +7,13 @@ pub struct WflConfig {
     pub logging_enabled: bool,
     pub debug_report_enabled: bool,
     pub log_level: LogLevel,
+    // Code quality suite settings
+    pub max_line_length: usize,
+    pub max_nesting_depth: usize,
+    pub indent_size: usize,
+    pub snake_case_variables: bool,
+    pub trailing_whitespace: bool,
+    pub consistent_keyword_case: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,6 +31,13 @@ impl Default for WflConfig {
             logging_enabled: false,
             debug_report_enabled: true,
             log_level: LogLevel::Info,
+            // Code quality suite defaults - strict by default
+            max_line_length: 100,
+            max_nesting_depth: 5,
+            indent_size: 4,
+            snake_case_variables: true,
+            trailing_whitespace: false, // false means no trailing whitespace allowed
+            consistent_keyword_case: true,
         }
     }
 }
@@ -123,6 +137,67 @@ pub fn load_config(dir: &Path) -> WflConfig {
                             config.log_level,
                             file.display()
                         );
+                    }
+                    // Code quality suite settings
+                    "max_line_length" => {
+                        if let Ok(length) = value.parse::<usize>() {
+                            config.max_line_length = length;
+                            log::debug!(
+                                "Loaded max_line_length: {} from {}",
+                                config.max_line_length,
+                                file.display()
+                            );
+                        }
+                    }
+                    "max_nesting_depth" => {
+                        if let Ok(depth) = value.parse::<usize>() {
+                            config.max_nesting_depth = depth;
+                            log::debug!(
+                                "Loaded max_nesting_depth: {} from {}",
+                                config.max_nesting_depth,
+                                file.display()
+                            );
+                        }
+                    }
+                    "indent_size" => {
+                        if let Ok(size) = value.parse::<usize>() {
+                            config.indent_size = size;
+                            log::debug!(
+                                "Loaded indent_size: {} from {}",
+                                config.indent_size,
+                                file.display()
+                            );
+                        }
+                    }
+                    "snake_case_variables" => {
+                        if let Ok(enabled) = value.parse::<bool>() {
+                            config.snake_case_variables = enabled;
+                            log::debug!(
+                                "Loaded snake_case_variables: {} from {}",
+                                config.snake_case_variables,
+                                file.display()
+                            );
+                        }
+                    }
+                    "trailing_whitespace" => {
+                        if let Ok(enabled) = value.parse::<bool>() {
+                            config.trailing_whitespace = enabled;
+                            log::debug!(
+                                "Loaded trailing_whitespace: {} from {}",
+                                config.trailing_whitespace,
+                                file.display()
+                            );
+                        }
+                    }
+                    "consistent_keyword_case" => {
+                        if let Ok(enabled) = value.parse::<bool>() {
+                            config.consistent_keyword_case = enabled;
+                            log::debug!(
+                                "Loaded consistent_keyword_case: {} from {}",
+                                config.consistent_keyword_case,
+                                file.display()
+                            );
+                        }
                     }
                     _ => {}
                 }
