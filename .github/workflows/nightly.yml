@@ -219,7 +219,7 @@ jobs:
           echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
 
           # Bundle the application
-          cargo bundle --release --target ${{ matrix.target }}
+          cargo bundle --release --target ${{ matrix.target }} --format osx
 
           # Verify bundle was created correctly
           echo "Verifying bundle contents..."
