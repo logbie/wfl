@@ -572,7 +572,7 @@ mod tests {
 
         let script_dir = tempdir().unwrap();
 
-        let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
+        let config = load_config_with_global(script_dir.path());
 
         assert_eq!(config.timeout_seconds, 180); // From global config
         assert!(config.logging_enabled);
@@ -643,7 +643,7 @@ mod tests {
         let mut file = fs::File::create(&local_config_path).unwrap();
         file.write_all(local_config_content.as_bytes()).unwrap();
 
-        let config = load_config(script_dir.path());
+        let config = load_config_with_global(script_dir.path());
 
         unsafe {
             ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
