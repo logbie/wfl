@@ -185,8 +185,8 @@ jobs:
           echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
 
           # Include .wflcfg file in the DEB package at /etc/wfl/.wflcfg
-          cargo deb --no-build --target ${{ matrix.target }} \
-            --asset "target/${{ matrix.target }}/release/package/.wflcfg:etc/wfl/.wflcfg:644"
+          # Configuration is now in Cargo.toml [package.metadata.deb] section
+          cargo deb --no-build --target ${{ matrix.target }}
 
           mkdir -p target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}
           cp target/${{ matrix.target }}/release/wfl \
