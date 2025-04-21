@@ -706,7 +706,10 @@ mod test_reproduce_ci {
 
         // Print debug info
         println!("Global config path: {}", get_global_config_path());
-        println!("Global config exists: {}", Path::new(get_global_config_path()).exists());
+        println!(
+            "Global config exists: {}",
+            Path::new(get_global_config_path()).exists()
+        );
         println!("Config logging_enabled: {}", config.logging_enabled);
 
         // This should pass if the environment variable is correctly used
