@@ -25,11 +25,11 @@ fn print_help() {
     println!();
     println!("FLAGS:");
     println!("    --help       Prints this help information");
-    println!("    --lint       Run the linter on the specified file");
-    println!("    --analyze    Run the static analyzer on the specified file");
-    println!("    --fix        Fix code style issues in the specified file");
-    println!("        --in-place    Modify the file in place");
-    println!("        --diff        Show a diff of the changes");
+    println!("    --lint             Run the linter on the specified file");
+    println!("    --lint --fix       Apply auto-fixes after linting");
+    println!("        --in-place     Overwrite the file in place");
+    println!("        --diff         Show a diff instead of rewriting");
+    println!("    --analyze          Run the static analyzer on the specified file");
     println!();
     println!("NOTES:");
     println!("    All runs are now type‑checked and semantically analyzed by default.");
@@ -66,8 +66,8 @@ async fn main() -> io::Result<()> {
     while i < args.len() {
         match args[i].as_str() {
             "--lint" => {
-                if lint_mode || analyze_mode || fix_mode {
-                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                if analyze_mode {
+                    eprintln!("Error: --lint and --analyze flags are mutually exclusive");
                     process::exit(2);
                 }
                 lint_mode = true;
@@ -96,8 +96,8 @@ async fn main() -> io::Result<()> {
                 }
             }
             "--fix" => {
-                if lint_mode || analyze_mode || fix_mode {
-                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                if analyze_mode {
+                    eprintln!("Error: --fix and --analyze flags are mutually exclusive");
                     process::exit(2);
                 }
                 fix_mode = true;
@@ -151,6 +151,11 @@ async fn main() -> io::Result<()> {
         eprintln!("Error: No file path provided");
         process::exit(2);
     }
+    
+    if fix_mode && !lint_mode {
+        eprintln!("Error: --fix must be combined with --lint");
+        process::exit(2);
+    }
 
     let input = fs::read_to_string(&file_path)?;
     let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
@@ -165,7 +170,23 @@ async fn main() -> io::Result<()> {
 
                 let (diagnostics, _success) = linter.lint(&program, &input, &file_path);
 
-                if !diagnostics.is_empty() {
+                if fix_mode {
+                    let mut fixer = CodeFixer::new();
+                    fixer.set_indent_size(config.indent_size);
+                    fixer.load_config(script_dir);
+
+                    let (fixed_code, summary) = fixer.fix(&program, &input);
+
+                    if fix_in_place {
+                        fs::write(&file_path, &fixed_code)?;
+                        println!("✔ Auto-fixed {} issues in place.", summary.total());
+                    } else if fix_diff {
+                        println!("{}", fixer.diff(&input, &fixed_code));
+                    } else {
+                        println!("Fixed code:\n{}", fixed_code);
+                    }
+                    process::exit(0);
+                } else if !diagnostics.is_empty() {
                     eprintln!("Lint warnings:");
 
                     let mut reporter = DiagnosticReporter::new();
@@ -420,9 +441,6 @@ async fn main() -> io::Result<()> {
                     process::exit(2);
                 }
                 println!("Type checking passed.");
-
-                let linter = Linter::new();
-                let (_lint_diags, _clean) = linter.lint(&program, &input, &file_path);
 
                 println!("Script directory: {:?}", script_dir);
                 println!("Timeout seconds: {}", config.timeout_seconds);
