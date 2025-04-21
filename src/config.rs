@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn test_load_timeout_default() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let timeout = load_timeout(temp_dir.path());
+        let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
         assert_eq!(timeout, 60);
     }
 
