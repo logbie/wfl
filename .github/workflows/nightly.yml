@@ -184,7 +184,7 @@ jobs:
           echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
           echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
 
-          # Include .wflcfg file in the DEB package at /etc/wfl/.wflcfg
+          # Include .wflcfg file in the DEB package at /etc/wfl/wfl.cfg
           # Configuration is now in Cargo.toml [package.metadata.deb] section
           cargo deb --no-build --target ${{ matrix.target }}
 
