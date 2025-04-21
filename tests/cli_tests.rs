@@ -18,7 +18,7 @@ display myVariable
 
     assert!(
         Command::new("cargo")
-            .args(&["build"])
+            .args(["build"])
             .status()
             .expect("Failed to build binary")
             .success(),
@@ -37,7 +37,7 @@ display myVariable
     );
 
     let output = Command::new(binary_path)
-        .args(&["--lint", file_path_str, "--fix", file_path_str, "--diff"])
+        .args(["--lint", file_path_str, "--fix", file_path_str, "--diff"])
         .output()
         .expect("Failed to execute command");
 
