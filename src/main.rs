@@ -421,7 +421,7 @@ async fn main() -> io::Result<()> {
                 }
                 println!("Type checking passed.");
 
-                let mut linter = Linter::new();
+                let linter = Linter::new();
                 let (_lint_diags, _clean) = linter.lint(&program, &input, &file_path);
 
                 println!("Script directory: {:?}", script_dir);

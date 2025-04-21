@@ -1,6 +1,4 @@
 use super::{Environment, Interpreter, Value};
-use crate::analyzer::Analyzer;
-use crate::analyzer::static_analyzer::StaticAnalyzer;
 use crate::lexer::lex_wfl_with_positions;
 use crate::parser::Parser;
 use crate::typechecker::TypeChecker;
