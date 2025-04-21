@@ -22,6 +22,12 @@ pub struct FixerSummary {
     pub dead_code_removed: usize,
 }
 
+impl FixerSummary {
+    pub fn total(&self) -> usize {
+        self.lines_reformatted + self.vars_renamed + self.dead_code_removed
+    }
+}
+
 impl CodeFixer {
     pub fn new() -> Self {
         Self { indent_size: 4 }
@@ -619,6 +625,10 @@ impl CodeFixer {
         }
 
         result
+    }
+
+    pub fn diff(&self, original: &str, fixed: &str) -> String {
+        self.generate_diff(original, fixed)
     }
 
     pub fn generate_diff(&self, original: &str, fixed: &str) -> String {
