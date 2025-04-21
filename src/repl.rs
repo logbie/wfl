@@ -1,3 +1,5 @@
+use crate::analyzer::Analyzer;
+use crate::analyzer::static_analyzer::StaticAnalyzer;
 use crate::config::WflConfig;
 use crate::diagnostics::DiagnosticReporter;
 use crate::interpreter::Interpreter;
@@ -6,6 +8,7 @@ use crate::parser::{
     Parser,
     ast::{Program, Statement},
 };
+use crate::typechecker::TypeChecker;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::Buffer;
 use rustyline::error::ReadlineError;
@@ -168,6 +171,58 @@ impl ReplState {
 
         if program.statements.is_empty() {
             return Ok(None);
+        }
+
+        let mut analyzer = Analyzer::new();
+        let mut reporter = DiagnosticReporter::new();
+        let file_id = reporter.add_file("repl", input);
+        let sema_diags = analyzer.analyze_static(&program, file_id);
+
+        if !sema_diags.is_empty() {
+            let mut error_messages = Vec::new();
+            for diagnostic in &sema_diags {
+                let mut buffer = Buffer::ansi();
+                let config = term::Config::default();
+                if let Err(_e) = term::emit(
+                    &mut buffer,
+                    &config,
+                    &reporter.files,
+                    &diagnostic.to_codespan_diagnostic(file_id),
+                ) {
+                    error_messages.push(format!("Semantic error: {}", diagnostic.message));
+                    continue;
+                }
+
+                let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                error_messages.push(output);
+            }
+
+            return Ok(Some(error_messages.join("\n")));
+        }
+
+        let mut type_checker = TypeChecker::new();
+        if let Err(errors) = type_checker.check_types(&program) {
+            let mut error_messages = Vec::new();
+            for error in &errors {
+                let diagnostic = reporter.convert_type_error(file_id, error);
+
+                let mut buffer = Buffer::ansi();
+                let config = term::Config::default();
+                if let Err(_e) = term::emit(
+                    &mut buffer,
+                    &config,
+                    &reporter.files,
+                    &diagnostic.to_codespan_diagnostic(file_id),
+                ) {
+                    error_messages.push(format!("Type error: {}", error));
+                    continue;
+                }
+
+                let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
+                error_messages.push(output);
+            }
+
+            return Ok(Some(error_messages.join("\n")));
         }
 
         let mut result_output = None;

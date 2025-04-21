@@ -36,6 +36,10 @@ The WFL compiler is currently under development. Here's the current status:
 - The `wait for ... and ...` construct is currently sequential until real concurrency is implemented in a future release (tracked in issue #51).
 - The `open file` command creates the file if it doesn't exist. A future `create file` syntax is planned.
 
+## Execution Pipeline
+
+All runs are now type‑checked and semantically analyzed by default. This ensures that scripts are validated for semantic correctness and type safety before execution, preventing many common runtime errors.
+
 ## AI-Assisted Development
 
 This project is developed with the assistance of AI:
