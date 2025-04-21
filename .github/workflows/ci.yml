@@ -27,6 +27,7 @@ jobs:
     name: Build, Test, Clippy
     runs-on: ubuntu-latest
     needs: fmt
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
