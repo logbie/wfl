@@ -660,6 +660,29 @@ impl<'a> Parser<'a> {
     fn parse_primary_expression(&mut self) -> Result<Expression, ParseError> {
         if let Some(token) = self.tokens.peek().cloned() {
             let result = match &token.token {
+                Token::LeftParen => {
+                    self.tokens.next(); // Consume '('
+                    let expr = self.parse_expression()?;
+                    
+                    if let Some(token) = self.tokens.peek() {
+                        if token.token == Token::RightParen {
+                            self.tokens.next(); // Consume ')'
+                            return Ok(expr);
+                        } else {
+                            return Err(ParseError::new(
+                                format!("Expected closing parenthesis, found {:?}", token.token),
+                                token.line,
+                                token.column,
+                            ));
+                        }
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected closing parenthesis, found end of input".to_string(),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                },
                 Token::StringLiteral(s) => {
                     let token_pos = self.tokens.next().unwrap();
                     Ok(Expression::Literal(

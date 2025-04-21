@@ -9,7 +9,7 @@ use wfl::config;
 use wfl::debug_report;
 use wfl::diagnostics::DiagnosticReporter;
 use wfl::fixer::{CodeFixer, FixerOutputMode};
-use wfl::lexer::{lex_wfl, lex_wfl_with_positions, token::Token};
+use wfl::lexer::lex_wfl_with_positions;
 use wfl::linter::Linter;
 use wfl::logging;
 use wfl::parser::Parser;
@@ -316,110 +316,14 @@ async fn main() -> io::Result<()> {
             }
         }
     } else {
-        let tokens = lex_wfl(&input);
         let tokens_with_pos = lex_wfl_with_positions(&input);
-
-        println!("Lexer output:");
-        for (i, token) in tokens.iter().enumerate() {
-            println!("{}: {:?}", i, token);
-        }
-
-        println!("\nTotal tokens: {}", tokens.len());
-
-        let keyword_count = tokens
-            .iter()
-            .filter(|t| {
-                matches!(
-                    t,
-                    Token::KeywordStore
-                        | Token::KeywordCreate
-                        | Token::KeywordDisplay
-                        | Token::KeywordIf
-                        | Token::KeywordCheck
-                        | Token::KeywordOtherwise
-                        | Token::KeywordThen
-                        | Token::KeywordEnd
-                        | Token::KeywordAs
-                        | Token::KeywordTo
-                        | Token::KeywordFrom
-                        | Token::KeywordWith
-                        | Token::KeywordAnd
-                        | Token::KeywordOr
-                        | Token::KeywordCount
-                        | Token::KeywordFor
-                        | Token::KeywordEach
-                        | Token::KeywordIn
-                        | Token::KeywordReversed
-                        | Token::KeywordRepeat
-                        | Token::KeywordWhile
-                        | Token::KeywordUntil
-                        | Token::KeywordForever
-                        | Token::KeywordSkip
-                        | Token::KeywordContinue
-                        | Token::KeywordBreak
-                        | Token::KeywordExit
-                        | Token::KeywordLoop
-                        | Token::KeywordDefine
-                        | Token::KeywordAction
-                        | Token::KeywordCalled
-                        | Token::KeywordNeeds
-                        | Token::KeywordGive
-                        | Token::KeywordBack
-                        | Token::KeywordReturn
-                        | Token::KeywordOpen
-                        | Token::KeywordClose
-                        | Token::KeywordFile
-                        | Token::KeywordUrl
-                        | Token::KeywordDatabase
-                        | Token::KeywordAt
-                        | Token::KeywordRead
-                        | Token::KeywordWrite
-                        | Token::KeywordContent
-                        | Token::KeywordInto
-                        | Token::KeywordPlus
-                        | Token::KeywordMinus
-                        | Token::KeywordTimes
-                        | Token::KeywordDivided
-                        | Token::KeywordBy
-                        | Token::KeywordContains
-                        | Token::KeywordAbove
-                        | Token::KeywordBelow
-                        | Token::KeywordEqual
-                        | Token::KeywordGreater
-                        | Token::KeywordLess
-                        | Token::KeywordNot
-                        | Token::KeywordIs
-                )
-            })
-            .count();
-        println!("Keywords: {}", keyword_count);
-
-        let identifier_count = tokens
-            .iter()
-            .filter(|t| matches!(t, Token::Identifier(_)))
-            .count();
-        println!("Identifiers: {}", identifier_count);
-
-        let literal_count = tokens
-            .iter()
-            .filter(|t| {
-                matches!(
-                    t,
-                    Token::StringLiteral(_)
-                        | Token::IntLiteral(_)
-                        | Token::FloatLiteral(_)
-                        | Token::BooleanLiteral(_)
-                        | Token::NothingLiteral
-                )
-            })
-            .count();
-        println!("Literals: {}", literal_count);
-
-        println!("\nParser output:");
+        
+        println!("Parsing and executing script...");
         let mut parser = Parser::new(&tokens_with_pos);
         match parser.parse() {
             Ok(program) => {
-                println!("AST:\n{:#?}", program);
+                println!("AST: [large output suppressed]");
+                println!("Program has {} statements", program.statements.len());
 
                 let mut analyzer = Analyzer::new();
                 let mut reporter = DiagnosticReporter::new();
@@ -454,7 +358,7 @@ async fn main() -> io::Result<()> {
                     }
                 }
 
-                let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                let mut interpreter = Interpreter::with_timeout(300); // 5 minutes
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
                     Ok(result) => {

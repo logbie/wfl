@@ -267,11 +267,16 @@ impl Interpreter {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
 
+        println!("Starting script execution with {} statements...", program.statements.len());
+        
         let mut last_value = Value::Null;
         let mut errors = Vec::new();
 
-        for statement in &program.statements {
+        for (i, statement) in program.statements.iter().enumerate() {
+            println!("Executing statement {}/{}...", i+1, program.statements.len());
+            
             if let Err(err) = self.check_time() {
+                println!("Timeout reached at statement {}/{}", i+1, program.statements.len());
                 errors.push(err);
                 return Err(errors);
             }
@@ -280,8 +285,12 @@ impl Interpreter {
                 .execute_statement(statement, Rc::clone(&self.global_env))
                 .await
             {
-                Ok(value) => last_value = value,
+                Ok(value) => {
+                    last_value = value;
+                    println!("Statement {}/{} completed successfully", i+1, program.statements.len());
+                },
                 Err(err) => {
+                    println!("Error at statement {}/{}: {:?}", i+1, program.statements.len(), err);
                     errors.push(err);
                     break; // Stop on first runtime error
                 }
@@ -452,6 +461,8 @@ impl Interpreter {
                 line,
                 column,
             } => {
+                let previous_count = *self.current_count.borrow();
+                let was_in_count_loop = *self.in_count_loop.borrow();
                 let start_val = self.evaluate_expression(start, Rc::clone(&env)).await?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env)).await?;
 
@@ -507,7 +518,8 @@ impl Interpreter {
                     match self.execute_block(body, Rc::clone(&loop_env)).await {
                         Ok(_) => {}
                         Err(e) => {
-                            *self.in_count_loop.borrow_mut() = false;
+                            *self.current_count.borrow_mut() = previous_count;
+                            *self.in_count_loop.borrow_mut() = was_in_count_loop;
                             return Err(e);
                         }
                     }
@@ -521,8 +533,8 @@ impl Interpreter {
                     iterations += 1;
                 }
 
-                *self.current_count.borrow_mut() = None;
-                *self.in_count_loop.borrow_mut() = false;
+                *self.current_count.borrow_mut() = previous_count;
+                *self.in_count_loop.borrow_mut() = was_in_count_loop;
 
                 if iterations >= max_iterations {
                     return Err(RuntimeError::new(
@@ -680,24 +692,46 @@ impl Interpreter {
                 column,
             } => {
                 let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
-                let handle = match &path_value {
+                let path_str = match &path_value {
                     Value::Text(s) => s.clone(),
                     _ => {
                         return Err(RuntimeError::new(
-                            format!("Expected string for file handle, got {:?}", path_value),
+                            format!("Expected string for file path or handle, got {:?}", path_value),
                             *line,
                             *column,
                         ));
                     }
                 };
 
-                match self.io_client.read_file(&handle).await {
-                    Ok(content) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(content.into()));
-                        Ok(Value::Null)
+                let is_file_path = matches!(path, Expression::Literal(Literal::String(_), _, _));
+
+                if is_file_path {
+                    match self.io_client.open_file(&path_str).await {
+                        Ok(handle) => {
+                            match self.io_client.read_file(&handle).await {
+                                Ok(content) => {
+                                    env.borrow_mut()
+                                        .define(variable_name, Value::Text(content.into()));
+                                    let _ = self.io_client.close_file(&handle).await;
+                                    Ok(Value::Null)
+                                }
+                                Err(e) => {
+                                    let _ = self.io_client.close_file(&handle).await;
+                                    Err(RuntimeError::new(e, *line, *column))
+                                }
+                            }
+                        }
+                        Err(e) => Err(RuntimeError::new(e, *line, *column)),
                     }
-                    Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                } else {
+                    match self.io_client.read_file(&path_str).await {
+                        Ok(content) => {
+                            env.borrow_mut()
+                                .define(variable_name, Value::Text(content.into()));
+                            Ok(Value::Null)
+                        }
+                        Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                    }
                 }
             }
             Statement::WriteFileStatement {
@@ -759,7 +793,78 @@ impl Interpreter {
                 inner,
                 line: _,
                 column: _,
-            } => self.execute_statement(inner, Rc::clone(&env)).await,
+            } => {
+                match inner.as_ref() {
+                    Statement::ExpressionStatement { 
+                        expression: Expression::Variable(var_name, _, _), 
+                        line: _, 
+                        column: _ 
+                    } => {
+                        let max_attempts = 1000; // Prevent infinite waiting
+                        for _ in 0..max_attempts {
+                            if let Some(value) = env.borrow().get(var_name) {
+                                if !matches!(value, Value::Null) {
+                                    return Ok(Value::Null);
+                                }
+                            }
+                            
+                            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+                            
+                            self.check_time()?;
+                        }
+                        
+                        Err(RuntimeError::new(
+                            format!("Timeout waiting for variable '{}'", var_name),
+                            0, 0
+                        ))
+                    },
+                    Statement::ReadFileStatement { path, variable_name, line, column } => {
+                        let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
+                        let path_str = match &path_value {
+                            Value::Text(s) => s.clone(),
+                            _ => {
+                                return Err(RuntimeError::new(
+                                    format!("Expected string for file path or handle, got {:?}", path_value),
+                                    *line,
+                                    *column,
+                                ));
+                            }
+                        };
+
+                        let is_file_path = matches!(path, Expression::Literal(Literal::String(_), _, _));
+
+                        if is_file_path {
+                            match self.io_client.open_file(&path_str).await {
+                                Ok(handle) => {
+                                    match self.io_client.read_file(&handle).await {
+                                        Ok(content) => {
+                                            env.borrow_mut()
+                                                .define(variable_name, Value::Text(content.into()));
+                                            let _ = self.io_client.close_file(&handle).await;
+                                            Ok(Value::Null)
+                                        }
+                                        Err(e) => {
+                                            let _ = self.io_client.close_file(&handle).await;
+                                            Err(RuntimeError::new(e, *line, *column))
+                                        }
+                                    }
+                                }
+                                Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                            }
+                        } else {
+                            match self.io_client.read_file(&path_str).await {
+                                Ok(content) => {
+                                    env.borrow_mut()
+                                        .define(variable_name, Value::Text(content.into()));
+                                    Ok(Value::Null)
+                                }
+                                Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                            }
+                        }
+                    },
+                    _ => self.execute_statement(inner, Rc::clone(&env)).await
+                }
+            },
             Statement::TryStatement {
                 body,
                 error_name,
@@ -950,8 +1055,27 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let left_val = self.evaluate_expression(left, Rc::clone(&env)).await?;
-                let right_val = self.evaluate_expression(right, Rc::clone(&env)).await?;
+                let left_val = match left.as_ref() {
+                    Expression::Variable(name, _, _) if name == "count" => {
+                        if let Some(count_value) = *self.current_count.borrow() {
+                            Value::Number(count_value)
+                        } else {
+                            self.evaluate_expression(left, Rc::clone(&env)).await?
+                        }
+                    }
+                    _ => self.evaluate_expression(left, Rc::clone(&env)).await?
+                };
+
+                let right_val = match right.as_ref() {
+                    Expression::Variable(name, _, _) if name == "count" => {
+                        if let Some(count_value) = *self.current_count.borrow() {
+                            Value::Number(count_value)
+                        } else {
+                            self.evaluate_expression(right, Rc::clone(&env)).await?
+                        }
+                    }
+                    _ => self.evaluate_expression(right, Rc::clone(&env)).await?
+                };
 
                 match operator {
                     Operator::Plus => self.add(left_val, right_val, *line, *column),

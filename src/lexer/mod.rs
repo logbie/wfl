@@ -16,7 +16,6 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     lexer.span().start,
                     lexer.slice()
                 );
-                break;
             }
             Ok(Token::Identifier(word)) => {
                 if let Some(ref mut id) = current_id {
@@ -38,7 +37,6 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     lexer.span().start,
                     lexer.slice()
                 );
-                break;
             }
         }
     }
@@ -90,7 +88,6 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     span.start,
                     lexer.slice()
                 );
-                break;
             }
             Ok(Token::Identifier(word)) => {
                 if let Some(ref mut id) = current_id {
@@ -126,7 +123,6 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     span.start,
                     lexer.slice()
                 );
-                break;
             }
         }
     }
@@ -284,6 +280,30 @@ mod tests {
                 Token::KeywordCount,
                 Token::KeywordEnd,
                 Token::KeywordCount,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_identifiers_with_underscores() {
+        let input = r#"
+            store user_name as "Alice"
+            display user_name with " is logged in."
+        "#;
+
+        let tokens = lex_wfl(input);
+        
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordStore,
+                Token::Identifier("user_name".to_string()),
+                Token::KeywordAs,
+                Token::StringLiteral("Alice".to_string()),
+                Token::KeywordDisplay,
+                Token::Identifier("user_name".to_string()),
+                Token::KeywordWith,
+                Token::StringLiteral(" is logged in.".to_string()),
             ]
         );
     }
