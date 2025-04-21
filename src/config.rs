@@ -647,7 +647,6 @@ mod tests {
 
         let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
 
-
         assert_eq!(config.timeout_seconds, 60); // Local override
         assert!(config.logging_enabled); // From global
         assert_eq!(config.max_line_length, 120); // From global
