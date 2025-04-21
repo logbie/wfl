@@ -88,7 +88,7 @@ impl<'a> Parser<'a> {
                 }
                 Token::KeywordExit => {
                     let token_pos = self.tokens.next().unwrap();
-                    
+
                     if let Some(next_token) = self.tokens.peek() {
                         if matches!(next_token.token, Token::KeywordLoop) {
                             self.tokens.next(); // Consume "loop" token

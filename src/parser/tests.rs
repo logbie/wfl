@@ -371,10 +371,10 @@ fn test_parse_exit_loop_statement() {
     let input = "exit loop";
     let tokens = lex_wfl_with_positions(input);
     let mut parser = Parser::new(&tokens);
-    
+
     let result = parser.parse_statement();
     assert!(result.is_ok());
-    
+
     if let Ok(Statement::ExitLoopStatement { line, column }) = result {
         assert_eq!(line, 1);
         assert_eq!(column, 1);
@@ -388,8 +388,13 @@ fn test_parse_exit_without_loop() {
     let input = "exit something";
     let tokens = lex_wfl_with_positions(input);
     let mut parser = Parser::new(&tokens);
-    
+
     let result = parser.parse_statement();
     assert!(result.is_err());
-    assert!(result.unwrap_err().message.contains("Expected 'loop' after 'exit'"));
+    assert!(
+        result
+            .unwrap_err()
+            .message
+            .contains("Expected 'loop' after 'exit'")
+    );
 }

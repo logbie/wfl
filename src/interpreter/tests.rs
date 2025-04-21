@@ -183,16 +183,16 @@ async fn test_exit_loop_statement() {
       store count as count plus 1
     end repeat
     "#;
-    
+
     let tokens = lex_wfl_with_positions(input);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    
+
     let mut interpreter = Interpreter::new();
     let result = interpreter.interpret(&program).await;
-    
+
     assert!(result.is_ok());
-    
+
     let env = interpreter.global_env().borrow();
     if let Some(Value::Number(count)) = env.get("count") {
         assert_eq!(count, 3.0);
@@ -204,14 +204,14 @@ async fn test_exit_loop_statement() {
 #[tokio::test]
 async fn test_exit_loop_outside_loop() {
     let input = "exit loop";
-    
+
     let tokens = lex_wfl_with_positions(input);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    
+
     let mut interpreter = Interpreter::new();
     let result = interpreter.interpret(&program).await;
-    
+
     assert!(result.is_err());
     let errors = result.unwrap_err();
     assert_eq!(errors.len(), 1);
@@ -236,24 +236,24 @@ async fn test_exit_loop_three_level_nested() {
       store result as result with " OUTER"
     end repeat
     "#;
-    
+
     let tokens = lex_wfl_with_positions(input);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().unwrap();
-    
+
     let mut interpreter = Interpreter::new();
     let result = interpreter.interpret(&program).await;
-    
+
     assert!(result.is_ok());
-    
+
     let env = interpreter.global_env().borrow();
     if let Some(Value::Text(result_str)) = env.get("result") {
         assert!(result_str.contains("MIDDLE"));
         assert!(result_str.contains("OUTER"));
-        
+
         let middle_count = result_str.matches("MIDDLE").count();
         let outer_count = result_str.matches("OUTER").count();
-        
+
         assert_eq!(outer_count, 3);
         assert_eq!(middle_count, 9);
     } else {

@@ -261,10 +261,10 @@ impl StaticAnalyzer for Analyzer {
 
         diagnostics
     }
-    
+
     fn check_exit_loop_outside(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
-        
+
         fn check_statements(
             statements: &[Statement],
             loop_depth: usize,
@@ -280,20 +280,27 @@ impl StaticAnalyzer for Analyzer {
                     | Statement::ForeverLoop { body, .. } => {
                         check_statements(body, loop_depth + 1, file_id, diagnostics);
                     }
-                    
-                    Statement::IfStatement { then_block, else_block, .. } => {
+
+                    Statement::IfStatement {
+                        then_block,
+                        else_block,
+                        ..
+                    } => {
                         check_statements(then_block, loop_depth, file_id, diagnostics);
                         if let Some(else_stmts) = else_block {
                             check_statements(else_stmts, loop_depth, file_id, diagnostics);
                         }
                     }
-                    
+
                     Statement::ExitLoopStatement { line, column } => {
                         if loop_depth == 0 {
                             diagnostics.push(WflDiagnostic::new(
                                 Severity::Error,
                                 "`exit loop` used outside of any loop".to_string(),
-                                Some("This statement has no effect as it's not inside a loop".to_string()),
+                                Some(
+                                    "This statement has no effect as it's not inside a loop"
+                                        .to_string(),
+                                ),
                                 "ANALYZE-EXITLOOP".to_string(),
                                 file_id,
                                 *line,
@@ -302,12 +309,12 @@ impl StaticAnalyzer for Analyzer {
                             ));
                         }
                     }
-                    
+
                     _ => {}
                 }
             }
         }
-        
+
         check_statements(&program.statements, 0, file_id, &mut diagnostics);
         diagnostics
     }
