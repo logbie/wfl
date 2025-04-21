@@ -199,7 +199,13 @@ will keep increasing the heater **until** the temperature exceeds 100 ([wfl-vars
 
 For an endless loop, you can literally write **`repeat forever:`** ... **`end repeat`**, which will loop indefinitely until you break out of it ([wfl-vars.md](file://file-MSrTCHF2wFfKpJ1Xxem8Tg#:~:text=repeat%20forever%3A%20check%20system%20status,end%20repeat)). (Use this with caution, and typically with a break condition inside.)
 
-**Loop Control:** Inside any loop, you can control the flow with natural commands. WFL provides a way to **break out** of a loop early or **skip** to the next iteration. For example, you might use **`break`** to exit a loop if a certain condition is met in the middle, or **`continue`** (or **`skip`**) to jump to the next iteration without finishing the rest of the loop body. These work like in other languages but are expressed as words. A concrete example:
+**Loop Control:** Inside any loop, you can control the flow with natural commands. WFL provides several ways to control loop execution:
+
+- **`break`** exits the current (innermost) loop if a certain condition is met
+- **`continue`** (or **`skip`**) jumps to the next iteration without finishing the rest of the loop body
+- **`exit loop`** breaks out one level farther than the current loop (useful in nested loops)
+
+These work like in other languages but are expressed as words. Here's an example of `break` and `continue`:
 
 ```wfl
 for each number in numbers:
@@ -208,12 +214,26 @@ for each number in numbers:
     end check
     display "Processing " with number
     check if number is 0:
-        break  // stop the loop entirely if number is 0
+        break  // stop the innermost loop entirely if number is 0
     end check
 end for
 ```
 
-In this pseudo-code, the loop skips any negative number and stops completely if it encounters 0. (The keywords `skip` and `break` would be used as shown – WFL might allow synonyms like `continue` or `exit loop` as well, but the idea is the same.)
+For nested loops, you can use **`exit loop`** to break out of both the current loop and one level up:
+
+```wfl
+repeat count from 1 to 3:
+    repeat count from 1 to 3:
+        check if count is 2:
+            exit loop  // leaves the inner loop AND the outer loop
+        end check
+        display count
+    end repeat
+    display "This won't run if inner loop used 'exit loop'"
+end repeat
+```
+
+In this example, when `count` reaches 2 in the inner loop, `exit loop` will break out of both the inner and outer loops, skipping the rest of both loops. This is different from `break`, which would only exit the innermost loop.
 
 ### Functions (Actions)  
 In WFL, reusable blocks of code are defined as **actions** (analogous to functions in other languages). Defining an action allows you to encapsulate a sequence of steps under a name and call it whenever needed, promoting code re-use and clarity. The term *“action”* emphasizes that it performs some operation, and the syntax for actions is designed to look like defining a procedure in plain language.
@@ -732,5 +752,5 @@ The WebFirst Language brings together the above syntax and semantic rules to cre
 
 The semantics ensure that programs behave reliably: the strong type system catches mistakes early (with helpful messages), scoping rules prevent unintended interactions, and automatic memory management lets developers build complex web applications without worrying about low-level errors. WFL’s design is informed by the needs of modern web development (with first-class support for async operations and integration with web APIs) while keeping the syntax accessible to someone who might be writing their first lines of code.
 
-By following this specification, implementers of WFL can create compilers or interpreters that uphold these syntax rules and semantics, and developers can write WFL code with confidence that it will do what it intuitively says. The end result is a language specification that reads almost like a tutorial – just as WFL code reads like plain English – fulfilling the language’s mission of making web programming more intuitive, inclusive, and robust. 
+By following this specification, implementers of WFL can create compilers or interpreters that uphold these syntax rules and semantics, and developers can write WFL code with confidence that it will do what it intuitively says. The end result is a language specification that reads almost like a tutorial – just as WFL code reads like plain English – fulfilling the language’s mission of making web programming more intuitive, inclusive, and robust.  
 

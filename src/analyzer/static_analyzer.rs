@@ -100,6 +100,8 @@ pub trait StaticAnalyzer {
     fn check_shadowing(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic>;
 
     fn check_inconsistent_returns(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic>;
+
+    fn check_exit_loop_outside(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic>;
 }
 
 impl StaticAnalyzer for Analyzer {
@@ -124,6 +126,7 @@ impl StaticAnalyzer for Analyzer {
         }
 
         diagnostics.extend(self.check_unused_variables(program, file_id));
+        diagnostics.extend(self.check_exit_loop_outside(program, file_id));
         diagnostics.extend(self.check_unreachable_code(program, file_id));
         diagnostics.extend(self.check_shadowing(program, file_id));
         diagnostics.extend(self.check_inconsistent_returns(program, file_id));
@@ -256,6 +259,56 @@ impl StaticAnalyzer for Analyzer {
             }
         }
 
+        diagnostics
+    }
+    
+    fn check_exit_loop_outside(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
+        let mut diagnostics = Vec::new();
+        
+        fn check_statements(
+            statements: &[Statement],
+            loop_depth: usize,
+            file_id: usize,
+            diagnostics: &mut Vec<WflDiagnostic>,
+        ) {
+            for stmt in statements {
+                match stmt {
+                    Statement::CountLoop { body, .. }
+                    | Statement::ForEachLoop { body, .. }
+                    | Statement::WhileLoop { body, .. }
+                    | Statement::RepeatUntilLoop { body, .. }
+                    | Statement::ForeverLoop { body, .. } => {
+                        check_statements(body, loop_depth + 1, file_id, diagnostics);
+                    }
+                    
+                    Statement::IfStatement { then_block, else_block, .. } => {
+                        check_statements(then_block, loop_depth, file_id, diagnostics);
+                        if let Some(else_stmts) = else_block {
+                            check_statements(else_stmts, loop_depth, file_id, diagnostics);
+                        }
+                    }
+                    
+                    Statement::ExitLoopStatement { line, column } => {
+                        if loop_depth == 0 {
+                            diagnostics.push(WflDiagnostic::new(
+                                Severity::Error,
+                                "`exit loop` used outside of any loop".to_string(),
+                                Some("This statement has no effect as it's not inside a loop".to_string()),
+                                "ANALYZE-EXITLOOP".to_string(),
+                                file_id,
+                                *line,
+                                *column,
+                                None,
+                            ));
+                        }
+                    }
+                    
+                    _ => {}
+                }
+            }
+        }
+        
+        check_statements(&program.statements, 0, file_id, &mut diagnostics);
         diagnostics
     }
 }
@@ -508,6 +561,7 @@ impl Analyzer {
                             Statement::ExpressionStatement { line, .. } => *line,
                             Statement::BreakStatement { line, .. } => *line,
                             Statement::ContinueStatement { line, .. } => *line,
+                            Statement::ExitLoopStatement { line, .. } => *line,
                             Statement::OpenFileStatement { line, .. } => *line,
                             Statement::ReadFileStatement { line, .. } => *line,
                             Statement::WriteFileStatement { line, .. } => *line,
@@ -533,6 +587,7 @@ impl Analyzer {
                             Statement::ExpressionStatement { column, .. } => *column,
                             Statement::BreakStatement { column, .. } => *column,
                             Statement::ContinueStatement { column, .. } => *column,
+                            Statement::ExitLoopStatement { column, .. } => *column,
                             Statement::OpenFileStatement { column, .. } => *column,
                             Statement::ReadFileStatement { column, .. } => *column,
                             Statement::WriteFileStatement { column, .. } => *column,
@@ -586,6 +641,7 @@ impl Analyzer {
                                 Statement::ExpressionStatement { line, .. } => *line,
                                 Statement::BreakStatement { line, .. } => *line,
                                 Statement::ContinueStatement { line, .. } => *line,
+                                Statement::ExitLoopStatement { line, .. } => *line,
                                 Statement::OpenFileStatement { line, .. } => *line,
                                 Statement::ReadFileStatement { line, .. } => *line,
                                 Statement::WriteFileStatement { line, .. } => *line,
@@ -611,6 +667,7 @@ impl Analyzer {
                                 Statement::ExpressionStatement { column, .. } => *column,
                                 Statement::BreakStatement { column, .. } => *column,
                                 Statement::ContinueStatement { column, .. } => *column,
+                                Statement::ExitLoopStatement { column, .. } => *column,
                                 Statement::OpenFileStatement { column, .. } => *column,
                                 Statement::ReadFileStatement { column, .. } => *column,
                                 Statement::WriteFileStatement { column, .. } => *column,
@@ -652,6 +709,7 @@ impl Analyzer {
                                     Statement::ExpressionStatement { line, .. } => *line,
                                     Statement::BreakStatement { line, .. } => *line,
                                     Statement::ContinueStatement { line, .. } => *line,
+                                    Statement::ExitLoopStatement { line, .. } => *line,
                                     Statement::OpenFileStatement { line, .. } => *line,
                                     Statement::ReadFileStatement { line, .. } => *line,
                                     Statement::WriteFileStatement { line, .. } => *line,
@@ -677,6 +735,7 @@ impl Analyzer {
                                     Statement::ExpressionStatement { column, .. } => *column,
                                     Statement::BreakStatement { column, .. } => *column,
                                     Statement::ContinueStatement { column, .. } => *column,
+                                    Statement::ExitLoopStatement { column, .. } => *column,
                                     Statement::OpenFileStatement { column, .. } => *column,
                                     Statement::ReadFileStatement { column, .. } => *column,
                                     Statement::WriteFileStatement { column, .. } => *column,

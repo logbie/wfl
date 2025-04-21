@@ -104,6 +104,10 @@ pub enum Statement {
         line: usize,
         column: usize,
     },
+    ExitLoopStatement {
+        line: usize,
+        column: usize,
+    },
     OpenFileStatement {
         path: Expression,
         variable_name: String,

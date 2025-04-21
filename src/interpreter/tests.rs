@@ -20,7 +20,7 @@ async fn test_literal_evaluation() {
                 .await
                 .unwrap();
             match result {
-                Value::Number(n) => assert_eq!(n, 42.0),
+                (Value::Number(n), _) => assert_eq!(n, 42.0),
                 _ => panic!("Expected number, got {:?}", result),
             }
         } else {
@@ -170,4 +170,93 @@ async fn test_timeout_forever_loop() {
         "Timeout took too long: {:?}",
         elapsed
     );
+}
+
+#[tokio::test]
+async fn test_exit_loop_statement() {
+    let input = r#"
+    store count as 0
+    repeat count from 1 to 3:
+      repeat count from 1 to 3:
+        exit loop
+      end repeat
+      store count as count plus 1
+    end repeat
+    "#;
+    
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.interpret(&program).await;
+    
+    assert!(result.is_ok());
+    
+    let env = interpreter.global_env().borrow();
+    if let Some(Value::Number(count)) = env.get("count") {
+        assert_eq!(count, 3.0);
+    } else {
+        panic!("count variable missing or not a number");
+    }
+}
+
+#[tokio::test]
+async fn test_exit_loop_outside_loop() {
+    let input = "exit loop";
+    
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.interpret(&program).await;
+    
+    assert!(result.is_err());
+    let errors = result.unwrap_err();
+    assert_eq!(errors.len(), 1);
+    assert!(errors[0].message.contains("outside of any loop"));
+}
+
+#[tokio::test]
+async fn test_exit_loop_three_level_nested() {
+    let input = r#"
+    store result as ""
+    repeat count from 1 to 3:
+      store outer as count
+      repeat count from 1 to 3:
+        store middle as count
+        repeat count from 1 to 3:
+          store inner as count
+          store result as result with " " with outer with "-" with middle with "-" with inner
+          exit loop
+        end repeat
+        store result as result with " MIDDLE"
+      end repeat
+      store result as result with " OUTER"
+    end repeat
+    "#;
+    
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let mut interpreter = Interpreter::new();
+    let result = interpreter.interpret(&program).await;
+    
+    assert!(result.is_ok());
+    
+    let env = interpreter.global_env().borrow();
+    if let Some(Value::Text(result_str)) = env.get("result") {
+        assert!(result_str.contains("MIDDLE"));
+        assert!(result_str.contains("OUTER"));
+        
+        let middle_count = result_str.matches("MIDDLE").count();
+        let outer_count = result_str.matches("OUTER").count();
+        
+        assert_eq!(outer_count, 3);
+        assert_eq!(middle_count, 9);
+    } else {
+        panic!("result variable missing or not a string");
+    }
 }

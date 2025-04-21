@@ -537,7 +537,7 @@ impl TypeChecker {
             Statement::ExpressionStatement { expression, .. } => {
                 self.infer_expression_type(expression);
             }
-            Statement::BreakStatement { .. } | Statement::ContinueStatement { .. } => {}
+            Statement::BreakStatement { .. } | Statement::ContinueStatement { .. } | Statement::ExitLoopStatement { .. } => {}
             Statement::OpenFileStatement {
                 path,
                 variable_name,

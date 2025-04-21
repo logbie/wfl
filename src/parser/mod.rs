@@ -86,6 +86,31 @@ impl<'a> Parser<'a> {
                         column: token_pos.column,
                     })
                 }
+                Token::KeywordExit => {
+                    let token_pos = self.tokens.next().unwrap();
+                    
+                    if let Some(next_token) = self.tokens.peek() {
+                        if matches!(next_token.token, Token::KeywordLoop) {
+                            self.tokens.next(); // Consume "loop" token
+                            Ok(Statement::ExitLoopStatement {
+                                line: token_pos.line,
+                                column: token_pos.column,
+                            })
+                        } else {
+                            Err(ParseError::new(
+                                "Expected 'loop' after 'exit'".to_string(),
+                                token_pos.line,
+                                token_pos.column,
+                            ))
+                        }
+                    } else {
+                        Err(ParseError::new(
+                            "Expected 'loop' after 'exit'".to_string(),
+                            token_pos.line,
+                            token_pos.column,
+                        ))
+                    }
+                }
                 Token::KeywordOpen => {
                     let mut tokens_clone = self.tokens.clone();
                     let mut has_read_pattern = false;

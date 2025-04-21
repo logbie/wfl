@@ -2,6 +2,11 @@
 
 All notable changes to the WFL project will be documented in this file.
 
+## [v0.0.0-nightly+CDR3-exitloop] - 2025-04-21
+
+### Added
+- Added `exit loop` statement to break out of nested loops one level farther than the current loop
+
 ## [v0.0.0-nightly+CDR3] - 2025-04-20
 
 ### Fixed

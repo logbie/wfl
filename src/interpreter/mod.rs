@@ -23,6 +23,17 @@ use tokio::io::AsyncWriteExt;
 use tokio::sync::Mutex;
 // use self::value::FutureValue;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum LoopControl {
+    None,
+    Continue,
+    Break,
+    Exit {
+        line: usize,
+        column: usize,
+    },
+}
+
 pub struct Interpreter {
     global_env: Rc<RefCell<Environment>>,
     current_count: RefCell<Option<f64>>,
@@ -280,7 +291,41 @@ impl Interpreter {
                 .execute_statement(statement, Rc::clone(&self.global_env))
                 .await
             {
-                Ok(value) => last_value = value,
+                Ok((value, control)) => {
+                    last_value = value;
+                    if let LoopControl::Exit { line, column } = control {
+                        // Convert unhandled Exit to runtime error
+                        let err = RuntimeError::new(
+                            "`exit loop` used outside of any loop".to_string(),
+                            line,
+                            column,
+                        );
+                        errors.push(err);
+                        break;
+                    } else if matches!(control, LoopControl::Break | LoopControl::Continue) {
+                        // Convert unhandled Break/Continue to runtime error
+                        let msg = if matches!(control, LoopControl::Break) {
+                            "`break` used outside of any loop".to_string()
+                        } else {
+                            "`continue` used outside of any loop".to_string()
+                        };
+                        
+                        let (line, column) = match control {
+                            LoopControl::Break => (0, 0), // These should be stored in the enum
+                            LoopControl::Continue => (0, 0), // These should be stored in the enum
+                            LoopControl::Exit { line, column } => (line, column),
+                            _ => (0, 0), // Fallback
+                        };
+                        
+                        let err = RuntimeError::new(
+                            msg,
+                            line,
+                            column,
+                        );
+                        errors.push(err);
+                        break;
+                    }
+                },
                 Err(err) => {
                     errors.push(err);
                     break; // Stop on first runtime error
@@ -318,7 +363,7 @@ impl Interpreter {
         &self,
         stmt: &Statement,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         Box::pin(self._execute_statement(stmt, env)).await
     }
 
@@ -326,7 +371,7 @@ impl Interpreter {
         &self,
         stmt: &Statement,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         self.check_time()?;
 
         match stmt {
@@ -336,9 +381,12 @@ impl Interpreter {
                 line: _,
                 column: _,
             } => {
-                let value = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                let (value, control) = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
                 env.borrow_mut().define(name, value);
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::Assignment {
@@ -347,9 +395,14 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let value = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                let (value, control) = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
+                
                 match env.borrow_mut().assign(name, value) {
-                    Ok(_) => Ok(Value::Null),
+                    Ok(_) => Ok((Value::Null, LoopControl::None)),
                     Err(msg) => Err(RuntimeError::new(msg, *line, *column)),
                 }
             }
@@ -361,14 +414,18 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let condition_value = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                let (condition_value, control) = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
 
                 if condition_value.is_truthy() {
                     self.execute_block(then_block, Rc::clone(&env)).await
                 } else if let Some(else_stmts) = else_block {
                     self.execute_block(else_stmts, Rc::clone(&env)).await
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, LoopControl::None))
                 }
             }
 
@@ -379,14 +436,18 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let condition_value = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                let (condition_value, control) = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
 
                 if condition_value.is_truthy() {
                     self.execute_statement(then_stmt, Rc::clone(&env)).await
                 } else if let Some(else_stmt) = else_stmt {
                     self.execute_statement(else_stmt, Rc::clone(&env)).await
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, LoopControl::None))
                 }
             }
 
@@ -395,9 +456,12 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let value = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                let (value, control) = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
                 println!("{}", value);
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::ActionDefinition {
@@ -422,7 +486,7 @@ impl Interpreter {
                 let function_value = Value::Function(Rc::new(function));
                 env.borrow_mut().define(name, function_value.clone());
 
-                Ok(function_value)
+                Ok((function_value, LoopControl::None))
             }
 
             Statement::ReturnStatement {
@@ -431,9 +495,10 @@ impl Interpreter {
                 column: _column,
             } => {
                 if let Some(expr) = value {
-                    self.evaluate_expression(expr, Rc::clone(&env)).await
+                    let (val, _) = self.evaluate_expression(expr, Rc::clone(&env)).await?;
+                    Ok((val, LoopControl::None))
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, LoopControl::None))
                 }
             }
 
@@ -441,7 +506,10 @@ impl Interpreter {
                 expression,
                 line: _line,
                 column: _column,
-            } => self.evaluate_expression(expression, Rc::clone(&env)).await,
+            } => {
+                let (val, control) = self.evaluate_expression(expression, Rc::clone(&env)).await?;
+                Ok((val, control))
+            },
 
             Statement::CountLoop {
                 start,
@@ -452,8 +520,15 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let start_val = self.evaluate_expression(start, Rc::clone(&env)).await?;
-                let end_val = self.evaluate_expression(end, Rc::clone(&env)).await?;
+                let (start_val, control1) = self.evaluate_expression(start, Rc::clone(&env)).await?;
+                if control1 != LoopControl::None {
+                    return Ok((Value::Null, control1));
+                }
+                
+                let (end_val, control2) = self.evaluate_expression(end, Rc::clone(&env)).await?;
+                if control2 != LoopControl::None {
+                    return Ok((Value::Null, control2));
+                }
 
                 let (start_num, end_num) = match (start_val, end_val) {
                     (Value::Number(s), Value::Number(e)) => (s, e),
@@ -467,7 +542,12 @@ impl Interpreter {
                 };
 
                 let step_num = if let Some(step_expr) = step {
-                    match self.evaluate_expression(step_expr, Rc::clone(&env)).await? {
+                    let (step_val, control3) = self.evaluate_expression(step_expr, Rc::clone(&env)).await?;
+                    if control3 != LoopControl::None {
+                        return Ok((Value::Null, control3));
+                    }
+                    
+                    match step_val {
                         Value::Number(n) => n,
                         _ => {
                             return Err(RuntimeError::new(
@@ -505,9 +585,19 @@ impl Interpreter {
                     *self.current_count.borrow_mut() = Some(count);
 
                     match self.execute_block(body, Rc::clone(&loop_env)).await {
-                        Ok(_) => {}
+                        Ok((_, control)) => {
+                            if matches!(control, LoopControl::Break) {
+                                break;
+                            } else if let LoopControl::Exit { line, column } = control {
+                                *self.in_count_loop.borrow_mut() = false;
+                                *self.current_count.borrow_mut() = None;
+                                return Ok((Value::Null, LoopControl::Exit { line, column }));
+                            }else if matches!(control, LoopControl::Continue) {
+                            }
+                        }
                         Err(e) => {
                             *self.in_count_loop.borrow_mut() = false;
+                            *self.current_count.borrow_mut() = None;
                             return Err(e);
                         }
                     }
@@ -535,7 +625,7 @@ impl Interpreter {
                     ));
                 }
 
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::ForEachLoop {
@@ -546,13 +636,17 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let collection_val = self
+                let (collection_val, control) = self
                     .evaluate_expression(collection, Rc::clone(&env))
                     .await?;
+                
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
 
                 let loop_env = Environment::new_child_env(&env);
 
-                match collection_val {
+                match &collection_val {
                     Value::List(list_rc) => {
                         let items: Vec<Value> = {
                             let list = list_rc.borrow();
@@ -566,7 +660,18 @@ impl Interpreter {
 
                         for item in items {
                             loop_env.borrow_mut().define(item_name, item);
-                            self.execute_block(body, Rc::clone(&loop_env)).await?;
+                            match self.execute_block(body, Rc::clone(&loop_env)).await {
+                                Ok((_, control)) => {
+                                    if matches!(control, LoopControl::Break) {
+                                        break;
+                                    } else if let LoopControl::Exit { line, column } = control {
+                                        return Ok((Value::Null, LoopControl::Exit { line, column }));
+                                    }else if matches!(control, LoopControl::Continue) {
+                                        continue;
+                                    }
+                                }
+                                Err(e) => return Err(e),
+                            }
                         }
                     }
                     Value::Object(obj_rc) => {
@@ -577,7 +682,18 @@ impl Interpreter {
 
                         for (_, value) in items {
                             loop_env.borrow_mut().define(item_name, value);
-                            self.execute_block(body, Rc::clone(&loop_env)).await?;
+                            match self.execute_block(body, Rc::clone(&loop_env)).await {
+                                Ok((_, control)) => {
+                                    if matches!(control, LoopControl::Break) {
+                                        break;
+                                    } else if let LoopControl::Exit { line, column } = control {
+                                        return Ok((Value::Null, LoopControl::Exit { line, column }));
+                                    }else if matches!(control, LoopControl::Continue) {
+                                        continue;
+                                    }
+                                }
+                                Err(e) => return Err(e),
+                            }
                         }
                     }
                     _ => {
@@ -589,7 +705,7 @@ impl Interpreter {
                     }
                 }
 
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::WhileLoop {
@@ -598,15 +714,31 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                while self
-                    .evaluate_expression(condition, Rc::clone(&env))
-                    .await?
-                    .is_truthy()
-                {
+                loop {
+                    let (condition_value, control) = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                    
+                    if control != LoopControl::None {
+                        return Ok((Value::Null, control));
+                    }
+                    
+                    if !condition_value.is_truthy() {
+                        break;
+                    }
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    match self.execute_block(body, Rc::clone(&env)).await {
+                        Ok((_, control)) => {
+                            if matches!(control, LoopControl::Break) {
+                                break;
+                            } else if let LoopControl::Exit { line, column } = control {
+                                return Ok((Value::Null, LoopControl::Exit { line, column }));
+                            } else if matches!(control, LoopControl::Continue) {
+                                continue;
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    }
                 }
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::RepeatUntilLoop {
@@ -617,16 +749,29 @@ impl Interpreter {
             } => {
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
-                    if self
-                        .evaluate_expression(condition, Rc::clone(&env))
-                        .await?
-                        .is_truthy()
-                    {
+                    match self.execute_block(body, Rc::clone(&env)).await {
+                        Ok((_, control)) => {
+                            if matches!(control, LoopControl::Break) {
+                                break;
+                            } else if let LoopControl::Exit { line, column } = control {
+                                return Ok((Value::Null, LoopControl::Exit { line, column }));
+                            } else if matches!(control, LoopControl::Continue) {
+                                continue;
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    }
+                    let (condition_value, control) = self.evaluate_expression(condition, Rc::clone(&env)).await?;
+                    
+                    if control != LoopControl::None {
+                        return Ok((Value::Null, control));
+                    }
+                    
+                    if condition_value.is_truthy() {
                         break;
                     }
                 }
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
             Statement::ForeverLoop {
@@ -636,14 +781,34 @@ impl Interpreter {
             } => {
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    match self.execute_block(body, Rc::clone(&env)).await {
+                        Ok((_, control)) => {
+                            if matches!(control, LoopControl::Break) {
+                                break;
+                            } else if let LoopControl::Exit { line, column } = control {
+                                return Ok((Value::Null, LoopControl::Exit { line, column }));
+                            } else if matches!(control, LoopControl::Continue) {
+                                continue;
+                            }
+                        }
+                        Err(e) => return Err(e),
+                    }
                 }
                 #[allow(unreachable_code)]
-                Ok(Value::Null)
+                Ok((Value::Null, LoopControl::None))
             }
 
-            Statement::BreakStatement { .. } | Statement::ContinueStatement { .. } => {
-                Ok(Value::Null)
+            Statement::BreakStatement { .. } => {
+                Ok((Value::Null, LoopControl::Break))
+            }
+            Statement::ContinueStatement { .. } => {
+                Ok((Value::Null, LoopControl::Continue))
+            }
+            Statement::ExitLoopStatement { line, column } => {
+                Ok((Value::Null, LoopControl::Exit {
+                    line: *line,
+                    column: *column,
+                }))
             }
 
             Statement::OpenFileStatement {
@@ -652,7 +817,12 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
+                let (path_value, path_control) = self.evaluate_expression(path, Rc::clone(&env)).await?;
+                
+                if path_control != LoopControl::None {
+                    return Ok((Value::Null, path_control));
+                }
+                
                 let path_str = match &path_value {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -668,7 +838,7 @@ impl Interpreter {
                     Ok(handle) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(handle.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, LoopControl::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -679,7 +849,12 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
+                let (path_value, path_control) = self.evaluate_expression(path, Rc::clone(&env)).await?;
+                
+                if path_control != LoopControl::None {
+                    return Ok((Value::Null, path_control));
+                }
+                
                 let handle = match &path_value {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -695,7 +870,7 @@ impl Interpreter {
                     Ok(content) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(content.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, LoopControl::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -706,8 +881,17 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
-                let content_value = self.evaluate_expression(content, Rc::clone(&env)).await?;
+                let (file_value, file_control) = self.evaluate_expression(file, Rc::clone(&env)).await?;
+                
+                if file_control != LoopControl::None {
+                    return Ok((Value::Null, file_control));
+                }
+                
+                let (content_value, content_control) = self.evaluate_expression(content, Rc::clone(&env)).await?;
+                
+                if content_control != LoopControl::None {
+                    return Ok((Value::Null, content_control));
+                }
 
                 let file_str = match &file_value {
                     Value::Text(s) => s.clone(),
@@ -732,12 +916,15 @@ impl Interpreter {
                 };
 
                 match self.io_client.write_file(&file_str, &content_str).await {
-                    Ok(_) => Ok(Value::Null),
+                    Ok(_) => Ok((Value::Null, LoopControl::None)),
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
             Statement::CloseFileStatement { file, line, column } => {
-                let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
+                let (file_value, control) = self.evaluate_expression(file, Rc::clone(&env)).await?;
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
 
                 let file_str = match &file_value {
                     Value::Text(s) => s.clone(),
@@ -751,7 +938,7 @@ impl Interpreter {
                 };
 
                 match self.io_client.close_file(&file_str).await {
-                    Ok(_) => Ok(Value::Null),
+                    Ok(_) => Ok((Value::Null, LoopControl::None)),
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
@@ -770,20 +957,20 @@ impl Interpreter {
             } => {
                 let child_env = Environment::new_child_env(&env);
 
-                match self.execute_block(body, Rc::clone(&child_env)).await {
-                    Ok(val) => Ok(val), // Success path: just bubble result
+                match self.exec_block_ignore_control(body, Rc::clone(&child_env)).await {
+                    Ok(val) => Ok((val, LoopControl::None)), // Success path: just bubble result
                     Err(err) => {
                         child_env
                             .borrow_mut()
                             .define(error_name, Value::Text(err.message.into()));
 
-                        let result = self.execute_block(when_block, Rc::clone(&child_env)).await;
+                        let result = self.exec_block_ignore_control(when_block, Rc::clone(&child_env)).await;
 
                         if result.is_ok() || otherwise_block.is_none() {
-                            result
+                            Ok((result?, LoopControl::None))
                         } else {
-                            self.execute_block(otherwise_block.as_ref().unwrap(), child_env)
-                                .await
+                            let val = self.exec_block_ignore_control(otherwise_block.as_ref().unwrap(), child_env).await?;
+                            Ok((val, LoopControl::None))
                         }
                     }
                 }
@@ -794,7 +981,11 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
+                let (url_val, control) = self.evaluate_expression(url, Rc::clone(&env)).await?;
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
+                
                 let url_str = match &url_val {
                     Value::Text(s) => s.clone(),
                     _ => {
@@ -810,7 +1001,7 @@ impl Interpreter {
                     Ok(body) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(body.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, LoopControl::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -822,8 +1013,15 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let url_val = self.evaluate_expression(url, Rc::clone(&env)).await?;
-                let data_val = self.evaluate_expression(data, Rc::clone(&env)).await?;
+                let (url_val, control1) = self.evaluate_expression(url, Rc::clone(&env)).await?;
+                if control1 != LoopControl::None {
+                    return Ok((Value::Null, control1));
+                }
+                
+                let (data_val, control2) = self.evaluate_expression(data, Rc::clone(&env)).await?;
+                if control2 != LoopControl::None {
+                    return Ok((Value::Null, control2));
+                }
 
                 let url_str = match &url_val {
                     Value::Text(s) => s.clone(),
@@ -851,7 +1049,7 @@ impl Interpreter {
                     Ok(body) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(body.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, LoopControl::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -863,31 +1061,50 @@ impl Interpreter {
         &self,
         statements: &[Statement],
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         Box::pin(self._execute_block(statements, env)).await
+    }
+    
+    async fn exec_block_ignore_control(
+        &self,
+        statements: &[Statement],
+        env: Rc<RefCell<Environment>>,
+    ) -> Result<Value, RuntimeError> {
+        match self.execute_block(statements, env).await {
+            Ok((value, _)) => Ok(value), // Discard the LoopControl
+            Err(e) => Err(e),
+        }
     }
 
     async fn _execute_block(
         &self,
         statements: &[Statement],
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         self.assert_invariants();
         let mut last_value = Value::Null;
 
         for statement in statements {
-            last_value = self.execute_statement(statement, Rc::clone(&env)).await?;
+            match self.execute_statement(statement, Rc::clone(&env)).await {
+                Ok((value, control)) => {
+                    last_value = value;
+                    if matches!(control, LoopControl::Break | LoopControl::Continue | LoopControl::Exit { line: _, column: _ }) {
+                        return Ok((last_value, control));
+                    }
+                }
+                Err(e) => return Err(e),
+            }
         }
 
         self.assert_invariants();
-        Ok(last_value)
+        Ok((last_value, LoopControl::None))
     }
 
     async fn evaluate_expression(
         &self,
         expr: &Expression,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         Box::pin(self._evaluate_expression(expr, env)).await
     }
 
@@ -895,7 +1112,7 @@ impl Interpreter {
         &self,
         expr: &Expression,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         self.assert_invariants();
         self.check_time()?;
 
@@ -905,35 +1122,38 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let value = self
+                let (value, control) = self
                     .evaluate_expression(expression, Rc::clone(&env))
                     .await?;
-                Ok(value)
+                if control != LoopControl::None {
+                    return Ok((value, control));
+                }
+                Ok((value, LoopControl::None))
             }
             Expression::Literal(literal, _line, _column) => match literal {
-                Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
-                Literal::Integer(i) => Ok(Value::Number(*i as f64)),
-                Literal::Float(f) => Ok(Value::Number(*f)),
-                Literal::Boolean(b) => Ok(Value::Bool(*b)),
-                Literal::Nothing => Ok(Value::Null),
-                Literal::Pattern(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::String(s) => Ok((Value::Text(Rc::from(s.as_str())), LoopControl::None)),
+                Literal::Integer(i) => Ok((Value::Number(*i as f64), LoopControl::None)),
+                Literal::Float(f) => Ok((Value::Number(*f), LoopControl::None)),
+                Literal::Boolean(b) => Ok((Value::Bool(*b), LoopControl::None)),
+                Literal::Nothing => Ok((Value::Null, LoopControl::None)),
+                Literal::Pattern(s) => Ok((Value::Text(Rc::from(s.as_str())), LoopControl::None)),
             },
 
             Expression::Variable(name, line, column) => {
                 if name == "count" {
                     if let Some(count_value) = *self.current_count.borrow() {
-                        return Ok(Value::Number(count_value));
+                        return Ok((Value::Number(count_value), LoopControl::None));
                     } else {
                         println!(
                             "Warning: Using 'count' outside of a count loop context at line {}, column {}",
                             line, column
                         );
-                        return Ok(Value::Number(0.0));
+                        return Ok((Value::Number(0.0), LoopControl::None));
                     }
                 }
 
                 if let Some(value) = env.borrow().get(name) {
-                    Ok(value)
+                    Ok((value, LoopControl::None))
                 } else {
                     Err(RuntimeError::new(
                         format!("Undefined variable '{}'", name),
@@ -958,8 +1178,8 @@ impl Interpreter {
                     Operator::Minus => self.subtract(left_val, right_val, *line, *column),
                     Operator::Multiply => self.multiply(left_val, right_val, *line, *column),
                     Operator::Divide => self.divide(left_val, right_val, *line, *column),
-                    Operator::Equals => Ok(Value::Bool(self.is_equal(&left_val, &right_val))),
-                    Operator::NotEquals => Ok(Value::Bool(!self.is_equal(&left_val, &right_val))),
+                    Operator::Equals => Ok((Value::Bool(self.is_equal(&left_val.0, &right_val.0)), LoopControl::None)),
+                    Operator::NotEquals => Ok((Value::Bool(!self.is_equal(&left_val.0, &right_val.0)), LoopControl::None)),
                     Operator::GreaterThan => self.greater_than(left_val, right_val, *line, *column),
                     Operator::LessThan => self.less_than(left_val, right_val, *line, *column),
                     Operator::GreaterThanOrEqual => {
@@ -968,8 +1188,32 @@ impl Interpreter {
                     Operator::LessThanOrEqual => {
                         self.less_than_equal(left_val, right_val, *line, *column)
                     }
-                    Operator::And => Ok(Value::Bool(left_val.is_truthy() && right_val.is_truthy())),
-                    Operator::Or => Ok(Value::Bool(left_val.is_truthy() || right_val.is_truthy())),
+                    Operator::And => {
+                        let (left, left_control) = left_val;
+                        let (right, right_control) = right_val;
+                        
+                        if left_control != LoopControl::None {
+                            return Ok((Value::Null, left_control));
+                        }
+                        if right_control != LoopControl::None {
+                            return Ok((Value::Null, right_control));
+                        }
+                        
+                        Ok((Value::Bool(left.is_truthy() && right.is_truthy()), LoopControl::None))
+                    },
+                    Operator::Or => {
+                        let (left, left_control) = left_val;
+                        let (right, right_control) = right_val;
+                        
+                        if left_control != LoopControl::None {
+                            return Ok((Value::Null, left_control));
+                        }
+                        if right_control != LoopControl::None {
+                            return Ok((Value::Null, right_control));
+                        }
+                        
+                        Ok((Value::Bool(left.is_truthy() || right.is_truthy()), LoopControl::None))
+                    },
                     Operator::Contains => self.contains(left_val, right_val, *line, *column),
                 }
             }
@@ -980,14 +1224,18 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let value = self
+                let (value, control) = self
                     .evaluate_expression(expression, Rc::clone(&env))
                     .await?;
+                
+                if control != LoopControl::None {
+                    return Ok((Value::Null, control));
+                }
 
                 match operator {
-                    UnaryOperator::Not => Ok(Value::Bool(!value.is_truthy())),
+                    UnaryOperator::Not => Ok((Value::Bool(!value.is_truthy()), LoopControl::None)),
                     UnaryOperator::Minus => match value {
-                        Value::Number(n) => Ok(Value::Number(-n)),
+                        Value::Number(n) => Ok((Value::Number(-n), LoopControl::None)),
                         _ => Err(RuntimeError::new(
                             format!("Cannot negate {}", value.type_name()),
                             *line,
@@ -1003,27 +1251,47 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let function_val = self.evaluate_expression(function, Rc::clone(&env)).await?;
+                let (function_val, function_control) = self.evaluate_expression(function, Rc::clone(&env)).await?;
+                
+                if function_control != LoopControl::None {
+                    return Ok((Value::Null, function_control));
+                }
 
                 let mut arg_values = Vec::new();
+                let mut has_control_flow = false;
+                let mut control_to_propagate = LoopControl::None;
+                
                 for arg in arguments {
-                    arg_values.push(
-                        self.evaluate_expression(&arg.value, Rc::clone(&env))
-                            .await?,
-                    );
+                    let (arg_val, arg_control) = self.evaluate_expression(&arg.value, Rc::clone(&env)).await?;
+                    
+                    if arg_control != LoopControl::None {
+                        has_control_flow = true;
+                        control_to_propagate = arg_control;
+                        break;
+                    }
+                    
+                    arg_values.push(arg_val);
+                }
+                
+                if has_control_flow {
+                    return Ok((Value::Null, control_to_propagate));
                 }
 
                 match function_val {
                     Value::Function(func) => {
-                        self.call_function(&func, arg_values, *line, *column).await
+                        let result = self.call_function(&func, arg_values, *line, *column).await?;
+                        Ok((result, LoopControl::None))
                     }
-                    Value::NativeFunction(native_fn) => native_fn(arg_values).map_err(|e| {
-                        RuntimeError::new(
-                            format!("Error in native function: {}", e),
-                            *line,
-                            *column,
-                        )
-                    }),
+                    Value::NativeFunction(native_fn) => {
+                        let result = native_fn(arg_values).map_err(|e| {
+                            RuntimeError::new(
+                                format!("Error in native function: {}", e),
+                                *line,
+                                *column,
+                            )
+                        })?;
+                        Ok((result, LoopControl::None))
+                    }
                     _ => Err(RuntimeError::new(
                         format!("Cannot call {}", function_val.type_name()),
                         *line,
@@ -1041,10 +1309,10 @@ impl Interpreter {
                 let object_val = self.evaluate_expression(object, Rc::clone(&env)).await?;
 
                 match object_val {
-                    Value::Object(obj_rc) => {
+                    (Value::Object(obj_rc), _) => {
                         let obj = obj_rc.borrow();
                         if let Some(value) = obj.get(property) {
-                            Ok(value.clone())
+                            Ok((value.clone(), LoopControl::None))
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no property '{}'", property),
@@ -1053,8 +1321,8 @@ impl Interpreter {
                             ))
                         }
                     }
-                    _ => Err(RuntimeError::new(
-                        format!("Cannot access property of {}", object_val.type_name()),
+                    (other_val, _) => Err(RuntimeError::new(
+                        format!("Cannot access property of {}", other_val.type_name()),
                         *line,
                         *column,
                     )),
@@ -1073,12 +1341,12 @@ impl Interpreter {
                 let index_val = self.evaluate_expression(index, Rc::clone(&env)).await?;
 
                 match (collection_val, index_val) {
-                    (Value::List(list_rc), Value::Number(idx)) => {
+                    ((Value::List(list_rc), _), (Value::Number(idx), _)) => {
                         let list = list_rc.borrow();
                         let idx = idx as usize;
 
                         if idx < list.len() {
-                            Ok(list[idx].clone())
+                            Ok((list[idx].clone(), LoopControl::None))
                         } else {
                             Err(RuntimeError::new(
                                 format!(
@@ -1091,12 +1359,12 @@ impl Interpreter {
                             ))
                         }
                     }
-                    (Value::Object(obj_rc), Value::Text(key)) => {
+                    ((Value::Object(obj_rc), _), (Value::Text(key), _)) => {
                         let obj = obj_rc.borrow();
                         let key_str = key.to_string();
 
                         if let Some(value) = obj.get(&key_str) {
-                            Ok(value.clone())
+                            Ok((value.clone(), LoopControl::None))
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no key '{}'", key_str),
@@ -1105,7 +1373,7 @@ impl Interpreter {
                             ))
                         }
                     }
-                    (collection, index) => Err(RuntimeError::new(
+                    ((collection, _), (index, _)) => Err(RuntimeError::new(
                         format!(
                             "Cannot index {} with {}",
                             collection.type_name(),
@@ -1123,12 +1391,12 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let left_val = self.evaluate_expression(left, Rc::clone(&env)).await?;
+                let (left_val, _) = self.evaluate_expression(left, Rc::clone(&env)).await?;
 
-                let right_val = match right.as_ref() {
+                let (right_val, _) = match right.as_ref() {
                     Expression::Variable(name, _, _) if name == "count" => {
                         if let Some(count_value) = *self.current_count.borrow() {
-                            Value::Number(count_value)
+                            (Value::Number(count_value), LoopControl::None)
                         } else {
                             self.evaluate_expression(right, Rc::clone(&env)).await?
                         }
@@ -1137,7 +1405,7 @@ impl Interpreter {
                 };
 
                 let result = format!("{}{}", left_val, right_val);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Ok((Value::Text(Rc::from(result.as_str())), LoopControl::None))
             }
 
             Expression::PatternMatch {
@@ -1146,11 +1414,19 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let text_val = self.evaluate_expression(text, Rc::clone(&env)).await?;
-                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                let (text_val, text_control) = self.evaluate_expression(text, Rc::clone(&env)).await?;
+                let (pattern_val, pattern_control) = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                
+                if text_control != LoopControl::None {
+                    return Ok((Value::Null, text_control));
+                }
+                if pattern_control != LoopControl::None {
+                    return Ok((Value::Null, pattern_control));
+                }
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_matches(args)
+                let result = crate::stdlib::pattern::native_pattern_matches(args)?;
+                Ok((result, LoopControl::None))
             }
 
             Expression::PatternFind {
@@ -1159,11 +1435,19 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let text_val = self.evaluate_expression(text, Rc::clone(&env)).await?;
-                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                let (text_val, text_control) = self.evaluate_expression(text, Rc::clone(&env)).await?;
+                let (pattern_val, pattern_control) = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                
+                if text_control != LoopControl::None {
+                    return Ok((Value::Null, text_control));
+                }
+                if pattern_control != LoopControl::None {
+                    return Ok((Value::Null, pattern_control));
+                }
 
                 let args = vec![pattern_val, text_val]; // Note: pattern first, then text
-                crate::stdlib::pattern::native_pattern_find(args)
+                let result = crate::stdlib::pattern::native_pattern_find(args)?;
+                Ok((result, LoopControl::None))
             }
 
             Expression::PatternReplace {
@@ -1173,14 +1457,25 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let text_val = self.evaluate_expression(text, Rc::clone(&env)).await?;
-                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
-                let replacement_val = self
+                let (text_val, text_control) = self.evaluate_expression(text, Rc::clone(&env)).await?;
+                let (pattern_val, pattern_control) = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                let (replacement_val, replacement_control) = self
                     .evaluate_expression(replacement, Rc::clone(&env))
                     .await?;
+                
+                if text_control != LoopControl::None {
+                    return Ok((Value::Null, text_control));
+                }
+                if pattern_control != LoopControl::None {
+                    return Ok((Value::Null, pattern_control));
+                }
+                if replacement_control != LoopControl::None {
+                    return Ok((Value::Null, replacement_control));
+                }
 
                 let args = vec![pattern_val, replacement_val, text_val]; // Note: pattern, replacement, then text
-                crate::stdlib::pattern::native_pattern_replace(args)
+                let result = crate::stdlib::pattern::native_pattern_replace(args)?;
+                Ok((result, LoopControl::None))
             }
 
             Expression::PatternSplit {
@@ -1189,11 +1484,19 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let text_val = self.evaluate_expression(text, Rc::clone(&env)).await?;
-                let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                let (text_val, text_control) = self.evaluate_expression(text, Rc::clone(&env)).await?;
+                let (pattern_val, pattern_control) = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
+                
+                if text_control != LoopControl::None {
+                    return Ok((Value::Null, text_control));
+                }
+                if pattern_control != LoopControl::None {
+                    return Ok((Value::Null, pattern_control));
+                }
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_split(args)
+                let result = crate::stdlib::pattern::native_pattern_split(args)?;
+                Ok((result, LoopControl::None))
             }
         };
         self.assert_invariants();
@@ -1249,7 +1552,7 @@ impl Interpreter {
         let result = self.execute_block(&func.body, call_env.clone()).await;
 
         match result {
-            Ok(value) => {
+            Ok((value, _control)) => {
                 self.call_stack.borrow_mut().pop();
                 Ok(value)
             }
@@ -1269,26 +1572,26 @@ impl Interpreter {
 
     fn add(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
-            (Value::Text(a), Value::Text(b)) => {
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Number(a + b), LoopControl::None)),
+            ((Value::Text(a), _), (Value::Text(b), _)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Ok((Value::Text(Rc::from(result.as_str())), LoopControl::None))
             }
-            (Value::Text(a), b) => {
+            ((Value::Text(a), _), (b, _)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Ok((Value::Text(Rc::from(result.as_str())), LoopControl::None))
             }
-            (a, Value::Text(b)) => {
+            ((a, _), (Value::Text(b), _)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Ok((Value::Text(Rc::from(result.as_str())), LoopControl::None))
             }
-            (a, b) => Err(RuntimeError::new(
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!("Cannot add {} and {}", a.type_name(), b.type_name()),
                 line,
                 column,
@@ -1298,14 +1601,14 @@ impl Interpreter {
 
     fn subtract(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a - b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Number(a - b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!("Cannot subtract {} from {}", b.type_name(), a.type_name()),
                 line,
                 column,
@@ -1315,14 +1618,14 @@ impl Interpreter {
 
     fn multiply(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a * b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Number(a * b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!("Cannot multiply {} and {}", a.type_name(), b.type_name()),
                 line,
                 column,
@@ -1332,13 +1635,13 @@ impl Interpreter {
 
     fn divide(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => {
+            ((Value::Number(a), _), (Value::Number(b), _)) => {
                 if b == 0.0 {
                     Err(RuntimeError::new(
                         "Division by zero".to_string(),
@@ -1346,10 +1649,10 @@ impl Interpreter {
                         column,
                     ))
                 } else {
-                    Ok(Value::Number(a / b))
+                    Ok((Value::Number(a / b), LoopControl::None))
                 }
             }
-            (a, b) => Err(RuntimeError::new(
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!("Cannot divide {} by {}", a.type_name(), b.type_name()),
                 line,
                 column,
@@ -1369,15 +1672,15 @@ impl Interpreter {
 
     fn greater_than(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a > b)),
-            (Value::Text(a), Value::Text(b)) => Ok(Value::Bool(a > b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Bool(a > b), LoopControl::None)),
+            ((Value::Text(a), _), (Value::Text(b), _)) => Ok((Value::Bool(a > b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!(
                     "Cannot compare {} and {} with >",
                     a.type_name(),
@@ -1391,15 +1694,15 @@ impl Interpreter {
 
     fn less_than(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a < b)),
-            (Value::Text(a), Value::Text(b)) => Ok(Value::Bool(a < b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Bool(a < b), LoopControl::None)),
+            ((Value::Text(a), _), (Value::Text(b), _)) => Ok((Value::Bool(a < b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!(
                     "Cannot compare {} and {} with <",
                     a.type_name(),
@@ -1413,15 +1716,15 @@ impl Interpreter {
 
     fn greater_than_equal(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a >= b)),
-            (Value::Text(a), Value::Text(b)) => Ok(Value::Bool(a >= b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Bool(a >= b), LoopControl::None)),
+            ((Value::Text(a), _), (Value::Text(b), _)) => Ok((Value::Bool(a >= b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!(
                     "Cannot compare {} and {} with >=",
                     a.type_name(),
@@ -1435,15 +1738,15 @@ impl Interpreter {
 
     fn less_than_equal(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::Number(a), Value::Number(b)) => Ok(Value::Bool(a <= b)),
-            (Value::Text(a), Value::Text(b)) => Ok(Value::Bool(a <= b)),
-            (a, b) => Err(RuntimeError::new(
+            ((Value::Number(a), _), (Value::Number(b), _)) => Ok((Value::Bool(a <= b), LoopControl::None)),
+            ((Value::Text(a), _), (Value::Text(b), _)) => Ok((Value::Bool(a <= b), LoopControl::None)),
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!(
                     "Cannot compare {} and {} with <=",
                     a.type_name(),
@@ -1457,29 +1760,29 @@ impl Interpreter {
 
     fn contains(
         &self,
-        left: Value,
-        right: Value,
+        left: (Value, LoopControl),
+        right: (Value, LoopControl),
         line: usize,
         column: usize,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, LoopControl), RuntimeError> {
         match (left, right) {
-            (Value::List(list_rc), item) => {
+            ((Value::List(list_rc), _), (item, _)) => {
                 let list = list_rc.borrow();
                 for value in list.iter() {
                     if self.is_equal(value, &item) {
-                        return Ok(Value::Bool(true));
+                        return Ok((Value::Bool(true), LoopControl::None));
                     }
                 }
-                Ok(Value::Bool(false))
+                Ok((Value::Bool(false), LoopControl::None))
             }
-            (Value::Object(obj_rc), Value::Text(key)) => {
+            ((Value::Object(obj_rc), _), (Value::Text(key), _)) => {
                 let obj = obj_rc.borrow();
-                Ok(Value::Bool(obj.contains_key(&key.to_string())))
+                Ok((Value::Bool(obj.contains_key(&key.to_string())), LoopControl::None))
             }
-            (Value::Text(text), Value::Text(substring)) => {
-                Ok(Value::Bool(text.contains(&*substring)))
+            ((Value::Text(text), _), (Value::Text(substring), _)) => {
+                Ok((Value::Bool(text.contains(&*substring)), LoopControl::None))
             }
-            (a, b) => Err(RuntimeError::new(
+            ((a, _), (b, _)) => Err(RuntimeError::new(
                 format!(
                     "Cannot check if {} contains {}",
                     a.type_name(),
