@@ -98,6 +98,7 @@ impl LogLevel {
 }
 
 fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
+    log::debug!("Parsing config from {}", file.display());
     for line in text.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -107,6 +108,7 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
         if let Some((key, rest)) = line.split_once('=') {
             let key = key.trim();
             let value = rest.trim();
+            log::debug!("Found config key: {}, value: {}", key, value);
 
             match key {
                 "timeout_seconds" => {
@@ -643,11 +645,8 @@ mod tests {
         let mut file = fs::File::create(&local_config_path).unwrap();
         file.write_all(local_config_content.as_bytes()).unwrap();
 
-        let config = load_config_with_global(script_dir.path());
+        let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
 
-        unsafe {
-            ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
-        }
 
         assert_eq!(config.timeout_seconds, 60); // Local override
         assert!(config.logging_enabled); // From global
