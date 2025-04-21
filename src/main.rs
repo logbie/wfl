@@ -151,7 +151,7 @@ async fn main() -> io::Result<()> {
         eprintln!("Error: No file path provided");
         process::exit(2);
     }
-    
+
     if fix_mode && !lint_mode {
         eprintln!("Error: --fix must be combined with --lint");
         process::exit(2);
