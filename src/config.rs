@@ -147,7 +147,8 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                 }
                 "debug_report_enabled" => {
                     if let Ok(enabled) = value.parse::<bool>() {
-                        if config.debug_report_enabled != WflConfig::default().debug_report_enabled {
+                        if config.debug_report_enabled != WflConfig::default().debug_report_enabled
+                        {
                             log::debug!(
                                 "Overriding debug_report_enabled: {} -> {} from {}",
                                 config.debug_report_enabled,
@@ -236,7 +237,8 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                 }
                 "snake_case_variables" => {
                     if let Ok(enabled) = value.parse::<bool>() {
-                        if config.snake_case_variables != WflConfig::default().snake_case_variables {
+                        if config.snake_case_variables != WflConfig::default().snake_case_variables
+                        {
                             log::debug!(
                                 "Overriding snake_case_variables: {} -> {} from {}",
                                 config.snake_case_variables,
@@ -272,7 +274,9 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                 }
                 "consistent_keyword_case" => {
                     if let Ok(enabled) = value.parse::<bool>() {
-                        if config.consistent_keyword_case != WflConfig::default().consistent_keyword_case {
+                        if config.consistent_keyword_case
+                            != WflConfig::default().consistent_keyword_case
+                        {
                             log::debug!(
                                 "Overriding consistent_keyword_case: {} -> {} from {}",
                                 config.consistent_keyword_case,
@@ -299,37 +303,46 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
 pub fn load_config(dir: &Path) -> WflConfig {
     // Start with default configuration
     let mut config = WflConfig::default();
-    
+
     // Try to load global configuration
     let global_config = Path::new(get_global_config_path());
     let mut loaded_global = false;
-    
+
     if global_config.exists() {
         if let Ok(text) = std::fs::read_to_string(global_config) {
             loaded_global = true;
-            log::debug!("Loading global configuration from {}", global_config.display());
+            log::debug!(
+                "Loading global configuration from {}",
+                global_config.display()
+            );
             parse_config_text(&mut config, &text, global_config);
         }
     }
-    
+
     if !loaded_global {
         let old_system_config = Path::new("/etc/wfl/.wflcfg");
         if old_system_config.exists() {
             if let Ok(text) = std::fs::read_to_string(old_system_config) {
-                log::debug!("Loading global configuration from {} (legacy path)", old_system_config.display());
+                log::debug!(
+                    "Loading global configuration from {} (legacy path)",
+                    old_system_config.display()
+                );
                 parse_config_text(&mut config, &text, old_system_config);
             }
         }
     }
-    
+
     let local_config = dir.join(".wflcfg");
     if local_config.exists() {
         if let Ok(text) = std::fs::read_to_string(&local_config) {
-            log::debug!("Loading local configuration from {}", local_config.display());
+            log::debug!(
+                "Loading local configuration from {}",
+                local_config.display()
+            );
             parse_config_text(&mut config, &text, &local_config);
         }
     }
-    
+
     config
 }
 
@@ -398,7 +411,7 @@ mod tests {
 
         let mut file = fs::File::create(&config_path).unwrap();
         file.write_all(b"timeout_seconds = invalid").unwrap();
-        
+
         unsafe {
             std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
@@ -455,7 +468,7 @@ mod tests {
 
         let mut file = fs::File::create(&config_path).unwrap();
         file.write_all(config_content.as_bytes()).unwrap();
-        
+
         unsafe {
             std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
@@ -477,68 +490,71 @@ mod tests {
         assert_eq!("ERROR".parse::<LogLevel>().unwrap(), LogLevel::Error);
         assert_eq!("unknown".parse::<LogLevel>().unwrap(), LogLevel::Info); // Default
     }
-    
+
     #[test]
     fn test_load_config_global_only() {
         let temp_dir = tempdir().unwrap();
         let global_config_path = temp_dir.path().join("wfl.cfg");
-        
+
         let global_config_content = r#"
         # Global WFL Configuration
         timeout_seconds = 180
         logging_enabled = true
         max_line_length = 120
         "#;
-        
+
         let mut file = fs::File::create(&global_config_path).unwrap();
         file.write_all(global_config_content.as_bytes()).unwrap();
-        
+
         unsafe {
-            std::env::set_var("WFL_GLOBAL_CONFIG_PATH", global_config_path.to_str().unwrap());
+            std::env::set_var(
+                "WFL_GLOBAL_CONFIG_PATH",
+                global_config_path.to_str().unwrap(),
+            );
         }
-        
+
         let script_dir = tempdir().unwrap();
-        
+
         let config = with_test_global_path(|| load_config(script_dir.path()));
-        
+
         assert_eq!(config.timeout_seconds, 180);
         assert!(config.logging_enabled);
         assert_eq!(config.max_line_length, 120);
         assert!(config.debug_report_enabled); // Default
     }
-    
+
     #[test]
     fn test_load_config_local_only() {
         let script_dir = tempdir().unwrap();
         let local_config_path = script_dir.path().join(".wflcfg");
-        
+
         let local_config_content = r#"
         # Local WFL Configuration
         timeout_seconds = 90
         log_level = debug
         snake_case_variables = false
         "#;
-        
+
         let mut file = fs::File::create(&local_config_path).unwrap();
         file.write_all(local_config_content.as_bytes()).unwrap();
-        
+
         unsafe {
             std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
-        
+
         let config = with_test_global_path(|| load_config(script_dir.path()));
-        
+
         assert_eq!(config.timeout_seconds, 90);
         assert!(!config.logging_enabled); // Default
         assert_eq!(config.log_level, LogLevel::Debug);
         assert!(!config.snake_case_variables);
     }
-    
+
     #[test]
     fn test_load_config_local_override() {
         let temp_dir = tempdir().unwrap();
         let global_config_path = temp_dir.path().join("wfl.cfg");
-        
+
         let global_config_content = r#"
         # Global WFL Configuration
         timeout_seconds = 180
@@ -546,33 +562,36 @@ mod tests {
         max_line_length = 120
         snake_case_variables = true
         "#;
-        
+
         let mut file = fs::File::create(&global_config_path).unwrap();
         file.write_all(global_config_content.as_bytes()).unwrap();
-        
+
         unsafe {
-            std::env::set_var("WFL_GLOBAL_CONFIG_PATH", global_config_path.to_str().unwrap());
+            std::env::set_var(
+                "WFL_GLOBAL_CONFIG_PATH",
+                global_config_path.to_str().unwrap(),
+            );
         }
-        
+
         let script_dir = tempdir().unwrap();
         let local_config_path = script_dir.path().join(".wflcfg");
-        
+
         let local_config_content = r#"
         # Local WFL Configuration (overrides global)
         timeout_seconds = 60
         log_level = debug
         snake_case_variables = false
         "#;
-        
+
         let mut file = fs::File::create(&local_config_path).unwrap();
         file.write_all(local_config_content.as_bytes()).unwrap();
-        
+
         let config = load_config(script_dir.path());
-        
+
         unsafe {
             std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
         }
-        
+
         assert_eq!(config.timeout_seconds, 60); // Local override
         assert!(config.logging_enabled); // From global
         assert_eq!(config.max_line_length, 120); // From global
