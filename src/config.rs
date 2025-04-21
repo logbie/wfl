@@ -413,8 +413,8 @@ mod tests {
         let result = f();
 
         match original {
-            Some(val) => std::env::set_var("WFL_GLOBAL_CONFIG_PATH", val),
-            None => std::env::remove_var("WFL_GLOBAL_CONFIG_PATH"),
+            Some(val) => ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", val),
+            None => ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH"),
         }
 
         result
