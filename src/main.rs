@@ -17,6 +17,28 @@ use wfl::repl;
 use wfl::typechecker::TypeChecker;
 use wfl::{error, info};
 
+fn print_help() {
+    println!("WebFirst Language (WFL) Compiler and Interpreter");
+    println!();
+    println!("USAGE:");
+    println!("    wfl [FLAGS] [file]");
+    println!();
+    println!("FLAGS:");
+    println!("    --help       Prints this help information");
+    println!("    --lint       Run the linter on the specified file");
+    println!("    --analyze    Run the static analyzer on the specified file");
+    println!("    --fix        Fix code style issues in the specified file");
+    println!("        --in-place    Modify the file in place");
+    println!("        --diff        Show a diff of the changes");
+    println!();
+    println!("NOTES:");
+    println!("    All runs are now type‑checked and semantically analyzed by default.");
+    println!("    This ensures that scripts are validated for semantic correctness");
+    println!("    and type safety before execution, preventing many common runtime errors.");
+    println!();
+    println!("If no file is specified, the REPL will be started.");
+}
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -25,6 +47,11 @@ async fn main() -> io::Result<()> {
         if let Err(e) = repl::run_repl().await {
             eprintln!("REPL error: {}", e);
         }
+        return Ok(());
+    }
+    
+    if args.len() >= 2 && args[1] == "--help" {
+        print_help();
         return Ok(());
     }
 
@@ -374,124 +401,101 @@ async fn main() -> io::Result<()> {
                 println!("AST:\n{:#?}", program);
 
                 let mut analyzer = Analyzer::new();
-                match analyzer.analyze(&program) {
-                    Ok(_) => {
-                        println!("Semantic analysis passed.");
+                let mut reporter = DiagnosticReporter::new();
+                let file_id = reporter.add_file(&file_path, &input);
+                let sema_diags = analyzer.analyze_static(&program, file_id);
+                if !sema_diags.is_empty() {
+                    for d in &sema_diags { reporter.report_diagnostic(file_id, d)?; }
+                    process::exit(2);
+                }
+                println!("Semantic analysis passed.");
 
-                        let mut type_checker = TypeChecker::new();
-                        match type_checker.check_types(&program) {
-                            Ok(_) => {
-                                println!("Type checking passed.");
+                let mut tc = TypeChecker::new();
+                if let Err(errors) = tc.check_types(&program) {
+                    for e in &errors { eprintln!("{e}"); }
+                    process::exit(2);
+                }
+                println!("Type checking passed.");
 
-                                println!("Script directory: {:?}", script_dir);
-                                println!("Timeout seconds: {}", config.timeout_seconds);
+                let mut linter = Linter::new();
+                let (_lint_diags, _clean) = linter.lint(&program, &input, &file_path);
 
-                                if config.logging_enabled {
-                                    let log_path = script_dir.join("wfl.log");
-                                    if let Err(e) =
-                                        logging::init_logger(config.log_level, &log_path)
-                                    {
-                                        eprintln!("Failed to initialize logging: {}", e);
-                                    } else {
-                                        info!(
-                                            "WebFirst Language started with script: {}",
-                                            &file_path
-                                        );
-                                    }
-                                }
+                println!("Script directory: {:?}", script_dir);
+                println!("Timeout seconds: {}", config.timeout_seconds);
 
-                                let mut interpreter =
-                                    Interpreter::with_timeout(config.timeout_seconds);
-                                let interpret_result = interpreter.interpret(&program).await;
-                                match interpret_result {
-                                    Ok(result) => {
-                                        if config.logging_enabled {
-                                            info!("Program executed successfully");
-                                        }
-                                        println!(
-                                            "Execution completed successfully. Result: {:?}",
-                                            result
-                                        )
-                                    }
-                                    Err(errors) => {
-                                        if config.logging_enabled {
-                                            error!("Runtime errors occurred");
-                                        }
+                if config.logging_enabled {
+                    let log_path = script_dir.join("wfl.log");
+                    if let Err(e) =
+                        logging::init_logger(config.log_level, &log_path)
+                    {
+                        eprintln!("Failed to initialize logging: {}", e);
+                    } else {
+                        info!(
+                            "WebFirst Language started with script: {}",
+                            &file_path
+                        );
+                    }
+                }
 
-                                        eprintln!("Runtime errors:");
-
-                                        let mut reporter = DiagnosticReporter::new();
-                                        let file_id = reporter.add_file(&file_path, &input);
-
-                                        if config.debug_report_enabled && !errors.is_empty() {
-                                            let error = &errors[0]; // Take the first error
-                                            let call_stack = interpreter.get_call_stack();
-                                            match debug_report::create_report(
-                                                error,
-                                                &call_stack,
-                                                &input,
-                                                &file_path,
-                                            ) {
-                                                Ok(report_path) => {
-                                                    let report_msg = format!(
-                                                        "Debug report created: {}",
-                                                        report_path.display()
-                                                    );
-                                                    eprintln!("{}", report_msg);
-
-                                                    if config.logging_enabled {
-                                                        info!("{}", report_msg);
-                                                    }
-                                                }
-                                                Err(_) => {
-                                                    eprintln!("Could not create debug report");
-
-                                                    if config.logging_enabled {
-                                                        error!("Could not create debug report");
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        for error in errors {
-                                            let diagnostic =
-                                                reporter.convert_runtime_error(file_id, &error);
-                                            if let Err(e) =
-                                                reporter.report_diagnostic(file_id, &diagnostic)
-                                            {
-                                                eprintln!("Error displaying diagnostic: {}", e);
-                                                eprintln!("{}", error); // Fallback to simple error display
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            Err(errors) => {
-                                eprintln!("Type errors:");
-
-                                let mut reporter = DiagnosticReporter::new();
-                                let file_id = reporter.add_file(&file_path, &input);
-
-                                for error in errors {
-                                    let diagnostic = reporter.convert_type_error(file_id, &error);
-                                    if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic)
-                                    {
-                                        eprintln!("Error displaying diagnostic: {}", e);
-                                        eprintln!("{}", error); // Fallback to simple error display
-                                    }
-                                }
-                            }
+                let mut interpreter =
+                    Interpreter::with_timeout(config.timeout_seconds);
+                let interpret_result = interpreter.interpret(&program).await;
+                match interpret_result {
+                    Ok(result) => {
+                        if config.logging_enabled {
+                            info!("Program executed successfully");
                         }
+                        println!(
+                            "Execution completed successfully. Result: {:?}",
+                            result
+                        )
                     }
                     Err(errors) => {
-                        eprintln!("Semantic errors:");
+                        if config.logging_enabled {
+                            error!("Runtime errors occurred");
+                        }
+
+                        eprintln!("Runtime errors:");
 
                         let mut reporter = DiagnosticReporter::new();
                         let file_id = reporter.add_file(&file_path, &input);
 
+                        if config.debug_report_enabled && !errors.is_empty() {
+                            let error = &errors[0]; // Take the first error
+                            let call_stack = interpreter.get_call_stack();
+                            match debug_report::create_report(
+                                error,
+                                &call_stack,
+                                &input,
+                                &file_path,
+                            ) {
+                                Ok(report_path) => {
+                                    let report_msg = format!(
+                                        "Debug report created: {}",
+                                        report_path.display()
+                                    );
+                                    eprintln!("{}", report_msg);
+
+                                    if config.logging_enabled {
+                                        info!("{}", report_msg);
+                                    }
+                                }
+                                Err(_) => {
+                                    eprintln!("Could not create debug report");
+
+                                    if config.logging_enabled {
+                                        error!("Could not create debug report");
+                                    }
+                                }
+                            }
+                        }
+
                         for error in errors {
-                            let diagnostic = reporter.convert_semantic_error(file_id, &error);
-                            if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                            let diagnostic =
+                                reporter.convert_runtime_error(file_id, &error);
+                            if let Err(e) =
+                                reporter.report_diagnostic(file_id, &diagnostic)
+                            {
                                 eprintln!("Error displaying diagnostic: {}", e);
                                 eprintln!("{}", error); // Fallback to simple error display
                             }
