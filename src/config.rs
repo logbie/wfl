@@ -464,7 +464,7 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let config = load_config(temp_dir.path());
 
-        assert_eq!(config.timeout_seconds, 180);
+        assert_eq!(config.timeout_seconds, 60);
         assert!(!config.logging_enabled);
         assert!(config.debug_report_enabled);
         assert_eq!(config.log_level, LogLevel::Info);
@@ -556,7 +556,7 @@ mod tests {
 
         let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
 
-        assert_eq!(config.timeout_seconds, 180);
+        assert_eq!(config.timeout_seconds, 60);
         assert!(config.logging_enabled);
         assert_eq!(config.max_line_length, 120);
         assert!(config.debug_report_enabled); // Default
