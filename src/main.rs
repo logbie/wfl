@@ -358,7 +358,7 @@ async fn main() -> io::Result<()> {
                     }
                 }
 
-                let mut interpreter = Interpreter::with_timeout(300); // 5 minutes
+                let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
                     Ok(result) => {
