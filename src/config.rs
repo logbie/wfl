@@ -365,11 +365,7 @@ mod tests {
     where
         F: FnOnce() -> R,
     {
-        let result = f();
-        unsafe {
-            std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
-        }
-        result
+        f()
     }
 
     #[test]
