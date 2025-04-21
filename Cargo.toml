@@ -3,7 +3,7 @@ name = "wfl"
 version = "0.1.0"
 edition = "2024"
 description = "WFL (WebFirst Language) is a programming language designed to be readable and intuitive using natural language constructs."
-license = "MIT"
+license = "Apache-2.0"
 authors = ["Logbie LLC <info@logbie.com>"]
 
 [package.metadata.bundle]
@@ -17,17 +17,25 @@ short_description = "WebFirst Language Compiler and Runtime"
 long_description = "WFL (WebFirst Language) is a programming language designed to be readable and intuitive using natural language constructs."
 executable = "wfl"
 
-[package.metadata.deb]
-assets = [
-    ["target/release/wfl", "usr/bin/", "755"],
-    ["target/${TARGET}/release/package/.wflcfg", "etc/wfl/.wflcfg", "644"]
-]
-
 [workspace]
 members = [
     ".",
     "wfl-lsp"
 ]
+
+[package.metadata.deb]
+assets = [
+    ["target/release/wfl", "usr/bin/", "755"],
+    ["target/release/package/.wflcfg", "etc/wfl/.wflcfg", "644"]
+]
+extended-description = """
+WFL (WebFirst Language) is a programming language designed to be readable and intuitive
+using natural language constructs. This package includes the WFL compiler and runtime.
+"""
+section = "devel"
+priority = "optional"
+maintainer-scripts = "debian/"
+conf-files = ["/etc/wfl/.wflcfg"]
 
 [dependencies]
 logos = "0.15.0"
