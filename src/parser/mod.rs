@@ -663,7 +663,7 @@ impl<'a> Parser<'a> {
                 Token::LeftParen => {
                     self.tokens.next(); // Consume '('
                     let expr = self.parse_expression()?;
-                    
+
                     if let Some(token) = self.tokens.peek() {
                         if token.token == Token::RightParen {
                             self.tokens.next(); // Consume ')'
@@ -682,7 +682,7 @@ impl<'a> Parser<'a> {
                             token.column,
                         ));
                     }
-                },
+                }
                 Token::StringLiteral(s) => {
                     let token_pos = self.tokens.next().unwrap();
                     Ok(Expression::Literal(

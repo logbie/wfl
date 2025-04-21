@@ -292,7 +292,7 @@ mod tests {
         "#;
 
         let tokens = lex_wfl(input);
-        
+
         assert_eq!(
             tokens,
             vec![

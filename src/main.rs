@@ -317,7 +317,7 @@ async fn main() -> io::Result<()> {
         }
     } else {
         let tokens_with_pos = lex_wfl_with_positions(&input);
-        
+
         println!("Parsing and executing script...");
         let mut parser = Parser::new(&tokens_with_pos);
         match parser.parse() {
