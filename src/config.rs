@@ -404,6 +404,14 @@ mod tests {
     use std::io::Write;
     use tempfile::tempdir;
 
+    #[cfg(test)]
+    fn set_test_env_var(val: Option<&str>) {
+        match val {
+            Some(v) => unsafe { ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", v) },
+            None => unsafe { ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH") },
+        }
+    }
+
     fn with_test_global_path<F, R>(f: F) -> R
     where
         F: FnOnce() -> R,
@@ -412,9 +420,10 @@ mod tests {
 
         let result = f();
 
+        #[cfg(test)]
         match original {
-            Some(val) => ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", val),
-            None => ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH"),
+            Some(val) => set_test_env_var(Some(&val)),
+            None => set_test_env_var(None),
         }
 
         result
@@ -461,7 +470,7 @@ mod tests {
         file.write_all(b"timeout_seconds = invalid").unwrap();
 
         unsafe {
-            std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
+            ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
 
         let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
@@ -518,7 +527,7 @@ mod tests {
         file.write_all(config_content.as_bytes()).unwrap();
 
         unsafe {
-            std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
+            ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
 
         let config = with_test_global_path(|| load_config(temp_dir.path()));
@@ -555,7 +564,7 @@ mod tests {
         file.write_all(global_config_content.as_bytes()).unwrap();
 
         unsafe {
-            std::env::set_var(
+            ::std::env::set_var(
                 "WFL_GLOBAL_CONFIG_PATH",
                 global_config_path.to_str().unwrap(),
             );
@@ -565,7 +574,7 @@ mod tests {
 
         let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
 
-        assert_eq!(config.timeout_seconds, 60);
+        assert_eq!(config.timeout_seconds, 180); // From global config
         assert!(config.logging_enabled);
         assert_eq!(config.max_line_length, 120);
         assert!(config.debug_report_enabled); // Default
@@ -587,13 +596,13 @@ mod tests {
         file.write_all(local_config_content.as_bytes()).unwrap();
 
         unsafe {
-            std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
+            ::std::env::set_var("WFL_GLOBAL_CONFIG_PATH", "/non/existent/path");
         }
 
         let config = with_test_global_path(|| load_config(script_dir.path()));
 
         assert_eq!(config.timeout_seconds, 90);
-        assert!(!config.logging_enabled); // Default
+        assert!(!config.logging_enabled); // Default value since global config path is non-existent
         assert_eq!(config.log_level, LogLevel::Debug);
         assert!(!config.snake_case_variables);
     }
@@ -615,7 +624,7 @@ mod tests {
         file.write_all(global_config_content.as_bytes()).unwrap();
 
         unsafe {
-            std::env::set_var(
+            ::std::env::set_var(
                 "WFL_GLOBAL_CONFIG_PATH",
                 global_config_path.to_str().unwrap(),
             );
@@ -637,7 +646,7 @@ mod tests {
         let config = load_config(script_dir.path());
 
         unsafe {
-            std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
+            ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
         }
 
         assert_eq!(config.timeout_seconds, 60); // Local override
