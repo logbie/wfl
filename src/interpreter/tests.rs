@@ -180,9 +180,9 @@ async fn test_type_error_blocked_by_default() {
     let input = "store x as 1\nstore x as \"oops\"";
     let tokens = lex_wfl_with_positions(input);
     let program = Parser::new(&tokens).parse().unwrap();
-    
+
     assert!(!program.statements.is_empty());
-    
+
     let mut tc = TypeChecker::new();
     assert!(tc.check_types(&program).is_err());
 }

@@ -172,12 +172,12 @@ impl ReplState {
         if program.statements.is_empty() {
             return Ok(None);
         }
-        
+
         let mut analyzer = Analyzer::new();
         let mut reporter = DiagnosticReporter::new();
         let file_id = reporter.add_file("repl", input);
         let sema_diags = analyzer.analyze_static(&program, file_id);
-        
+
         if !sema_diags.is_empty() {
             let mut error_messages = Vec::new();
             for diagnostic in &sema_diags {
@@ -192,20 +192,20 @@ impl ReplState {
                     error_messages.push(format!("Semantic error: {}", diagnostic.message));
                     continue;
                 }
-                
+
                 let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                 error_messages.push(output);
             }
-            
+
             return Ok(Some(error_messages.join("\n")));
         }
-        
+
         let mut type_checker = TypeChecker::new();
         if let Err(errors) = type_checker.check_types(&program) {
             let mut error_messages = Vec::new();
             for error in &errors {
                 let diagnostic = reporter.convert_type_error(file_id, error);
-                
+
                 let mut buffer = Buffer::ansi();
                 let config = term::Config::default();
                 if let Err(_e) = term::emit(
@@ -217,11 +217,11 @@ impl ReplState {
                     error_messages.push(format!("Type error: {}", error));
                     continue;
                 }
-                
+
                 let output = String::from_utf8_lossy(buffer.as_slice()).to_string();
                 error_messages.push(output);
             }
-            
+
             return Ok(Some(error_messages.join("\n")));
         }
 
