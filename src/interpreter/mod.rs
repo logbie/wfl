@@ -789,9 +789,14 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+                
+                let loop_env = Environment::new_child_env(&env);
+                
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                     if self
                         .evaluate_expression(condition, Rc::clone(&env))
                         .await?
@@ -808,9 +813,14 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+                
+                let loop_env = Environment::new_child_env(&env);
+                
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                 }
                 #[allow(unreachable_code)]
                 Ok(Value::Null)
@@ -1149,6 +1159,10 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.assert_invariants();
+        
+        let block_size = std::mem::size_of::<Statement>() * statements.len();
+        self.track_allocation(block_size)?;
+        
         let mut last_value = Value::Null;
 
         for statement in statements {
@@ -1565,6 +1579,9 @@ impl Interpreter {
             }
         };
 
+        let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+        self.track_allocation(env_size)?;
+        
         let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
