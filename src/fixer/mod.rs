@@ -181,12 +181,12 @@ impl CodeFixer {
                     condition: simplified_condition,
                     then_block: simplified_then,
                     else_block: simplified_else,
-                    line: line,
-                    column: column,
+                    line: *line,
+                    column: *column,
                 }
             }
             _ => statement.clone(),
-        }
+        };
         result
     }
     #[allow(clippy::only_used_in_recursion)]
@@ -206,8 +206,8 @@ impl CodeFixer {
                     left: Box::new(simplified_left),
                     operator: operator.clone(),
                     right: Box::new(simplified_right),
-                    line: line,
-                    column: column,
+                    line: *line,
+                    column: *column,
                 }
             }
             _ => expression.clone(),
