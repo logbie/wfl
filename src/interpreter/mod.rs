@@ -11,7 +11,7 @@ use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
-use crate::stdlib::{core, math, text, list, pattern};
+use crate::stdlib::{core, list, math, pattern, text};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;

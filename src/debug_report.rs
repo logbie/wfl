@@ -131,7 +131,9 @@ impl CallFrame {
 
         for (name, value) in env_values {
             let captured = match value {
-                Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value.clone()),
+                Value::Number(_) | Value::Bool(_) | Value::Null => {
+                    Captured::Primitive(value.clone())
+                }
 
                 Value::Text(s) if s.len() < 256 => Captured::Primitive(value.clone()),
 
