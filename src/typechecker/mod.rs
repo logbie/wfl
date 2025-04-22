@@ -557,7 +557,7 @@ impl TypeChecker {
                 }
 
                 if let Some(symbol) = self.analyzer.get_symbol_mut(variable_name) {
-                    symbol.symbol_type = Some(Type::Custom("File".to_string()));
+                    symbol.symbol_type = Some(Type::Custom(crate::parser::intern::intern("File")));
                 }
             }
             Statement::ReadFileStatement {
@@ -567,13 +567,13 @@ impl TypeChecker {
                 column,
             } => {
                 let file_type = self.infer_expression_type(path);
-                if file_type != Type::Custom("File".to_string())
+                if file_type != Type::Custom(crate::parser::intern::intern("File"))
                     && file_type != Type::Unknown
                     && file_type != Type::Error
                 {
                     self.type_error(
                         "Expected a File object".to_string(),
-                        Some(Type::Custom("File".to_string())),
+                        Some(Type::Custom(crate::parser::intern::intern("File"))),
                         Some(file_type),
                         *line,
                         *column,
@@ -591,13 +591,13 @@ impl TypeChecker {
                 column,
             } => {
                 let file_type = self.infer_expression_type(file);
-                if file_type != Type::Custom("File".to_string())
+                if file_type != Type::Custom(crate::parser::intern::intern("File"))
                     && file_type != Type::Unknown
                     && file_type != Type::Error
                 {
                     self.type_error(
                         "Expected a File object".to_string(),
-                        Some(Type::Custom("File".to_string())),
+                        Some(Type::Custom(crate::parser::intern::intern("File"))),
                         Some(file_type),
                         *line,
                         *column,
@@ -620,13 +620,13 @@ impl TypeChecker {
             }
             Statement::CloseFileStatement { file, line, column } => {
                 let file_type = self.infer_expression_type(file);
-                if file_type != Type::Custom("File".to_string())
+                if file_type != Type::Custom(crate::parser::intern::intern("File"))
                     && file_type != Type::Unknown
                     && file_type != Type::Error
                 {
                     self.type_error(
                         "Expected a File object".to_string(),
-                        Some(Type::Custom("File".to_string())),
+                        Some(Type::Custom(crate::parser::intern::intern("File"))),
                         Some(file_type),
                         *line,
                         *column,
@@ -973,7 +973,7 @@ impl TypeChecker {
                     _ => {
                         self.type_error(
                             format!("Cannot access property '{}' on {}", property, object_type),
-                            Some(Type::Custom("Object".to_string())),
+                            Some(Type::Custom(crate::parser::intern::intern("Object"))),
                             Some(object_type),
                             *line,
                             *column,

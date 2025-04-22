@@ -437,10 +437,10 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let param_names: Vec<String> = parameters.iter().map(|p| p.name.clone()).collect();
+                let param_names: Vec<String> = parameters.iter().map(|p| p.name.as_ref().to_string()).collect();
 
                 let function = FunctionValue {
-                    name: Some(name.clone()),
+                    name: Some(name.as_ref().to_string()),
                     params: param_names,
                     body: body.clone(),
                     env: Rc::downgrade(&env),
@@ -1054,7 +1054,7 @@ impl Interpreter {
             },
 
             Expression::Variable(name, line, column) => {
-                if name == "count" {
+                if name.as_ref() == "count" {
                     if let Some(count_value) = *self.current_count.borrow() {
                         return Ok(Value::Number(count_value));
                     } else {
@@ -1085,7 +1085,7 @@ impl Interpreter {
                 column,
             } => {
                 let left_val = match left.as_ref() {
-                    Expression::Variable(name, _, _) if name == "count" => {
+                    Expression::Variable(name, _, _) if name.as_ref() == "count" => {
                         if let Some(count_value) = *self.current_count.borrow() {
                             Value::Number(count_value)
                         } else {
@@ -1096,7 +1096,7 @@ impl Interpreter {
                 };
 
                 let right_val = match right.as_ref() {
-                    Expression::Variable(name, _, _) if name == "count" => {
+                    Expression::Variable(name, _, _) if name.as_ref() == "count" => {
                         if let Some(count_value) = *self.current_count.borrow() {
                             Value::Number(count_value)
                         } else {
@@ -1196,7 +1196,7 @@ impl Interpreter {
                 match object_val {
                     Value::Object(obj_rc) => {
                         let obj = obj_rc.borrow();
-                        if let Some(value) = obj.get(property) {
+                        if let Some(value) = obj.get(property.as_ref()) {
                             Ok(value.clone())
                         } else {
                             Err(RuntimeError::new(
@@ -1279,7 +1279,7 @@ impl Interpreter {
                 let left_val = self.evaluate_expression(left, Rc::clone(&env)).await?;
 
                 let right_val = match right.as_ref() {
-                    Expression::Variable(name, _, _) if name == "count" => {
+                    Expression::Variable(name, _, _) if name.as_ref() == "count" => {
                         if let Some(count_value) = *self.current_count.borrow() {
                             Value::Number(count_value)
                         } else {

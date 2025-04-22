@@ -1,4 +1,5 @@
 use std::fmt;
+use crate::Ident;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Program {
@@ -14,13 +15,13 @@ impl Program {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Statement {
     VariableDeclaration {
-        name: String,
+        name: Ident,
         value: Expression,
         line: usize,
         column: usize,
     },
     Assignment {
-        name: String,
+        name: Ident,
         value: Expression,
         line: usize,
         column: usize,
@@ -40,7 +41,7 @@ pub enum Statement {
         column: usize,
     },
     ForEachLoop {
-        item_name: String,
+        item_name: Ident,
         collection: Expression,
         reversed: bool,
         body: Vec<Statement>,
@@ -79,7 +80,7 @@ pub enum Statement {
         column: usize,
     },
     ActionDefinition {
-        name: String,
+        name: Ident,
         parameters: Vec<Parameter>,
         body: Vec<Statement>,
         return_type: Option<Type>,
@@ -106,13 +107,13 @@ pub enum Statement {
     },
     OpenFileStatement {
         path: Expression,
-        variable_name: String,
+        variable_name: Ident,
         line: usize,
         column: usize,
     },
     ReadFileStatement {
         path: Expression,
-        variable_name: String,
+        variable_name: Ident,
         line: usize,
         column: usize,
     },
@@ -134,7 +135,7 @@ pub enum Statement {
     },
     TryStatement {
         body: Vec<Statement>,
-        error_name: String,
+        error_name: Ident,
         when_block: Vec<Statement>,
         otherwise_block: Option<Vec<Statement>>,
         line: usize,
@@ -142,14 +143,14 @@ pub enum Statement {
     },
     HttpGetStatement {
         url: Expression,
-        variable_name: String,
+        variable_name: Ident,
         line: usize,
         column: usize,
     },
     HttpPostStatement {
         url: Expression,
         data: Expression,
-        variable_name: String,
+        variable_name: Ident,
         line: usize,
         column: usize,
     },
@@ -158,7 +159,7 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Literal(Literal, usize, usize), // line, column
-    Variable(String, usize, usize), // line, column
+    Variable(Ident, usize, usize), // line, column
     BinaryOperation {
         left: Box<Expression>,
         operator: Operator,
@@ -180,7 +181,7 @@ pub enum Expression {
     },
     MemberAccess {
         object: Box<Expression>,
-        property: String,
+        property: Ident,
         line: usize,
         column: usize,
     },
@@ -263,14 +264,14 @@ pub enum UnaryOperator {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Parameter {
-    pub name: String,
+    pub name: Ident,
     pub param_type: Option<Type>,
     pub default_value: Option<Expression>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Argument {
-    pub name: Option<String>,
+    pub name: Option<Ident>,
     pub value: Expression,
 }
 
@@ -280,7 +281,7 @@ pub enum Type {
     Number,
     Boolean,
     Nothing,
-    Custom(String),
+    Custom(Ident),
     List(Box<Type>),
     Map(Box<Type>, Box<Type>),
     Function {

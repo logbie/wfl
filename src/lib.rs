@@ -1,6 +1,7 @@
 #![deny(clippy::await_holding_refcell_ref)]
 
 pub mod analyzer;
+pub mod common;
 pub mod config;
 pub mod debug;
 pub mod debug_report;
@@ -15,6 +16,7 @@ pub mod repl;
 pub mod stdlib;
 pub mod typechecker;
 
+pub use common::ident::Ident;
 pub use interpreter::Interpreter;
 
 pub fn add(left: u64, right: u64) -> u64 {

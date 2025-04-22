@@ -1,12 +1,13 @@
 use super::Analyzer;
 use crate::diagnostics::{Severity, WflDiagnostic};
 use crate::parser::ast::{Expression, Program, Statement, Type};
+use crate::Ident;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
 #[allow(dead_code)]
 struct VariableUsage {
-    name: String,
+    name: Ident,
     defined_at: (usize, usize), // (line, column)
     used: bool,
 }
@@ -207,7 +208,7 @@ impl StaticAnalyzer for Analyzer {
     fn check_shadowing(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         let mut global_scope = HashMap::new();
-        let parent_scopes: Vec<HashMap<String, (usize, usize)>> = Vec::new();
+        let parent_scopes: Vec<HashMap<Ident, (usize, usize)>> = Vec::new();
 
         self.check_shadowing_in_statements(
             &program.statements,
@@ -265,7 +266,7 @@ impl Analyzer {
     fn collect_variable_declarations(
         &self,
         statement: &Statement,
-        usages: &mut HashMap<String, VariableUsage>,
+        usages: &mut HashMap<Ident, VariableUsage>,
     ) {
         match statement {
             Statement::VariableDeclaration {
@@ -327,7 +328,7 @@ impl Analyzer {
     fn mark_used_variables(
         &self,
         statement: &Statement,
-        usages: &mut HashMap<String, VariableUsage>,
+        usages: &mut HashMap<Ident, VariableUsage>,
     ) {
         match statement {
             Statement::Assignment { name, value, .. } => {
@@ -414,7 +415,7 @@ impl Analyzer {
     fn mark_used_in_expression(
         &self,
         expression: &Expression,
-        usages: &mut HashMap<String, VariableUsage>,
+        usages: &mut HashMap<Ident, VariableUsage>,
     ) {
         match expression {
             Expression::Variable(name, ..) => {
@@ -743,8 +744,8 @@ impl Analyzer {
     fn check_shadowing_in_statements(
         &self,
         statements: &[Statement],
-        current_scope: &mut HashMap<String, (usize, usize)>,
-        parent_scopes: &[HashMap<String, (usize, usize)>],
+        current_scope: &mut HashMap<Ident, (usize, usize)>,
+        parent_scopes: &[HashMap<Ident, (usize, usize)>],
         file_id: usize,
         diagnostics: &mut Vec<WflDiagnostic>,
     ) {
