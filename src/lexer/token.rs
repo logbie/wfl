@@ -1,7 +1,7 @@
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"(?:[ \t\n\f]+|//[^\n]*)")] // Skip whitespace and line comments
+#[logos(skip r"(?:[ \t\n\f\r]+|//.*)")] // Skip whitespace and line comments
 pub enum Token {
     #[token("store")]
     KeywordStore,
@@ -167,8 +167,14 @@ pub enum Token {
     #[regex("[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLiteral(i64),
 
-    #[regex("[A-Za-z][A-Za-z0-9]*", |lex| lex.slice().to_string())]
+    #[regex("[A-Za-z][A-Za-z0-9_]*", |lex| lex.slice().to_string())]
     Identifier(String),
+
+    #[token("(")]
+    LeftParen,
+
+    #[token(")")]
+    RightParen,
 
     Error,
 }

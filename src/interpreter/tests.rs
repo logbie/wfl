@@ -184,3 +184,45 @@ async fn test_type_error_blocked_by_default() {
     let mut tc = TypeChecker::new();
     assert!(tc.check_types(&program).is_err());
 }
+
+#[tokio::test]
+async fn test_count_in_binary_operations() {
+    let input = r#"
+        store sum as 0
+        count from 1 to 5:
+            change sum to sum plus count
+        end count
+        sum
+    "#;
+
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+
+    let mut interpreter = Interpreter::default();
+    let result = interpreter.interpret(&program).await.unwrap();
+    assert_eq!(result, Value::Number(15.0)); // Sum of numbers 1 to 5 = 15
+}
+
+#[tokio::test]
+async fn test_nested_count_loops() {
+    let input = r#"
+        store total as 0
+        count from 1 to 3:
+            store outer as count
+            count from 1 to 2:
+                store inner as count
+                change total to total plus outer times inner
+            end count
+        end count
+        total
+    "#;
+
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+
+    let mut interpreter = Interpreter::default();
+    let result = interpreter.interpret(&program).await.unwrap();
+    assert_eq!(result, Value::Number(18.0)); // (1×1 + 1×2) + (2×1 + 2×2) + (3×1 + 3×2) = 18
+}

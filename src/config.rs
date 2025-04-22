@@ -98,6 +98,7 @@ impl LogLevel {
 }
 
 fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
+    log::debug!("Parsing config from {}", file.display());
     for line in text.lines() {
         let line = line.trim();
         if line.is_empty() || line.starts_with('#') {
@@ -107,6 +108,7 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
         if let Some((key, rest)) = line.split_once('=') {
             let key = key.trim();
             let value = rest.trim();
+            log::debug!("Found config key: {}, value: {}", key, value);
 
             match key {
                 "timeout_seconds" => {
@@ -432,7 +434,7 @@ mod tests {
     #[test]
     fn test_load_timeout_default() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let timeout = load_timeout(temp_dir.path());
+        let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
         assert_eq!(timeout, 60);
     }
 
@@ -480,7 +482,11 @@ mod tests {
     #[test]
     fn test_load_config_defaults() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let config = load_config(temp_dir.path());
+        let config = with_test_global_path(|| {
+            // Explicitly set to non-existent path to avoid loading any global config
+            set_test_env_var(Some("/non/existent/path"));
+            load_config(temp_dir.path())
+        });
 
         assert_eq!(config.timeout_seconds, 60);
         assert!(!config.logging_enabled);
@@ -563,16 +569,12 @@ mod tests {
         let mut file = fs::File::create(&global_config_path).unwrap();
         file.write_all(global_config_content.as_bytes()).unwrap();
 
-        unsafe {
-            ::std::env::set_var(
-                "WFL_GLOBAL_CONFIG_PATH",
-                global_config_path.to_str().unwrap(),
-            );
-        }
-
         let script_dir = tempdir().unwrap();
 
-        let config = with_test_global_path(|| load_config_with_global(script_dir.path()));
+        let config = with_test_global_path(|| {
+            set_test_env_var(Some(global_config_path.to_str().unwrap()));
+            load_config_with_global(script_dir.path())
+        });
 
         assert_eq!(config.timeout_seconds, 180); // From global config
         assert!(config.logging_enabled);
@@ -623,13 +625,6 @@ mod tests {
         let mut file = fs::File::create(&global_config_path).unwrap();
         file.write_all(global_config_content.as_bytes()).unwrap();
 
-        unsafe {
-            ::std::env::set_var(
-                "WFL_GLOBAL_CONFIG_PATH",
-                global_config_path.to_str().unwrap(),
-            );
-        }
-
         let script_dir = tempdir().unwrap();
         let local_config_path = script_dir.path().join(".wflcfg");
 
@@ -643,16 +638,86 @@ mod tests {
         let mut file = fs::File::create(&local_config_path).unwrap();
         file.write_all(local_config_content.as_bytes()).unwrap();
 
-        let config = load_config(script_dir.path());
-
-        unsafe {
-            ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
-        }
+        let config = with_test_global_path(|| {
+            set_test_env_var(Some(global_config_path.to_str().unwrap()));
+            load_config_with_global(script_dir.path())
+        });
 
         assert_eq!(config.timeout_seconds, 60); // Local override
         assert!(config.logging_enabled); // From global
         assert_eq!(config.max_line_length, 120); // From global
         assert_eq!(config.log_level, LogLevel::Debug); // Local override
         assert!(!config.snake_case_variables); // Local override
+    }
+}
+#[cfg(test)]
+mod test_reproduce_ci {
+    use super::*;
+    use std::fs;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_env_var_interference() {
+        // First test: set environment variable
+        let temp_dir1 = tempdir().unwrap();
+        let global_config_path1 = temp_dir1.path().join("wfl1.cfg");
+
+        let global_config_content1 = r#"
+        # Global WFL Configuration
+        timeout_seconds = 180
+        logging_enabled = true
+        "#;
+
+        let mut file1 = fs::File::create(&global_config_path1).unwrap();
+        file1.write_all(global_config_content1.as_bytes()).unwrap();
+
+        // Set environment variable directly
+        unsafe {
+            ::std::env::set_var(
+                "WFL_GLOBAL_CONFIG_PATH",
+                global_config_path1.to_str().unwrap(),
+            );
+        }
+
+        // Second test: create different config but don't set environment variable
+        let temp_dir2 = tempdir().unwrap();
+        let global_config_path2 = temp_dir2.path().join("wfl2.cfg");
+
+        let global_config_content2 = r#"
+        # Global WFL Configuration
+        timeout_seconds = 120
+        logging_enabled = false
+        "#;
+
+        let mut file2 = fs::File::create(&global_config_path2).unwrap();
+        file2.write_all(global_config_content2.as_bytes()).unwrap();
+
+        // Create local config
+        let script_dir = tempdir().unwrap();
+        let local_config_path = script_dir.path().join(".wflcfg");
+
+        let local_config_content = r#"
+        # Local WFL Configuration
+        timeout_seconds = 60
+        "#;
+
+        let mut file3 = fs::File::create(&local_config_path).unwrap();
+        file3.write_all(local_config_content.as_bytes()).unwrap();
+
+        // Load config using load_config_with_global
+        let config = load_config_with_global(script_dir.path());
+
+        // Print debug info
+        println!("Global config path: {}", get_global_config_path());
+        println!(
+            "Global config exists: {}",
+            Path::new(get_global_config_path()).exists()
+        );
+        println!("Config logging_enabled: {}", config.logging_enabled);
+
+        // This should pass if the environment variable is correctly used
+        assert_eq!(config.timeout_seconds, 60); // Local override
+        assert!(config.logging_enabled); // From global - THIS MIGHT FAIL
     }
 }

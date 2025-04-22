@@ -3,8 +3,13 @@ pub mod token;
 use logos::Logos;
 use token::{Token, TokenWithPosition};
 
+pub fn normalize_line_endings(input: &str) -> String {
+    input.replace("\r\n", "\n")
+}
+
 pub fn lex_wfl(input: &str) -> Vec<Token> {
-    let mut lexer = Token::lexer(input);
+    let input = normalize_line_endings(input);
+    let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
     let mut current_id: Option<String> = None;
 
@@ -16,7 +21,6 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     lexer.span().start,
                     lexer.slice()
                 );
-                break;
             }
             Ok(Token::Identifier(word)) => {
                 if let Some(ref mut id) = current_id {
@@ -38,7 +42,6 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     lexer.span().start,
                     lexer.slice()
                 );
-                break;
             }
         }
     }
@@ -50,7 +53,8 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
 }
 
 pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
-    let mut lexer = Token::lexer(input);
+    let input = normalize_line_endings(input);
+    let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
     let mut current_id: Option<String> = None;
     let mut current_id_start_line = 0;
@@ -90,7 +94,6 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     span.start,
                     lexer.slice()
                 );
-                break;
             }
             Ok(Token::Identifier(word)) => {
                 if let Some(ref mut id) = current_id {
@@ -126,7 +129,6 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     span.start,
                     lexer.slice()
                 );
-                break;
             }
         }
     }
@@ -145,6 +147,14 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_line_ending_normalization() {
+        let input = "store x as 1\r\ndisplay x\r\n";
+        let normalized = normalize_line_endings(input);
+        assert!(!normalized.contains('\r'));
+        assert_eq!(normalized.matches('\n').count(), 2);
+    }
 
     #[test]
     fn test_multi_word_identifier() {
@@ -284,6 +294,30 @@ mod tests {
                 Token::KeywordCount,
                 Token::KeywordEnd,
                 Token::KeywordCount,
+            ]
+        );
+    }
+
+    #[test]
+    fn test_identifiers_with_underscores() {
+        let input = r#"
+            store user_name as "Alice"
+            display user_name with " is logged in."
+        "#;
+
+        let tokens = lex_wfl(input);
+
+        assert_eq!(
+            tokens,
+            vec![
+                Token::KeywordStore,
+                Token::Identifier("user_name".to_string()),
+                Token::KeywordAs,
+                Token::StringLiteral("Alice".to_string()),
+                Token::KeywordDisplay,
+                Token::Identifier("user_name".to_string()),
+                Token::KeywordWith,
+                Token::StringLiteral(" is logged in.".to_string()),
             ]
         );
     }
