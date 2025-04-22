@@ -1,7 +1,7 @@
 use super::environment::Environment;
 use super::error::RuntimeError;
 use crate::Ident;
-use crate::debug::safe_debug::{SafeDebug, format_collection, format_map, truncate_utf8_safe};
+use crate::debug::safe_debug::{SafeDebug, format_collection, truncate_utf8_safe};
 use crate::parser::ast::Statement;
 use std::cell::RefCell;
 use std::collections::HashMap;

@@ -1,6 +1,5 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::fmt;
 use std::rc::Rc;
 use wfl::debug::SafeDebug;
 use wfl::debug::test_helpers::{TestFormatter, TestWriter};

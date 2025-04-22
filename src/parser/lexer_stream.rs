@@ -1,4 +1,3 @@
-use crate::lexer::token::TokenWithPosition;
 use std::iter::Peekable;
 use std::vec::IntoIter;
 

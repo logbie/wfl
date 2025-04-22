@@ -1,9 +1,6 @@
-use std::cell::RefCell;
 use std::rc::Rc;
 use wfl::interpreter::environment::Environment;
 use wfl::interpreter::value::{FunctionValue, Value};
-use wfl::parser::Parser;
-use wfl::parser::ast::Statement;
 
 #[test]
 fn closure_cycle() {
@@ -47,7 +44,7 @@ fn parser_stability() {
     use wfl::parser::Parser;
 
     fn current_rss() -> usize {
-        let mut out = std::process::Command::new("ps")
+        let out = std::process::Command::new("ps")
             .args(&["-o", "rss=", &process::id().to_string()])
             .output()
             .expect("Failed to execute ps command");

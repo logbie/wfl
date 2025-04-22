@@ -5,7 +5,6 @@ pub mod lexer_stream;
 mod tests;
 
 use crate::Ident;
-use std::sync::Arc;
 
 use crate::lexer::token::{Token, TokenWithPosition};
 use ast::*;

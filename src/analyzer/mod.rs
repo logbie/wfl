@@ -2,7 +2,6 @@ use crate::Ident;
 use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
 use std::collections::HashMap;
 use std::fmt;
-use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum SymbolKind {

@@ -24,7 +24,7 @@ pub fn intern(s: &str) -> Ident {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
+    
 
     #[test]
     fn test_intern_same_string() {
