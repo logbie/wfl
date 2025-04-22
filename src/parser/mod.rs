@@ -752,7 +752,7 @@ impl<'a> Parser<'a> {
                                                     if matches!(next.token, Token::Colon) {
                                                         self.tokens.next(); // Consume name
                                                         self.tokens.next(); // Consume ":"
-                                                        Some(Arc::clone(id))
+                                                        Some(id.clone())
                                                     } else {
                                                         None
                                                     }
@@ -792,7 +792,7 @@ impl<'a> Parser<'a> {
                                 let token_column = token.column;
                                 return Ok(Expression::FunctionCall {
                                     function: Box::new(Expression::Variable(
-                                        Arc::clone(name),
+                                        name.clone(),
                                         token_line,
                                         token_column,
                                     )),
@@ -807,7 +807,7 @@ impl<'a> Parser<'a> {
                     let token_line = token.line;
                     let token_column = token.column;
                     Ok(Expression::Variable(
-                        Arc::clone(name),
+                        name.clone(),
                         token_line,
                         token_column,
                     ))
@@ -933,7 +933,7 @@ impl<'a> Parser<'a> {
                                     } else {
                                         expr = Expression::MemberAccess {
                                             object: Box::new(expr),
-                                            property: Arc::clone(prop),
+                                            property: prop.clone(),
                                             line: prop_token.line,
                                             column: prop_token.column,
                                         };
@@ -1192,7 +1192,7 @@ impl<'a> Parser<'a> {
         let item_name = if let Some(token) = self.tokens.peek() {
             if let Token::Identifier(id) = &token.token {
                 self.tokens.next();
-                Arc::clone(id)
+                id.clone()
             } else {
                 return Err(ParseError::new(
                     format!("Expected identifier after 'each', found {:?}", token.token),
@@ -1407,7 +1407,7 @@ impl<'a> Parser<'a> {
                                         "number" => Type::Number,
                                         "boolean" => Type::Boolean,
                                         "nothing" => Type::Nothing,
-                                        _ => Type::Custom(Arc::clone(&type_name)),
+                                        _ => Type::Custom(type_name.clone()),
                                     };
 
                                     Some(typ)
@@ -1488,7 +1488,7 @@ impl<'a> Parser<'a> {
                                 "number" => Type::Number,
                                 "boolean" => Type::Boolean,
                                 "nothing" => Type::Nothing,
-                                _ => Type::Custom(Arc::clone(&type_name)),
+                                _ => Type::Custom(type_name.clone()),
                             };
 
                             Some(typ)
@@ -1687,11 +1687,11 @@ impl<'a> Parser<'a> {
                 let variable_name = if let Some(token) = self.tokens.peek() {
                     if let Token::Identifier(name) = &token.token {
                         self.tokens.next(); // Consume the identifier
-                        Arc::clone(name)
+                        name.clone()
                     } else if let Token::KeywordContent = &token.token {
                         // Special case for "content" as an identifier
                         self.tokens.next(); // Consume the "content" keyword
-                        crate::parser::intern::intern("content")
+                        crate::common::ident::intern("content")
                     } else {
                         return Err(ParseError::new(
                             format!(
@@ -1783,10 +1783,10 @@ impl<'a> Parser<'a> {
         let variable_name = if let Some(token) = self.tokens.peek() {
             if let Token::Identifier(name) = &token.token {
                 self.tokens.next(); // Consume the identifier
-                Arc::clone(name)
+                name.clone()
             } else if let Token::KeywordContent = &token.token {
                 self.tokens.next(); // Consume the "content" keyword
-                crate::parser::intern::intern("content")
+                crate::common::ident::intern("content")
             } else {
                 return Err(ParseError::new(
                     format!(

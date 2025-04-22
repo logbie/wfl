@@ -914,19 +914,19 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::VariableDeclaration {
-                    name: "unused".to_string(),
+                    name: "unused".to_string().into(),
                     value: Expression::Literal(Literal::Integer(10), 1, 1),
                     line: 1,
                     column: 1,
                 },
                 Statement::VariableDeclaration {
-                    name: "used".to_string(),
+                    name: "used".to_string().into(),
                     value: Expression::Literal(Literal::Integer(20), 2, 1),
                     line: 2,
                     column: 1,
                 },
                 Statement::DisplayStatement {
-                    value: Expression::Variable("used".to_string(), 3, 9),
+                    value: Expression::Variable("used".to_string().into(), 3, 9),
                     line: 3,
                     column: 1,
                 },
@@ -947,7 +947,7 @@ mod tests {
     fn test_inconsistent_returns() {
         let program = Program {
             statements: vec![Statement::ActionDefinition {
-                name: "inconsistent".to_string(),
+                name: "inconsistent".to_string().into(),
                 parameters: vec![],
                 body: vec![Statement::IfStatement {
                     condition: Expression::Literal(Literal::Boolean(true), 2, 5),

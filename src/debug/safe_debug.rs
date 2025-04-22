@@ -1,9 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
-use std::sync::Arc;
 
 pub trait SafeDebug {
-    fn safe_fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result;
+    fn safe_fmt<W: fmt::Write>(&self, f: &mut W) -> fmt::Result;
 }
 
 pub fn truncate_utf8_safe(s: &str, max_chars: usize) -> &str {
@@ -17,15 +16,16 @@ pub fn truncate_utf8_safe(s: &str, max_chars: usize) -> &str {
     }
 }
 
-pub fn format_collection<T, F>(
+pub fn format_collection<T, F, W>(
     items: &[T],
-    f: &mut fmt::Formatter<'_>,
+    f: &mut W,
     format_item: F,
     open: &str,
     close: &str,
 ) -> fmt::Result
 where
-    F: Fn(&T, &mut fmt::Formatter<'_>) -> fmt::Result,
+    W: fmt::Write,
+    F: Fn(&T, &mut W) -> fmt::Result,
 {
     const MAX_ELEMENTS: usize = 16;
 
@@ -48,15 +48,16 @@ where
     write!(f, "{}", close)
 }
 
-pub fn format_map<K, V, FK, FV>(
+pub fn format_map<K, V, FK, FV, W>(
     map: &HashMap<K, V>,
-    f: &mut fmt::Formatter<'_>,
+    f: &mut W,
     format_key: FK,
     format_value: FV,
 ) -> fmt::Result
 where
-    FK: Fn(&K, &mut fmt::Formatter<'_>) -> fmt::Result,
-    FV: Fn(&V, &mut fmt::Formatter<'_>) -> fmt::Result,
+    W: fmt::Write,
+    FK: Fn(&K, &mut W) -> fmt::Result,
+    FV: Fn(&V, &mut W) -> fmt::Result,
 {
     const MAX_ELEMENTS: usize = 16;
 
@@ -85,6 +86,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fmt::Write;
 
     #[test]
     fn test_truncate_utf8_safe() {
@@ -101,38 +103,53 @@ mod tests {
         assert_eq!(truncate_utf8_safe(s, 5), "");
     }
 
+    struct TestFormatter {
+        output: String,
+    }
+
+    impl fmt::Write for TestFormatter {
+        fn write_str(&mut self, s: &str) -> fmt::Result {
+            self.output.push_str(s);
+            Ok(())
+        }
+    }
+
+    impl TestFormatter {
+        fn new() -> Self {
+            TestFormatter {
+                output: String::new(),
+            }
+        }
+    }
+
     #[test]
     fn test_format_collection() {
         let items = vec![1, 2, 3, 4, 5];
-        let mut output = String::new();
-        let mut buffer = &mut output;
-        let mut formatter = &mut fmt::Formatter::from_buffer(buffer, fmt::FormatSpec::default());
-
-        format_collection(
+        let mut test_fmt = TestFormatter::new();
+        
+        let result = format_collection(
             &items,
-            &mut formatter,
+            &mut test_fmt,
             |item, f| write!(f, "{}", item),
             "[",
             "]",
-        )
-        .unwrap();
-
-        assert_eq!(output, "[1, 2, 3, 4, 5]");
+        );
+        
+        assert!(result.is_ok());
+        assert_eq!(test_fmt.output, "[1, 2, 3, 4, 5]");
 
         let items: Vec<i32> = (1..=20).collect();
-        let mut output = String::new();
-        let mut buffer = &mut output;
-        let mut formatter = &mut fmt::Formatter::from_buffer(buffer, fmt::FormatSpec::default());
-
-        format_collection(
+        let mut test_fmt = TestFormatter::new();
+        
+        let result = format_collection(
             &items,
-            &mut formatter,
+            &mut test_fmt,
             |item, f| write!(f, "{}", item),
             "[",
             "]",
-        )
-        .unwrap();
-
-        assert!(output.contains("… (4 more)"));
+        );
+        
+        assert!(result.is_ok());
+        assert!(test_fmt.output.contains("… (4 more)"));
     }
 }

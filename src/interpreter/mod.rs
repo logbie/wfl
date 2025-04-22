@@ -437,13 +437,13 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let param_names: Vec<String> = parameters
+                let param_names: Vec<crate::Ident> = parameters
                     .iter()
-                    .map(|p| p.name.as_ref().to_string())
+                    .map(|p| p.name.clone())
                     .collect();
 
                 let function = FunctionValue {
-                    name: Some(name.as_ref().to_string()),
+                    name: Some(name.clone()),
                     params: param_names,
                     body: body.clone(),
                     env: Rc::downgrade(&env),
@@ -605,7 +605,7 @@ impl Interpreter {
                         }
                     }
                     Value::Object(obj_rc) => {
-                        let items: Vec<(String, Value)> = {
+                        let items: Vec<(crate::Ident, Value)> = {
                             let obj = obj_rc.borrow();
                             obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
                         };
@@ -1199,7 +1199,7 @@ impl Interpreter {
                 match object_val {
                     Value::Object(obj_rc) => {
                         let obj = obj_rc.borrow();
-                        if let Some(value) = obj.get(property.as_ref()) {
+                        if let Some(value) = obj.get(property) {
                             Ok(value.clone())
                         } else {
                             Err(RuntimeError::new(
@@ -1249,13 +1249,13 @@ impl Interpreter {
                     }
                     (Value::Object(obj_rc), Value::Text(key)) => {
                         let obj = obj_rc.borrow();
-                        let key_str = key.to_string();
+                        let key_ident = crate::common::ident::intern(key.as_ref());
 
-                        if let Some(value) = obj.get(&key_str) {
+                        if let Some(value) = obj.get(&key_ident) {
                             Ok(value.clone())
                         } else {
                             Err(RuntimeError::new(
-                                format!("Object has no key '{}'", key_str),
+                                format!("Object has no key '{}'", key_ident),
                                 *line,
                                 *column,
                             ))
@@ -1396,7 +1396,8 @@ impl Interpreter {
         let frame = CallFrame::new(
             func.name
                 .clone()
-                .unwrap_or_else(|| "<anonymous>".to_string()),
+                .unwrap_or_else(|| crate::common::ident::intern("anonymous"))
+                .as_ref(),
             line,
             column,
         );
@@ -1630,7 +1631,8 @@ impl Interpreter {
             }
             (Value::Object(obj_rc), Value::Text(key)) => {
                 let obj = obj_rc.borrow();
-                Ok(Value::Bool(obj.contains_key(&key.to_string())))
+                let key_ident = crate::common::ident::intern(key.as_ref());
+                Ok(Value::Bool(obj.contains_key(&key_ident)))
             }
             (Value::Text(text), Value::Text(substring)) => {
                 Ok(Value::Bool(text.contains(&*substring)))

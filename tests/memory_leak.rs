@@ -3,6 +3,7 @@ use std::rc::Rc;
 use wfl::interpreter::environment::Environment;
 use wfl::interpreter::value::{FunctionValue, Value};
 use wfl::parser::ast::Statement;
+use wfl::parser::Parser;
 
 #[test]
 fn closure_cycle() {
@@ -11,7 +12,7 @@ fn closure_cycle() {
     let mut env = Rc::clone(&global_env);
     for i in 0..10_000 {
         let func = FunctionValue {
-            name: Some(format!("func_{}", i)),
+            name: Some(format!("func_{}", i).into()),
             params: vec![],
             body: vec![],
             env: Rc::downgrade(&env), // This should use Weak reference
@@ -20,7 +21,7 @@ fn closure_cycle() {
         };
 
         let func_value = Value::Function(Rc::new(func));
-        env.borrow_mut().define(&format!("func_{}", i), func_value);
+        env.borrow_mut().define(format!("func_{}", i), func_value);
 
         let new_env = Environment::new_child_env(&env);
         env = new_env;
@@ -63,13 +64,15 @@ fn parser_stability() {
     let initial_rss = current_rss();
     println!("Initial RSS: {} KB", initial_rss);
 
-    let mut parser = Parser::new(&script);
+    let tokens = wfl::lexer::lex_wfl_with_positions(&script);
+    let mut parser = Parser::new(&tokens);
     let _ = parser.parse();
 
     let after_first_parse = current_rss();
     println!("RSS after first parse: {} KB", after_first_parse);
 
-    let mut parser = Parser::new(&script);
+    let tokens = wfl::lexer::lex_wfl_with_positions(&script);
+    let mut parser = Parser::new(&tokens);
     let _ = parser.parse();
 
     let after_second_parse = current_rss();

@@ -1,11 +1,12 @@
 use super::value::Value;
+use crate::Ident;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::{Rc, Weak};
 
 #[derive(Debug)]
 pub struct Environment {
-    pub values: HashMap<String, Value>,
+    pub values: HashMap<Ident, Value>,
     pub parent: Option<Weak<RefCell<Environment>>>,
 }
 
@@ -32,31 +33,33 @@ impl Environment {
         }))
     }
 
-    pub fn define(&mut self, name: &str, value: Value) {
-        self.values.insert(name.to_string(), value);
+    pub fn define<N: Into<Ident>>(&mut self, name: N, value: Value) {
+        self.values.insert(name.into(), value);
     }
 
-    pub fn assign(&mut self, name: &str, value: Value) -> Result<(), String> {
-        if self.values.contains_key(name) {
-            self.values.insert(name.to_string(), value);
+    pub fn assign<N: Into<Ident>>(&mut self, name: N, value: Value) -> Result<(), String> {
+        let name_ident = name.into();
+        if self.values.contains_key(&name_ident) {
+            self.values.insert(name_ident, value);
             Ok(())
         } else if let Some(parent_weak) = &self.parent {
             if let Some(parent) = parent_weak.upgrade() {
-                parent.borrow_mut().assign(name, value)
+                parent.borrow_mut().assign(name_ident, value)
             } else {
                 Err("Parent environment no longer exists".to_string())
             }
         } else {
-            Err(format!("Undefined variable '{}'", name))
+            Err(format!("Undefined variable '{}'", name_ident))
         }
     }
 
-    pub fn get(&self, name: &str) -> Option<Value> {
-        if let Some(value) = self.values.get(name) {
+    pub fn get<N: AsRef<str>>(&self, name: N) -> Option<Value> {
+        let name_ref = name.as_ref();
+        if let Some(value) = self.values.get(&crate::common::ident::intern(name_ref)) {
             Some(value.clone())
         } else if let Some(parent_weak) = &self.parent {
             if let Some(parent) = parent_weak.upgrade() {
-                parent.borrow().get(name)
+                parent.borrow().get(name_ref)
             } else {
                 None
             }

@@ -665,7 +665,7 @@ pub fn native_pattern_find(args: Vec<Value>) -> Result<Value, RuntimeError> {
             if let Some(captures) = pattern.find(&text) {
                 let mut map = HashMap::new();
                 for (key, value) in captures {
-                    map.insert(key, Value::Text(Rc::from(value.as_str())));
+                    map.insert(crate::common::ident::intern(&key), Value::Text(Rc::from(value.as_str())));
                 }
                 Ok(Value::Object(Rc::new(RefCell::new(map))))
             } else {

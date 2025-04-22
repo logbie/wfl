@@ -59,7 +59,7 @@ impl Scope {
                 symbol.column,
             ));
         }
-        self.symbols.insert(Arc::clone(&symbol.name), symbol);
+        self.symbols.insert(symbol.name.clone(), symbol);
         Ok(())
     }
 
@@ -631,13 +631,13 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::VariableDeclaration {
-                    name: "x".to_string(),
+                    name: "x".to_string().into(),
                     value: Expression::Literal(Literal::Integer(10), 1, 1),
                     line: 1,
                     column: 1,
                 },
                 Statement::DisplayStatement {
-                    value: Expression::Variable("x".to_string(), 2, 9),
+                    value: Expression::Variable("x".to_string().into(), 2, 9),
                     line: 2,
                     column: 1,
                 },
@@ -653,7 +653,7 @@ mod tests {
     fn test_undefined_variable() {
         let program = Program {
             statements: vec![Statement::DisplayStatement {
-                value: Expression::Variable("x".to_string(), 1, 9),
+                value: Expression::Variable("x".to_string().into(), 1, 9),
                 line: 1,
                 column: 1,
             }],
@@ -683,7 +683,7 @@ mod tests {
                         default_value: None,
                     }],
                     body: vec![Statement::DisplayStatement {
-                        value: Expression::Variable("name".to_string(), 2, 5),
+                        value: Expression::Variable("name".to_string().into(), 2, 5),
                         line: 2,
                         column: 5,
                     }],
@@ -693,7 +693,7 @@ mod tests {
                 },
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
+                        function: Box::new(Expression::Variable("greet".to_string().into(), 3, 1)),
                         arguments: vec![Argument {
                             name: None,
                             value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
