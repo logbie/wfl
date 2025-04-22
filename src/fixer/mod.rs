@@ -246,20 +246,49 @@ impl CodeFixer {
         indent_level: usize,
         summary: &mut FixerSummary,
     ) {
+        thread_local! {
+            static STMT_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+        }
+        
+        let should_truncate = STMT_DEPTH.with(|depth| {
+            let mut d = depth.borrow_mut();
+            *d += 1;
+            let too_deep = *d > 3; // Very aggressive limit
+            too_deep
+        });
+        
+        let _guard = scopeguard::guard((), |_| {
+            STMT_DEPTH.with(|depth| {
+                let mut d = depth.borrow_mut();
+                *d -= 1;
+            });
+        });
+        
+        if should_truncate {
+            output.push_str("# Truncated statement due to depth limit\n");
+            summary.lines_reformatted += 1;
+            return;
+        }
+        
         let reserve_size = match statement {
             Statement::VariableDeclaration { name, .. } => name.len() + 20,
             Statement::Assignment { name, .. } => name.len() + 20,
             Statement::ActionDefinition { name, parameters, body, .. } => {
-                name.len() + parameters.len() * 10 + body.len() * 5 + 50
+                let body_len = std::cmp::min(body.len(), 5);
+                name.len() + parameters.len() * 10 + body_len * 5 + 50
             },
             Statement::IfStatement { condition: _condition, then_block, else_block, .. } => {
-                100 + then_block.len() * 5 + else_block.as_ref().map_or(0, |e| e.len() * 5)
+                let then_len = std::cmp::min(then_block.len(), 3);
+                let else_len = else_block.as_ref().map_or(0, |e| std::cmp::min(e.len(), 3));
+                100 + then_len * 5 + else_len * 5
             },
             Statement::ForEachLoop { item_name, collection: _collection, body, .. } => {
-                item_name.len() + 50 + body.len() * 5
+                let body_len = std::cmp::min(body.len(), 3);
+                item_name.len() + 50 + body_len * 5
             },
             Statement::CountLoop { start: _start, end: _end, step: _step, body, .. } => {
-                50 + body.len() * 5 // No variable name to measure
+                let body_len = std::cmp::min(body.len(), 3);
+                50 + body_len * 5
             },
             Statement::ReturnStatement { .. } => 20,
             Statement::ExpressionStatement { .. } => 30,
@@ -339,7 +368,7 @@ impl CodeFixer {
 
                 output.push_str(":\n");
 
-                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                let max_statements = 3; // Much more aggressive limit
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
@@ -347,7 +376,7 @@ impl CodeFixer {
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
-                    output.push_str("// ... truncated for memory safety\n");
+                    output.push_str("# ... truncated additional statements\n");
                 }
 
                 output.push_str(&indent);
@@ -365,7 +394,7 @@ impl CodeFixer {
                 self.pretty_print_expression(condition, output, indent_level, summary);
                 output.push_str(":\n");
 
-                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                let max_statements = 3; // Much more aggressive limit
                 for (_i, stmt) in then_block.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
@@ -373,7 +402,7 @@ impl CodeFixer {
                 if then_block.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
-                    output.push_str("// ... truncated for memory safety\n");
+                    output.push_str("# ... truncated additional statements\n");
                 }
 
                 if let Some(else_stmts) = else_block {
@@ -387,7 +416,7 @@ impl CodeFixer {
                     if else_stmts.len() > max_statements {
                         let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                         output.push_str(&truncated_indent);
-                        output.push_str("// ... truncated for memory safety\n");
+                        output.push_str("# ... truncated additional statements\n");
                     }
                 }
 
@@ -461,7 +490,7 @@ impl CodeFixer {
                 self.pretty_print_expression(collection, output, indent_level, summary);
                 output.push_str(":\n");
 
-                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                let max_statements = 3; // Much more aggressive limit
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
@@ -469,7 +498,7 @@ impl CodeFixer {
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
-                    output.push_str("// ... truncated for memory safety\n");
+                    output.push_str("# ... truncated additional statements\n");
                 }
 
                 output.push_str(&indent);
@@ -496,7 +525,7 @@ impl CodeFixer {
 
                 output.push_str(":\n");
 
-                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                let max_statements = 3; // Much more aggressive limit
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
@@ -504,7 +533,7 @@ impl CodeFixer {
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
-                    output.push_str("// ... truncated for memory safety\n");
+                    output.push_str("# ... truncated additional statements\n");
                 }
 
                 output.push_str(&indent);
@@ -519,7 +548,7 @@ impl CodeFixer {
                 self.pretty_print_expression(condition, output, indent_level, summary);
                 output.push_str(":\n");
 
-                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                let max_statements = 3; // Much more aggressive limit
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
@@ -527,7 +556,7 @@ impl CodeFixer {
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
-                    output.push_str("// ... truncated for memory safety\n");
+                    output.push_str("# ... truncated additional statements\n");
                 }
 
                 output.push_str(&indent);
