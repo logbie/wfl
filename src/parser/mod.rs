@@ -92,7 +92,7 @@ impl<'a> Parser<'a> {
                     })
                 }
                 Token::KeywordOpen => {
-                    let mut tokens_clone = self.tokens.clone();
+                    let mut tokens_clone = self.tokens.clone_iter();
                     let mut has_read_pattern = false;
 
                     tokens_clone.next();
@@ -664,21 +664,21 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary_expression(&mut self) -> Result<Expression, ParseError> {
-        if let Some(token) = self.tokens.peek() {
+        if let Some(token) = { self.tokens.peek().cloned() } {
             let result = match &token.token {
                 Token::LeftParen => {
                     self.tokens.next(); // Consume '('
                     let expr = self.parse_expression()?;
 
-                    if let Some(token) = self.tokens.peek() {
-                        if token.token == Token::RightParen {
+                    if let Some(next_token) = { self.tokens.peek().cloned() } {
+                        if next_token.token == Token::RightParen {
                             self.tokens.next(); // Consume ')'
                             return Ok(expr);
                         } else {
                             return Err(ParseError::new(
-                                format!("Expected closing parenthesis, found {:?}", token.token),
-                                token.line,
-                                token.column,
+                                format!("Expected closing parenthesis, found {:?}", next_token.token),
+                                next_token.line,
+                                next_token.column,
                             ));
                         }
                     } else {
@@ -732,7 +732,7 @@ impl<'a> Parser<'a> {
                 Token::Identifier(name) => {
                     self.tokens.next();
 
-                    if let Some(next_token) = self.tokens.peek() {
+                    if let Some(next_token) = { self.tokens.peek().cloned() } {
                         if let Token::Identifier(id) = &next_token.token {
                             if id.to_lowercase() == "with" {
                                 self.tokens.next(); // Consume "with"
@@ -740,9 +740,11 @@ impl<'a> Parser<'a> {
                                 let mut arguments = Vec::new();
 
                                 loop {
-                                    let arg_name = if let Some(name_token) = self.tokens.peek() {
+                                    let arg_name = if let Some(name_token) = { self.tokens.peek().cloned() } {
                                         if let Token::Identifier(id) = &name_token.token {
-                                            if let Some(next) = self.tokens.clone().nth(1) {
+                                            let mut iter = self.tokens.clone_iter();
+                                            iter.next(); // Skip current token
+                                            if let Some(next) = iter.next() {
                                                 if matches!(next.token, Token::Colon) {
                                                     self.tokens.next(); // Consume name
                                                     self.tokens.next(); // Consume ":"
@@ -767,7 +769,7 @@ impl<'a> Parser<'a> {
                                         value: arg_value,
                                     });
 
-                                    if let Some(token) = self.tokens.peek() {
+                                    if let Some(token) = { self.tokens.peek().cloned() } {
                                         if let Token::Identifier(id) = &token.token {
                                             if id.to_lowercase() == "and" {
                                                 self.tokens.next(); // Consume "and"
