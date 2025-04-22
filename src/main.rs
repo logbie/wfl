@@ -3,6 +3,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::process;
+use std::rc::Rc;
 use wfl::Interpreter;
 use wfl::analyzer::{Analyzer, StaticAnalyzer};
 use wfl::config;
@@ -171,7 +172,8 @@ async fn main() -> io::Result<()> {
                 let (diagnostics, _success) = linter.lint(&program, &input, &file_path);
 
                 if fix_mode {
-                    let mut fixer = CodeFixer::new();
+                    let interpreter = Rc::new(Interpreter::with_config(&config));
+                    let mut fixer = CodeFixer::with_interpreter(interpreter);
                     fixer.set_indent_size(config.indent_size);
                     fixer.load_config(script_dir);
 
@@ -272,7 +274,8 @@ async fn main() -> io::Result<()> {
         let tokens_with_pos = lex_wfl_with_positions(&input);
         match Parser::new(&tokens_with_pos).parse() {
             Ok(_program) => {
-                let mut fixer = CodeFixer::new();
+                let interpreter = Rc::new(Interpreter::with_config(&config));
+                let mut fixer = CodeFixer::with_interpreter(interpreter);
                 fixer.set_indent_size(config.indent_size);
                 fixer.load_config(script_dir);
 
