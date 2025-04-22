@@ -1,5 +1,6 @@
 pub mod ast;
 pub mod intern;
+pub mod lexer_stream;
 #[cfg(test)]
 mod tests;
 
@@ -8,18 +9,18 @@ use std::sync::Arc;
 
 use crate::lexer::token::{Token, TokenWithPosition};
 use ast::*;
-use std::iter::Peekable;
+use lexer_stream::TokenStream;
 use std::slice::Iter;
 
 pub struct Parser<'a> {
-    tokens: Peekable<Iter<'a, TokenWithPosition>>,
+    tokens: TokenStream<Iter<'a, TokenWithPosition>>,
     errors: Vec<ParseError>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [TokenWithPosition]) -> Self {
         Parser {
-            tokens: tokens.iter().peekable(),
+            tokens: TokenStream::new(tokens.iter()),
             errors: Vec::new(),
         }
     }
