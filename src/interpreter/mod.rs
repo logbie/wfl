@@ -387,9 +387,10 @@ impl Interpreter {
                         program.statements.len(),
                         err
                     );
+                    let is_oom = matches!(err.kind, ErrorKind::OutOfMemory);
                     errors.push(err);
 
-                    if matches!(err.kind, ErrorKind::OutOfMemory) {
+                    if is_oom {
                         self.call_stack.borrow_mut().clear();
                     }
 
@@ -411,9 +412,10 @@ impl Interpreter {
                 match self.call_function(&main_func, vec![], 0, 0).await {
                     Ok(value) => last_value = value,
                     Err(err) => {
+                        let is_oom = matches!(err.kind, ErrorKind::OutOfMemory);
                         errors.push(err);
 
-                        if matches!(err.kind, ErrorKind::OutOfMemory) {
+                        if is_oom {
                             self.call_stack.borrow_mut().clear();
                         }
                     }
