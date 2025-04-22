@@ -680,6 +680,9 @@ impl CodeFixer {
                 let mut d = depth.borrow_mut();
                 *d -= 1;
             });
+            if let Some(interpreter) = &self.interpreter {
+                let _ = interpreter.track_deallocation(128);
+            }
         });
 
         let reserve_size = match expression {
