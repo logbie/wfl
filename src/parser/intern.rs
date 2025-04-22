@@ -24,7 +24,6 @@ pub fn intern(s: &str) -> Ident {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     #[test]
     fn test_intern_same_string() {
