@@ -100,15 +100,24 @@ impl CodeFixer {
     }
 
     fn simplify_program(&self, program: &Program, dead_code: &[usize]) -> Program {
-        let mut simplified_statements = Vec::new();
+        let estimated_size = program.statements.len() - dead_code.len();
+        let mut simplified_statements = Vec::with_capacity(estimated_size);
+
+        let max_statements = 1000; // Arbitrary limit
+        let mut processed = 0;
 
         for (i, statement) in program.statements.iter().enumerate() {
             if dead_code.contains(&i) {
                 continue;
             }
 
+            if processed >= max_statements {
+                break;
+            }
+
             let simplified = self.simplify_statement(statement);
             simplified_statements.push(simplified);
+            processed += 1;
         }
 
         Program {
@@ -117,7 +126,26 @@ impl CodeFixer {
     }
 
     fn simplify_statement(&self, statement: &Statement) -> Statement {
-        match statement {
+        thread_local! {
+            static RECURSION_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+        }
+        
+        let should_return_early = RECURSION_DEPTH.with(|depth| {
+            let mut d = depth.borrow_mut();
+            *d += 1;
+            let too_deep = *d > 100; // Arbitrary limit
+            too_deep
+        });
+        
+        if should_return_early {
+            RECURSION_DEPTH.with(|depth| {
+                let mut d = depth.borrow_mut();
+                *d -= 1;
+            });
+            return statement.clone();
+        }
+        
+        let result = match statement.clone() {
             Statement::IfStatement {
                 condition,
                 then_block,
@@ -127,20 +155,27 @@ impl CodeFixer {
             } => {
                 let simplified_condition = self.simplify_boolean_expression(condition);
 
-                let mut simplified_then = Vec::new();
-                for stmt in then_block {
+                let mut simplified_then = Vec::with_capacity(then_block.len());
+                
+                let max_statements = 100; // Arbitrary limit
+                for (_i, stmt) in then_block.iter().enumerate().take(max_statements) {
                     simplified_then.push(self.simplify_statement(stmt));
                 }
 
                 let simplified_else = if let Some(else_stmts) = else_block {
-                    let mut simplified = Vec::new();
-                    for stmt in else_stmts {
+                    let mut simplified = Vec::with_capacity(else_stmts.len());
+                    for (_i, stmt) in else_stmts.iter().enumerate().take(max_statements) {
                         simplified.push(self.simplify_statement(stmt));
                     }
                     Some(simplified)
                 } else {
                     None
                 };
+                
+                RECURSION_DEPTH.with(|depth| {
+                    let mut d = depth.borrow_mut();
+                    *d -= 1;
+                });
 
                 Statement::IfStatement {
                     condition: simplified_condition,
@@ -204,13 +239,13 @@ impl CodeFixer {
             Statement::ActionDefinition { name, parameters, body, .. } => {
                 name.len() + parameters.len() * 10 + body.len() * 5 + 50
             },
-            Statement::IfStatement { condition, then_block, else_block, .. } => {
+            Statement::IfStatement { condition: _condition, then_block, else_block, .. } => {
                 100 + then_block.len() * 5 + else_block.as_ref().map_or(0, |e| e.len() * 5)
             },
-            Statement::ForEachLoop { item_name, collection, body, .. } => {
+            Statement::ForEachLoop { item_name, collection: _collection, body, .. } => {
                 item_name.len() + 50 + body.len() * 5
             },
-            Statement::CountLoop { start, end, step, body, .. } => {
+            Statement::CountLoop { start: _start, end: _end, step: _step, body, .. } => {
                 50 + body.len() * 5 // No variable name to measure
             },
             Statement::ReturnStatement { .. } => 20,
@@ -292,7 +327,7 @@ impl CodeFixer {
                 output.push_str(":\n");
 
                 let max_statements = 100; // Arbitrary limit to prevent stack overflow
-                for (i, stmt) in body.iter().enumerate().take(max_statements) {
+                for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
                 
@@ -377,7 +412,7 @@ impl CodeFixer {
                 output.push_str(":\n");
 
                 let max_statements = 100; // Arbitrary limit to prevent stack overflow
-                for (i, stmt) in body.iter().enumerate().take(max_statements) {
+                for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
                 
@@ -412,7 +447,7 @@ impl CodeFixer {
                 output.push_str(":\n");
 
                 let max_statements = 100; // Arbitrary limit to prevent stack overflow
-                for (i, stmt) in body.iter().enumerate().take(max_statements) {
+                for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
                 
@@ -435,7 +470,7 @@ impl CodeFixer {
                 output.push_str(":\n");
 
                 let max_statements = 100; // Arbitrary limit to prevent stack overflow
-                for (i, stmt) in body.iter().enumerate().take(max_statements) {
+                for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
                 
