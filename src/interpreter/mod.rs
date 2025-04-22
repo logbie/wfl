@@ -791,9 +791,7 @@ impl Interpreter {
             } => {
                 let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
                 self.track_allocation(env_size)?;
-                
                 let loop_env = Environment::new_child_env(&env);
-                
                 loop {
                     self.check_time()?;
                     self.execute_block(body, Rc::clone(&loop_env)).await?;
@@ -815,9 +813,7 @@ impl Interpreter {
             } => {
                 let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
                 self.track_allocation(env_size)?;
-                
                 let loop_env = Environment::new_child_env(&env);
-                
                 loop {
                     self.check_time()?;
                     self.execute_block(body, Rc::clone(&loop_env)).await?;
