@@ -153,7 +153,7 @@ impl CodeFixer {
                 line,
                 column,
             } => {
-                let simplified_condition = self.simplify_boolean_expression(condition);
+                let simplified_condition = self.simplify_boolean_expression(&condition);
 
                 let mut simplified_then = Vec::with_capacity(then_block.len());
                 
@@ -181,12 +181,13 @@ impl CodeFixer {
                     condition: simplified_condition,
                     then_block: simplified_then,
                     else_block: simplified_else,
-                    line: *line,
-                    column: *column,
+                    line: line,
+                    column: column,
                 }
             }
             _ => statement.clone(),
         }
+        result
     }
     #[allow(clippy::only_used_in_recursion)]
     fn simplify_boolean_expression(&self, expression: &Expression) -> Expression {
@@ -205,8 +206,8 @@ impl CodeFixer {
                     left: Box::new(simplified_left),
                     operator: operator.clone(),
                     right: Box::new(simplified_right),
-                    line: *line,
-                    column: *column,
+                    line: line,
+                    column: column,
                 }
             }
             _ => expression.clone(),
