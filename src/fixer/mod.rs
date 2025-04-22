@@ -563,6 +563,33 @@ impl CodeFixer {
         indent_level: usize,
         summary: &mut FixerSummary,
     ) {
+        thread_local! {
+            static EXPR_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+        }
+        
+        let should_truncate = EXPR_DEPTH.with(|depth| {
+            let mut d = depth.borrow_mut();
+            *d += 1;
+            let too_deep = *d > 10; // Limit recursion depth
+            too_deep
+        });
+        
+        if should_truncate {
+            output.push_str("<expr truncated>");
+            EXPR_DEPTH.with(|depth| {
+                let mut d = depth.borrow_mut();
+                *d -= 1;
+            });
+            return;
+        }
+        
+        let _guard = scopeguard::guard((), |_| {
+            EXPR_DEPTH.with(|depth| {
+                let mut d = depth.borrow_mut();
+                *d -= 1;
+            });
+        });
+        
         let reserve_size = match expression {
             Expression::Literal(Literal::String(s), ..) => s.len() + 2, // quotes
             Expression::Literal(Literal::Pattern(p), ..) => p.len() + 2, // slashes
