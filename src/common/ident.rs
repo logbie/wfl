@@ -10,9 +10,6 @@ impl Ident {
         &self.0
     }
 
-    pub fn as_ref(&self) -> &str {
-        &self.0
-    }
 }
 
 impl Deref for Ident {
