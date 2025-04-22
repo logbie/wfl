@@ -676,9 +676,9 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::ActionDefinition {
-                    name: "greet".to_string(),
+                    name: "greet".to_string().into(),
                     parameters: vec![Parameter {
-                        name: "name".to_string(),
+                        name: "name".to_string().into(),
                         param_type: Some(Type::Text),
                         default_value: None,
                     }],
@@ -717,9 +717,9 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::ActionDefinition {
-                    name: "greet".to_string(),
+                    name: "greet".to_string().into(),
                     parameters: vec![Parameter {
-                        name: "name".to_string(),
+                        name: "name".to_string().into(),
                         param_type: Some(Type::Text),
                         default_value: None,
                     }],
@@ -730,7 +730,7 @@ mod tests {
                 },
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 2, 1)),
+                        function: Box::new(Expression::Variable("greet".to_string().into(), 2, 1)),
                         arguments: vec![], // No arguments provided
                         line: 2,
                         column: 1,

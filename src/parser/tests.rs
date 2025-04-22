@@ -11,7 +11,7 @@ fn test_parse_variable_declaration() {
     assert!(result.is_ok());
 
     if let Ok(Statement::VariableDeclaration { name, value, .. }) = result {
-        assert_eq!(name, "greeting");
+        assert_eq!(name, "greeting".into());
         if let Expression::Literal(Literal::String(s), ..) = value {
             assert_eq!(s, "Hello, World!");
         } else {
@@ -46,7 +46,7 @@ fn test_parse_if_statement() {
         } = condition
         {
             if let Expression::Variable(name, ..) = *left {
-                assert_eq!(name, "x");
+                assert_eq!(name, "x".into());
             } else {
                 panic!("Expected variable in condition");
             }
@@ -193,7 +193,7 @@ fn test_parse_wait_for_open_file() {
                 } else {
                     panic!("Expected string literal for path");
                 }
-                assert_eq!(variable_name, "content");
+                assert_eq!(variable_name, "content".into());
             } else {
                 panic!("Expected ReadFileStatement");
             }

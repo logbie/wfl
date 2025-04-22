@@ -105,7 +105,8 @@ mod tests {
     fn test_format_collection() {
         let items = vec![1, 2, 3, 4, 5];
         let mut output = String::new();
-        let mut formatter = fmt::Formatter::new(&mut output);
+        let mut buffer = &mut output;
+        let mut formatter = &mut fmt::Formatter::from_buffer(buffer, fmt::FormatSpec::default());
 
         format_collection(
             &items,
@@ -120,7 +121,8 @@ mod tests {
 
         let items: Vec<i32> = (1..=20).collect();
         let mut output = String::new();
-        let mut formatter = fmt::Formatter::new(&mut output);
+        let mut buffer = &mut output;
+        let mut formatter = &mut fmt::Formatter::from_buffer(buffer, fmt::FormatSpec::default());
 
         format_collection(
             &items,
