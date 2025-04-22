@@ -11,6 +11,7 @@ use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
+use crate::stdlib::{core, math, text, list, pattern};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -1377,7 +1378,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_matches(args)
+                crate::stdlib::pattern::native_pattern_matches(args, self)
             }
 
             Expression::PatternFind {
@@ -1390,7 +1391,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![pattern_val, text_val]; // Note: pattern first, then text
-                crate::stdlib::pattern::native_pattern_find(args)
+                crate::stdlib::pattern::native_pattern_find(args, self)
             }
 
             Expression::PatternReplace {
@@ -1407,7 +1408,7 @@ impl Interpreter {
                     .await?;
 
                 let args = vec![pattern_val, replacement_val, text_val]; // Note: pattern, replacement, then text
-                crate::stdlib::pattern::native_pattern_replace(args)
+                crate::stdlib::pattern::native_pattern_replace(args, self)
             }
 
             Expression::PatternSplit {
@@ -1420,7 +1421,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_split(args)
+                crate::stdlib::pattern::native_pattern_split(args, self)
             }
         };
         self.assert_invariants();

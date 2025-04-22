@@ -802,21 +802,38 @@ pub fn native_pattern_split(
     }
 }
 
-pub fn register(env: &mut Environment, interpreter: &Interpreter) {
-    env.define(
-        "matches_pattern",
-        Value::NativeFunction(move |args| native_pattern_matches(args, interpreter)),
-    );
-    env.define(
-        "find_pattern",
-        Value::NativeFunction(move |args| native_pattern_find(args, interpreter)),
-    );
-    env.define(
-        "replace_pattern",
-        Value::NativeFunction(move |args| native_pattern_replace(args, interpreter)),
-    );
-    env.define(
-        "split_by_pattern",
-        Value::NativeFunction(move |args| native_pattern_split(args, interpreter)),
-    );
+
+pub fn register(env: &mut Environment, _interpreter: &Interpreter) {
+    fn matches_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+        Err(RuntimeError::new(
+            "Pattern functions must be called through the interpreter".to_string(),
+            0, 0
+        ))
+    }
+    
+    fn find_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+        Err(RuntimeError::new(
+            "Pattern functions must be called through the interpreter".to_string(),
+            0, 0
+        ))
+    }
+    
+    fn replace_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+        Err(RuntimeError::new(
+            "Pattern functions must be called through the interpreter".to_string(),
+            0, 0
+        ))
+    }
+    
+    fn split_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+        Err(RuntimeError::new(
+            "Pattern functions must be called through the interpreter".to_string(),
+            0, 0
+        ))
+    }
+    
+    env.define("matches_pattern", Value::NativeFunction(matches_wrapper));
+    env.define("find_pattern", Value::NativeFunction(find_wrapper));
+    env.define("replace_pattern", Value::NativeFunction(replace_wrapper));
+    env.define("split_by_pattern", Value::NativeFunction(split_wrapper));
 }

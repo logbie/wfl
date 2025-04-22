@@ -131,9 +131,9 @@ impl CallFrame {
 
         for (name, value) in env_values {
             let captured = match value {
-                Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value),
+                Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value.clone()),
 
-                Value::Text(s) if s.len() < 256 => Captured::Primitive(value),
+                Value::Text(s) if s.len() < 256 => Captured::Primitive(value.clone()),
 
                 Value::List(rc) => {
                     let approx_size = std::mem::size_of_val(&value) + rc.borrow().len() * 8;
@@ -200,13 +200,13 @@ impl CallFrame {
                                 format!("{}... (truncated, {} chars total)", &s[..250], s.len());
                             Captured::Truncated(truncated)
                         } else {
-                            Captured::Primitive(value)
+                            Captured::Primitive(value.clone())
                         }
                     }
                 }
             };
 
-            captured_locals.insert(name, captured);
+            captured_locals.insert(name.clone(), captured);
         }
 
         self.locals = Some(captured_locals);
