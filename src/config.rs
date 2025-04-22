@@ -482,7 +482,11 @@ mod tests {
     #[test]
     fn test_load_config_defaults() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let config = load_config(temp_dir.path());
+        let config = with_test_global_path(|| {
+            // Explicitly set to non-existent path to avoid loading any global config
+            set_test_env_var(Some("/non/existent/path"));
+            load_config(temp_dir.path())
+        });
 
         assert_eq!(config.timeout_seconds, 60);
         assert!(!config.logging_enabled);
