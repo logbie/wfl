@@ -437,7 +437,10 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let param_names: Vec<String> = parameters.iter().map(|p| p.name.as_ref().to_string()).collect();
+                let param_names: Vec<String> = parameters
+                    .iter()
+                    .map(|p| p.name.as_ref().to_string())
+                    .collect();
 
                 let function = FunctionValue {
                     name: Some(name.as_ref().to_string()),

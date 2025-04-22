@@ -1,5 +1,5 @@
-use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
 use crate::Ident;
+use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
 use std::collections::HashMap;
 use std::fmt;
 use std::sync::Arc;
@@ -395,7 +395,7 @@ impl Analyzer {
                 let count_symbol = Symbol {
                     name: crate::parser::intern::intern("count"), // The count variable is implicitly defined
                     kind: SymbolKind::Variable { mutable: false }, // Count variable is immutable
-                    symbol_type: Some(Type::Number), // Count is always a number
+                    symbol_type: Some(Type::Number),              // Count is always a number
                     line: 0,
                     column: 0,
                 };

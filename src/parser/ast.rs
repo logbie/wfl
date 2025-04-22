@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::Ident;
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct Program {
@@ -159,7 +159,7 @@ pub enum Statement {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     Literal(Literal, usize, usize), // line, column
-    Variable(Ident, usize, usize), // line, column
+    Variable(Ident, usize, usize),  // line, column
     BinaryOperation {
         left: Box<Expression>,
         operator: Operator,

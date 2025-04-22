@@ -1,6 +1,6 @@
-use std::sync::Arc;
 use std::fmt;
 use std::ops::Deref;
+use std::sync::Arc;
 
 pub type Ident = Arc<str>;
 

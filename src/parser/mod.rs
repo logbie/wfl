@@ -739,17 +739,13 @@ impl<'a> Parser<'a> {
                                 let mut arguments = Vec::new();
 
                                 loop {
-                                    let arg_name =
-                                        if let Some(name_token) = self.tokens.peek() {
-                                            if let Token::Identifier(id) = &name_token.token {
-                                                if let Some(next) = self.tokens.clone().nth(1) {
-                                                    if matches!(next.token, Token::Colon) {
-                                                        self.tokens.next(); // Consume name
-                                                        self.tokens.next(); // Consume ":"
-                                                        Some(Arc::clone(id))
-                                                    } else {
-                                                        None
-                                                    }
+                                    let arg_name = if let Some(name_token) = self.tokens.peek() {
+                                        if let Token::Identifier(id) = &name_token.token {
+                                            if let Some(next) = self.tokens.clone().nth(1) {
+                                                if matches!(next.token, Token::Colon) {
+                                                    self.tokens.next(); // Consume name
+                                                    self.tokens.next(); // Consume ":"
+                                                    Some(Arc::clone(id))
                                                 } else {
                                                     None
                                                 }
@@ -758,7 +754,10 @@ impl<'a> Parser<'a> {
                                             }
                                         } else {
                                             None
-                                        };
+                                        }
+                                    } else {
+                                        None
+                                    };
 
                                     let arg_value = self.parse_expression()?;
 
@@ -800,7 +799,11 @@ impl<'a> Parser<'a> {
 
                     let token_line = token.line;
                     let token_column = token.column;
-                    Ok(Expression::Variable(Arc::clone(name), token_line, token_column))
+                    Ok(Expression::Variable(
+                        Arc::clone(name),
+                        token_line,
+                        token_column,
+                    ))
                 }
                 Token::KeywordNot => {
                     self.tokens.next(); // Consume "not"

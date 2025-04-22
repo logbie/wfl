@@ -1,5 +1,5 @@
-use crate::parser::intern::intern;
 use crate::Ident;
+use crate::parser::intern::intern;
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Clone)]

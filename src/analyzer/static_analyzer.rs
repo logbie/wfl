@@ -1,7 +1,7 @@
 use super::Analyzer;
+use crate::Ident;
 use crate::diagnostics::{Severity, WflDiagnostic};
 use crate::parser::ast::{Expression, Program, Statement, Type};
-use crate::Ident;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone)]
