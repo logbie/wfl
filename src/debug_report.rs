@@ -344,8 +344,10 @@ fn generate_report_content(
             } else {
                 locals.iter().take(10).collect::<Vec<_>>()
             };
+            
+            let truncated_count = locals.len() - locals_iter.len();
 
-            for (name, captured) in locals_iter {
+            for (name, captured) in &locals_iter {
                 write!(writer, "{} = ", name)?;
                 match captured {
                     Captured::Primitive(value) => {
@@ -356,8 +358,6 @@ fn generate_report_content(
                     }
                 }
             }
-
-            let truncated_count = locals.len() - locals_iter.len();
             if truncated_count > 0 {
                 writeln!(
                     writer,
