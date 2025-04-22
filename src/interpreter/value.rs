@@ -1,5 +1,6 @@
 use super::environment::Environment;
 use super::error::RuntimeError;
+use crate::debug::safe_debug::{SafeDebug, format_collection, format_map, truncate_utf8_safe};
 use crate::parser::ast::Statement;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -70,39 +71,54 @@ impl Value {
 
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.safe_fmt(f)
+    }
+}
+
+impl SafeDebug for Value {
+    fn safe_fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
-            Value::Text(s) => write!(f, "\"{}\"", s),
+            Value::Text(s) => {
+                const MAX_STRING_CHARS: usize = 128;
+                let truncated = truncate_utf8_safe(s, MAX_STRING_CHARS);
+                let ellipsis = if truncated.len() < s.len() { "..." } else { "" };
+                write!(f, "\"{}{}\"", truncated, ellipsis)
+            },
             Value::Bool(b) => write!(f, "{}", b),
             Value::List(l) => {
                 let values = l.borrow();
-                write!(f, "[")?;
-                for (i, v) in values.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{:?}", v)?;
-                }
-                write!(f, "]")
-            }
+                format_collection(
+                    &values, 
+                    f, 
+                    |v, f| v.safe_fmt(f), 
+                    "[", 
+                    "]"
+                )
+            },
             Value::Object(o) => {
                 let map = o.borrow();
                 write!(f, "{{")?;
-                for (i, (k, v)) in map.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}: {:?}", k, v)?;
-                }
-                write!(f, "}}")
-            }
+                
+                let entries: Vec<_> = map.iter().collect();
+                format_collection(
+                    &entries,
+                    f,
+                    |(k, v), f| {
+                        write!(f, "{}: ", k)?;
+                        v.safe_fmt(f)
+                    },
+                    "",
+                    "}"
+                )
+            },
             Value::Function(func) => {
                 write!(
                     f,
                     "Function({})",
                     func.name.as_ref().unwrap_or(&"anonymous".to_string())
                 )
-            }
+            },
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "null"),

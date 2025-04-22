@@ -192,7 +192,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variable_name_list(&mut self) -> Result<String, ParseError> {
-        let mut name_parts = Vec::new();
+        let mut name_parts = Vec::with_capacity(4); // Most variable names are short
 
         if let Some(token) = self.tokens.peek() {
             match &token.token {
@@ -306,8 +306,8 @@ impl<'a> Parser<'a> {
     fn parse_binary_expression(&mut self, precedence: u8) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary_expression()?;
 
-        while let Some(token_pos) = self.tokens.peek().cloned() {
-            let token = token_pos.token.clone();
+        while let Some(token_pos) = self.tokens.peek() {
+            let token = &token_pos.token;
             let line = token_pos.line;
             let column = token_pos.column;
 
@@ -658,7 +658,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary_expression(&mut self) -> Result<Expression, ParseError> {
-        if let Some(token) = self.tokens.peek().cloned() {
+        if let Some(token) = self.tokens.peek() {
             let result = match &token.token {
                 Token::LeftParen => {
                     self.tokens.next(); // Consume '('

@@ -1,4 +1,6 @@
 use logos::Logos;
+use std::sync::Arc;
+use crate::parser::intern::intern;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"(?:[ \t\n\f\r]+|//.*)")] // Skip whitespace and line comments
@@ -167,8 +169,8 @@ pub enum Token {
     #[regex("[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLiteral(i64),
 
-    #[regex("[A-Za-z][A-Za-z0-9_]*", |lex| lex.slice().to_string())]
-    Identifier(String),
+    #[regex("[A-Za-z][A-Za-z0-9_]*", |lex| intern(lex.slice()))]
+    Identifier(Arc<str>),
 
     #[token("(")]
     LeftParen,
