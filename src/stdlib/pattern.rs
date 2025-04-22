@@ -1,7 +1,7 @@
+use crate::interpreter::Interpreter;
 use crate::interpreter::environment::Environment;
 use crate::interpreter::error::RuntimeError;
 use crate::interpreter::value::Value;
-use crate::interpreter::Interpreter;
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -582,7 +582,10 @@ fn parse_part(pattern_str: &str, pos: usize) -> Result<(PatternPart, String, usi
     Ok((part, regex, pos + 1))
 }
 
-pub fn native_pattern_matches(args: Vec<Value>, interpreter: &Interpreter) -> Result<Value, RuntimeError> {
+pub fn native_pattern_matches(
+    args: Vec<Value>,
+    interpreter: &Interpreter,
+) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
     if args.len() != 2 {
@@ -628,7 +631,10 @@ pub fn native_pattern_matches(args: Vec<Value>, interpreter: &Interpreter) -> Re
     }
 }
 
-pub fn native_pattern_find(args: Vec<Value>, interpreter: &Interpreter) -> Result<Value, RuntimeError> {
+pub fn native_pattern_find(
+    args: Vec<Value>,
+    interpreter: &Interpreter,
+) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
     if args.len() != 2 {
@@ -682,7 +688,10 @@ pub fn native_pattern_find(args: Vec<Value>, interpreter: &Interpreter) -> Resul
     }
 }
 
-pub fn native_pattern_replace(args: Vec<Value>, interpreter: &Interpreter) -> Result<Value, RuntimeError> {
+pub fn native_pattern_replace(
+    args: Vec<Value>,
+    interpreter: &Interpreter,
+) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
     if args.len() != 3 {
@@ -739,7 +748,10 @@ pub fn native_pattern_replace(args: Vec<Value>, interpreter: &Interpreter) -> Re
     }
 }
 
-pub fn native_pattern_split(args: Vec<Value>, interpreter: &Interpreter) -> Result<Value, RuntimeError> {
+pub fn native_pattern_split(
+    args: Vec<Value>,
+    interpreter: &Interpreter,
+) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
     if args.len() != 2 {
@@ -779,7 +791,7 @@ pub fn native_pattern_split(args: Vec<Value>, interpreter: &Interpreter) -> Resu
             for s in parts {
                 values.push(Value::new_text(s, interpreter)?);
             }
-            
+
             Value::new_list(values, interpreter)
         }
         Err(err) => Err(RuntimeError::new(
@@ -796,7 +808,7 @@ pub fn register(env: &mut Environment, interpreter: &Interpreter) {
         Value::NativeFunction(move |args| native_pattern_matches(args, interpreter)),
     );
     env.define(
-        "find_pattern", 
+        "find_pattern",
         Value::NativeFunction(move |args| native_pattern_find(args, interpreter)),
     );
     env.define(

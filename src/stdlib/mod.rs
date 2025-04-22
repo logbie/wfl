@@ -5,8 +5,8 @@ pub mod pattern;
 pub mod text;
 pub mod typechecker;
 
-use crate::interpreter::environment::Environment;
 use crate::interpreter::Interpreter;
+use crate::interpreter::environment::Environment;
 
 pub fn register_stdlib(env: &mut Environment, interpreter: &Interpreter) {
     core::register_core(env);

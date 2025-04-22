@@ -211,13 +211,13 @@ impl Interpreter {
             bytes_allocated: RefCell::new(0),
             max_memory_bytes: 512 * 1024 * 1024, // Default 512 MB
         };
-        
+
         // Register pattern functions that need interpreter reference
         {
             let mut env = interpreter.global_env.borrow_mut();
             pattern::register(&mut env, &interpreter);
         }
-        
+
         interpreter
     }
 
