@@ -353,16 +353,29 @@ impl CodeFixer {
                 self.pretty_print_expression(condition, output, indent_level, summary);
                 output.push_str(":\n");
 
-                for stmt in then_block {
+                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                for (_i, stmt) in then_block.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if then_block.len() > max_statements {
+                    let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                    output.push_str(&truncated_indent);
+                    output.push_str("// ... truncated for memory safety\n");
                 }
 
                 if let Some(else_stmts) = else_block {
                     output.push_str(&indent);
                     output.push_str("otherwise:\n");
 
-                    for stmt in else_stmts {
+                    for (_i, stmt) in else_stmts.iter().enumerate().take(max_statements) {
                         self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                    }
+                    
+                    if else_stmts.len() > max_statements {
+                        let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                        output.push_str(&truncated_indent);
+                        output.push_str("// ... truncated for memory safety\n");
                     }
                 }
 
@@ -381,18 +394,42 @@ impl CodeFixer {
                 self.pretty_print_expression(condition, output, indent_level, summary);
                 output.push_str(" then ");
 
-                let mut then_output = String::new();
-                self.pretty_print_statement(then_stmt, &mut then_output, 0, summary);
-                let then_str = then_output.trim();
-                output.push_str(then_str);
-
-                if let Some(else_stmt) = else_stmt {
-                    output.push_str(" otherwise ");
-
-                    let mut else_output = String::new();
-                    self.pretty_print_statement(else_stmt, &mut else_output, 0, summary);
-                    let else_str = else_output.trim();
-                    output.push_str(else_str);
+                thread_local! {
+                    static SINGLE_LINE_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+                }
+                
+                let should_truncate = SINGLE_LINE_DEPTH.with(|depth| {
+                    let mut d = depth.borrow_mut();
+                    *d += 1;
+                    let too_deep = *d > 3; // Lower limit for single line statements
+                    too_deep
+                });
+                
+                if should_truncate {
+                    output.push_str("<truncated>");
+                    SINGLE_LINE_DEPTH.with(|depth| {
+                        let mut d = depth.borrow_mut();
+                        *d -= 1;
+                    });
+                } else {
+                    let mut then_output = String::with_capacity(100); // Pre-allocate
+                    self.pretty_print_statement(then_stmt, &mut then_output, 0, summary);
+                    let then_str = then_output.trim();
+                    output.push_str(then_str);
+    
+                    if let Some(else_stmt) = else_stmt {
+                        output.push_str(" otherwise ");
+    
+                        let mut else_output = String::with_capacity(100); // Pre-allocate
+                        self.pretty_print_statement(else_stmt, &mut else_output, 0, summary);
+                        let else_str = else_output.trim();
+                        output.push_str(else_str);
+                    }
+                    
+                    SINGLE_LINE_DEPTH.with(|depth| {
+                        let mut d = depth.borrow_mut();
+                        *d -= 1;
+                    });
                 }
 
                 output.push('\n');
