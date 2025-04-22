@@ -1,21 +1,74 @@
 pub mod ast;
 #[cfg(test)]
 mod tests;
+pub mod intern;
 
 use crate::lexer::token::{Token, TokenWithPosition};
 use ast::*;
+use intern::intern;
 use std::iter::Peekable;
 use std::slice::Iter;
 
+pub struct TokenStream<'a> {
+    iter: Peekable<Iter<'a, TokenWithPosition>>,
+    current: Option<&'a TokenWithPosition>,
+}
+
+impl<'a> TokenStream<'a> {
+    pub fn new(iter: Iter<'a, TokenWithPosition>) -> Self {
+        let mut stream = Self {
+            iter: iter.peekable(),
+            current: None,
+        };
+        stream.advance();
+        stream
+    }
+    
+    pub fn peek(&self) -> Option<&'a TokenWithPosition> {
+        self.current
+    }
+    
+    pub fn next(&mut self) -> Option<&'a TokenWithPosition> {
+        let result = self.current;
+        self.advance();
+        result
+    }
+    
+    fn advance(&mut self) {
+        self.current = self.iter.peek().copied();
+    }
+    
+    pub fn clone(&self) -> Self {
+        Self {
+            iter: self.iter.clone(),
+            current: self.current,
+        }
+    }
+    
+    pub fn nth(&self, n: usize) -> Option<&'a TokenWithPosition> {
+        if n == 0 {
+            return self.current;
+        }
+        
+        let mut iter = self.iter.clone();
+        for _ in 0..n {
+            if iter.next().is_none() {
+                return None;
+            }
+        }
+        iter.next()
+    }
+}
+
 pub struct Parser<'a> {
-    tokens: Peekable<Iter<'a, TokenWithPosition>>,
+    tokens: TokenStream<'a>,
     errors: Vec<ParseError>,
 }
 
 impl<'a> Parser<'a> {
     pub fn new(tokens: &'a [TokenWithPosition]) -> Self {
         Parser {
-            tokens: tokens.iter().peekable(),
+            tokens: TokenStream::new(tokens.iter()),
             errors: Vec::new(),
         }
     }
@@ -192,7 +245,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_variable_name_list(&mut self) -> Result<String, ParseError> {
-        let mut name_parts = Vec::new();
+        let mut name_parts = Vec::with_capacity(4); // Most variable names have few parts
 
         if let Some(token) = self.tokens.peek() {
             match &token.token {
@@ -306,8 +359,8 @@ impl<'a> Parser<'a> {
     fn parse_binary_expression(&mut self, precedence: u8) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary_expression()?;
 
-        while let Some(token_pos) = self.tokens.peek().cloned() {
-            let token = token_pos.token.clone();
+        while let Some(token_pos) = self.tokens.peek() {
+            let token = &token_pos.token;
             let line = token_pos.line;
             let column = token_pos.column;
 
@@ -326,8 +379,8 @@ impl<'a> Parser<'a> {
                 }
                 Token::KeywordDivided => {
                     self.tokens.next();
-                    if let Some(by_token) = self.tokens.peek().cloned() {
-                        if matches!(by_token.token, Token::KeywordBy) {
+                    if let Some(by_token) = self.tokens.peek() {
+                        if matches!(&by_token.token, Token::KeywordBy) {
                             self.tokens.next(); // Consume "by"
                             Some((Operator::Divide, 2))
                         } else {
@@ -351,13 +404,13 @@ impl<'a> Parser<'a> {
                 Token::KeywordIs => {
                     self.tokens.next(); // Consume "is"
 
-                    if let Some(next_token) = self.tokens.peek().cloned() {
-                        match next_token.token {
+                    if let Some(next_token) = self.tokens.peek() {
+                        match &next_token.token {
                             Token::KeywordEqual => {
                                 self.tokens.next(); // Consume "equal"
 
-                                if let Some(to_token) = self.tokens.peek().cloned() {
-                                    if matches!(to_token.token, Token::KeywordTo) {
+                                if let Some(to_token) = self.tokens.peek() {
+                                    if matches!(&to_token.token, Token::KeywordTo) {
                                         self.tokens.next(); // Consume "to"
                                         Some((Operator::Equals, 0))
                                     } else {
@@ -378,7 +431,7 @@ impl<'a> Parser<'a> {
                             Token::KeywordGreater => {
                                 self.tokens.next(); // Consume "greater"
 
-                                if let Some(than_token) = self.tokens.peek().cloned() {
+                                if let Some(than_token) = self.tokens.peek() {
                                     if let Token::Identifier(id) = &than_token.token {
                                         if id == "than" {
                                             self.tokens.next(); // Consume "than"
@@ -400,7 +453,7 @@ impl<'a> Parser<'a> {
                             Token::KeywordLess => {
                                 self.tokens.next(); // Consume "less"
 
-                                if let Some(than_token) = self.tokens.peek().cloned() {
+                                if let Some(than_token) = self.tokens.peek() {
                                     if let Token::Identifier(id) = &than_token.token {
                                         if id == "than" {
                                             self.tokens.next(); // Consume "than"
@@ -658,7 +711,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_primary_expression(&mut self) -> Result<Expression, ParseError> {
-        if let Some(token) = self.tokens.peek().cloned() {
+        if let Some(token) = self.tokens.peek() {
             let result = match &token.token {
                 Token::LeftParen => {
                     self.tokens.next(); // Consume '('
@@ -726,22 +779,22 @@ impl<'a> Parser<'a> {
                 Token::Identifier(name) => {
                     self.tokens.next();
 
-                    if let Some(next_token) = self.tokens.peek().cloned() {
+                    if let Some(next_token) = self.tokens.peek() {
                         if let Token::Identifier(id) = &next_token.token {
                             if id.to_lowercase() == "with" {
                                 self.tokens.next(); // Consume "with"
 
-                                let mut arguments = Vec::new();
+                                let mut arguments = Vec::with_capacity(4); // Most function calls have few arguments
 
                                 loop {
                                     let arg_name =
-                                        if let Some(name_token) = self.tokens.peek().cloned() {
+                                        if let Some(name_token) = self.tokens.peek() {
                                             if let Token::Identifier(id) = &name_token.token {
                                                 if let Some(next) = self.tokens.clone().nth(1) {
                                                     if matches!(next.token, Token::Colon) {
                                                         self.tokens.next(); // Consume name
                                                         self.tokens.next(); // Consume ":"
-                                                        Some(id.clone())
+                                                        Some(intern(id))
                                                     } else {
                                                         None
                                                     }
@@ -762,7 +815,7 @@ impl<'a> Parser<'a> {
                                         value: arg_value,
                                     });
 
-                                    if let Some(token) = self.tokens.peek().cloned() {
+                                    if let Some(token) = self.tokens.peek() {
                                         if let Token::Identifier(id) = &token.token {
                                             if id.to_lowercase() == "and" {
                                                 self.tokens.next(); // Consume "and"
@@ -861,12 +914,12 @@ impl<'a> Parser<'a> {
             };
 
             if let Ok(mut expr) = result {
-                while let Some(token) = self.tokens.peek().cloned() {
+                while let Some(token) = self.tokens.peek() {
                     match &token.token {
                         Token::Identifier(id) if id == "of" => {
                             self.tokens.next(); // Consume "of"
 
-                            if let Some(prop_token) = self.tokens.peek().cloned() {
+                            if let Some(prop_token) = self.tokens.peek() {
                                 if let Token::Identifier(prop) = &prop_token.token {
                                     self.tokens.next(); // Consume property name or first argument
 
@@ -879,7 +932,7 @@ impl<'a> Parser<'a> {
                                     );
 
                                     if is_function_call {
-                                        let mut arguments = Vec::new();
+                                        let mut arguments = Vec::with_capacity(4); // Most function calls have few arguments
 
                                         arguments.push(Argument {
                                             name: None,
@@ -890,7 +943,7 @@ impl<'a> Parser<'a> {
                                             ),
                                         });
 
-                                        while let Some(and_token) = self.tokens.peek().cloned() {
+                                        while let Some(and_token) = self.tokens.peek() {
                                             if let Token::Identifier(id) = &and_token.token {
                                                 if id.to_lowercase() == "and" {
                                                     self.tokens.next(); // Consume "and"
@@ -1071,7 +1124,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(Token::Colon, "Expected ':' after if condition")?;
 
-        let mut then_block = Vec::new();
+        let mut then_block = Vec::with_capacity(8); // Reasonable capacity for if-block
 
         while let Some(token) = self.tokens.peek() {
             match &token.token {
@@ -1091,7 +1144,7 @@ impl<'a> Parser<'a> {
 
                 self.expect_token(Token::Colon, "Expected ':' after 'otherwise'")?;
 
-                let mut else_stmts = Vec::new();
+                let mut else_stmts = Vec::with_capacity(8); // Most else blocks have moderate number of statements
 
                 while let Some(token) = self.tokens.peek() {
                     if matches!(token.token, Token::KeywordEnd) {
@@ -1210,7 +1263,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(Token::Colon, "Expected ':' after for-each loop collection")?;
 
-        let mut body = Vec::new();
+        let mut body = Vec::with_capacity(16); // Loop and function bodies typically contain multiple statements
 
         while let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::KeywordEnd) {
@@ -1301,7 +1354,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(Token::Colon, "Expected ':' after count loop range")?;
 
-        let mut body = Vec::new();
+        let mut body = Vec::with_capacity(16); // Loop and function bodies typically contain multiple statements
 
         while let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::KeywordEnd) {
@@ -1365,7 +1418,7 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        let mut parameters = Vec::new();
+        let mut parameters = Vec::with_capacity(8); // Most functions have a moderate number of parameters
 
         if let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::KeywordWith) {
@@ -1506,7 +1559,7 @@ impl<'a> Parser<'a> {
 
         self.expect_token(Token::Colon, "Expected ':' after action definition")?;
 
-        let mut body = Vec::new();
+        let mut body = Vec::with_capacity(16); // Loop and function bodies typically contain multiple statements
 
         while let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::KeywordEnd) {
