@@ -773,8 +773,8 @@ impl Interpreter {
 
                 match self.io_client.open_file(&path_str).await {
                     Ok(handle) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(handle.into()));
+                        let text_value = Value::new_text(handle, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -807,8 +807,8 @@ impl Interpreter {
                     match self.io_client.open_file(&path_str).await {
                         Ok(handle) => match self.io_client.read_file(&handle).await {
                             Ok(content) => {
-                                env.borrow_mut()
-                                    .define(variable_name, Value::Text(content.into()));
+                                let text_value = Value::new_text(content, self)?;
+                                env.borrow_mut().define(variable_name, text_value);
                                 let _ = self.io_client.close_file(&handle).await;
                                 Ok(Value::Null)
                             }
@@ -822,8 +822,8 @@ impl Interpreter {
                 } else {
                     match self.io_client.read_file(&path_str).await {
                         Ok(content) => {
-                            env.borrow_mut()
-                                .define(variable_name, Value::Text(content.into()));
+                            let text_value = Value::new_text(content, self)?;
+                            env.borrow_mut().define(variable_name, text_value);
                             Ok(Value::Null)
                         }
                         Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -1017,8 +1017,8 @@ impl Interpreter {
 
                 match self.io_client.http_get(&url_str).await {
                     Ok(body) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(body.into()));
+                        let text_value = Value::new_text(body, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -1058,8 +1058,8 @@ impl Interpreter {
 
                 match self.io_client.http_post(&url_str, &data_str).await {
                     Ok(body) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(body.into()));
+                        let text_value = Value::new_text(body, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
