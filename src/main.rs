@@ -389,7 +389,7 @@ async fn main() -> io::Result<()> {
                             ) {
                                 Ok(report_path) => {
                                     interpreter.clear_call_stack();
-                                    
+
                                     let report_msg =
                                         format!("Debug report created: {}", report_path.display());
                                     eprintln!("{}", report_msg);
@@ -400,7 +400,7 @@ async fn main() -> io::Result<()> {
                                 }
                                 Err(_) => {
                                     interpreter.clear_call_stack();
-                                    
+
                                     eprintln!("Could not create debug report");
 
                                     if config.logging_enabled {

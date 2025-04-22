@@ -169,11 +169,10 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                             file.display()
                         );
                     }
-                },
+                }
                 "debug_full_report" => {
                     if let Ok(enabled) = value.parse::<bool>() {
-                        if config.debug_full_report != WflConfig::default().debug_full_report
-                        {
+                        if config.debug_full_report != WflConfig::default().debug_full_report {
                             log::debug!(
                                 "Overriding debug_full_report: {} -> {} from {}",
                                 config.debug_full_report,
@@ -188,11 +187,10 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                             file.display()
                         );
                     }
-                },
+                }
                 "max_memory_mb" => {
                     if let Ok(mb) = value.parse::<usize>() {
-                        if config.max_memory_mb != WflConfig::default().max_memory_mb
-                        {
+                        if config.max_memory_mb != WflConfig::default().max_memory_mb {
                             log::debug!(
                                 "Overriding max_memory_mb: {} -> {} from {}",
                                 config.max_memory_mb,

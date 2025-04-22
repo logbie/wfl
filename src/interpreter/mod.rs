@@ -215,7 +215,7 @@ impl Interpreter {
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
     }
-    
+
     pub fn with_config(config: &crate::config::WflConfig) -> Self {
         let mut interpreter = Self::new();
         interpreter.started = Instant::now();
@@ -223,38 +223,44 @@ impl Interpreter {
         interpreter.max_memory_bytes = config.max_memory_mb * 1024 * 1024;
         interpreter
     }
-    
+
     pub fn track_allocation(&self, bytes: usize) -> Result<(), RuntimeError> {
         let mut alloc = self.bytes_allocated.borrow_mut();
         *alloc += bytes;
-        
+
         if *alloc > self.max_memory_bytes {
             return Err(RuntimeError::with_kind(
-                format!("Out of memory: Used {}MB exceeds limit of {}MB", 
-                    *alloc / (1024 * 1024), 
-                    self.max_memory_bytes / (1024 * 1024)),
-                0, 0,
-                ErrorKind::OutOfMemory
+                format!(
+                    "Out of memory: Used {}MB exceeds limit of {}MB",
+                    *alloc / (1024 * 1024),
+                    self.max_memory_bytes / (1024 * 1024)
+                ),
+                0,
+                0,
+                ErrorKind::OutOfMemory,
             ));
         }
-        
+
         Ok(())
     }
-    
+
     pub fn track_deallocation(&self, bytes: usize) {
         let mut alloc = self.bytes_allocated.borrow_mut();
         *alloc = alloc.saturating_sub(bytes);
     }
-    
+
     pub fn check_memory(&self) -> Result<(), RuntimeError> {
         let bytes = *self.bytes_allocated.borrow();
         if bytes > self.max_memory_bytes {
             Err(RuntimeError::with_kind(
-                format!("Out of memory: Used {}MB exceeds limit of {}MB", 
-                    bytes / (1024 * 1024), 
-                    self.max_memory_bytes / (1024 * 1024)),
-                0, 0,
-                ErrorKind::OutOfMemory
+                format!(
+                    "Out of memory: Used {}MB exceeds limit of {}MB",
+                    bytes / (1024 * 1024),
+                    self.max_memory_bytes / (1024 * 1024)
+                ),
+                0,
+                0,
+                ErrorKind::OutOfMemory,
             ))
         } else {
             Ok(())
@@ -268,7 +274,7 @@ impl Interpreter {
     pub fn global_env(&self) -> &Rc<RefCell<Environment>> {
         &self.global_env
     }
-    
+
     pub fn clear_call_stack(&mut self) {
         self.call_stack.borrow_mut().clear();
     }

@@ -123,74 +123,80 @@ impl CallFrame {
 
     pub fn capture_locals(&mut self, env: &Rc<RefCell<Environment>>) {
         let env_values = env.borrow().values.clone();
-        
+
         let mut captured_locals = HashMap::with_capacity(env_values.len());
         let mut total_bytes = 0;
         const MAX_CAPTURE_BYTES: usize = 32 * 1024; // 32 KiB limit per frame
-        
+
         for (name, value) in env_values {
             let captured = match &value {
                 Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value),
-                
+
                 Value::Text(s) if s.len() < 256 => Captured::Primitive(value),
-                
+
                 Value::List(rc) => {
                     let approx_size = std::mem::size_of_val(&value) + rc.borrow().len() * 8;
                     total_bytes += approx_size;
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
-                        Captured::Truncated(format!("<list with {} items truncated...>", rc.borrow().len()))
+                        Captured::Truncated(format!(
+                            "<list with {} items truncated...>",
+                            rc.borrow().len()
+                        ))
                     } else {
                         Captured::Truncated(format!("<list with {} items>", rc.borrow().len()))
                     }
-                },
+                }
                 Value::Object(rc) => {
                     let approx_size = std::mem::size_of_val(&value) + rc.borrow().len() * 16;
                     total_bytes += approx_size;
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
-                        Captured::Truncated(format!("<object with {} fields truncated...>", rc.borrow().len()))
+                        Captured::Truncated(format!(
+                            "<object with {} fields truncated...>",
+                            rc.borrow().len()
+                        ))
                     } else {
                         Captured::Truncated(format!("<object with {} fields>", rc.borrow().len()))
                     }
-                },
+                }
                 Value::Function(_rc) => {
                     total_bytes += std::mem::size_of_val(&value) + 64; // Rough estimate for function
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
                         Captured::Truncated(format!("<{} truncated...>", value.type_name()))
                     } else {
                         Captured::Truncated(format!("<{}>", value.type_name()))
                     }
-                },
+                }
                 Value::NativeFunction(_) => {
                     total_bytes += std::mem::size_of_val(&value) + 64; // Rough estimate for function
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
                         Captured::Truncated(format!("<{} truncated...>", value.type_name()))
                     } else {
                         Captured::Truncated(format!("<{}>", value.type_name()))
                     }
-                },
+                }
                 Value::Future(_) => {
                     total_bytes += std::mem::size_of_val(&value) + 32; // Rough estimate for future
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
                         Captured::Truncated(format!("<future truncated...>"))
                     } else {
                         Captured::Truncated(format!("<future>"))
                     }
-                },
+                }
                 Value::Text(s) => {
                     let approx_size = std::mem::size_of_val(&value) + s.len();
                     total_bytes += approx_size;
-                    
+
                     if total_bytes > MAX_CAPTURE_BYTES {
                         Captured::Truncated(format!("<text of length {} truncated...>", s.len()))
                     } else {
                         if s.len() > 256 {
-                            let truncated = format!("{}... (truncated, {} chars total)", 
-                                                   &s[..250], s.len());
+                            let truncated =
+                                format!("{}... (truncated, {} chars total)", &s[..250], s.len());
                             Captured::Truncated(truncated)
                         } else {
                             Captured::Primitive(value)
@@ -198,10 +204,10 @@ impl CallFrame {
                     }
                 }
             };
-            
+
             captured_locals.insert(name, captured);
         }
-        
+
         self.locals = Some(captured_locals);
     }
 }
@@ -219,12 +225,12 @@ pub fn create_report(
     }
 
     let debug_file_path = generate_debug_filename(script_path);
-    
+
     let file = File::create(&debug_file_path)?;
     let mut writer = BufWriter::new(file);
-    
+
     generate_report_content(error, call_stack, source, script_path, config, &mut writer)?;
-    
+
     writer.flush()?;
 
     Ok(debug_file_path)
@@ -253,7 +259,7 @@ fn generate_report_content(
         "Time: {}",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
     )?;
-    
+
     writeln!(writer, "\n=== Error Summary ===")?;
     writeln!(
         writer,
@@ -274,11 +280,15 @@ fn generate_report_content(
         } else {
             call_stack.len().saturating_sub(5)
         };
-        
+
         if start_idx > 0 && !config.debug_full_report {
-            writeln!(writer, "... ({} earlier frames truncated, use debug_full_report=true to see all)", start_idx)?;
+            writeln!(
+                writer,
+                "... ({} earlier frames truncated, use debug_full_report=true to see all)",
+                start_idx
+            )?;
         }
-        
+
         for (i, frame) in call_stack.iter().enumerate().skip(start_idx).rev() {
             if i == call_stack.len() - 1 {
                 writeln!(
@@ -313,22 +323,25 @@ fn generate_report_content(
             } else {
                 locals.iter().take(10).collect::<Vec<_>>()
             };
-            
+
             for (name, captured) in locals_iter {
                 write!(writer, "{} = ", name)?;
                 match captured {
                     Captured::Primitive(value) => {
                         writeln!(writer, "{:?}", SafeDebug::new(value, 4))?;
-                    },
+                    }
                     Captured::Truncated(summary) => {
                         writeln!(writer, "{}", summary)?;
                     }
                 }
             }
-            
+
             if !config.debug_full_report && locals.len() > 10 {
-                writeln!(writer, "... ({} more variables truncated, use debug_full_report=true to see all)", 
-                         locals.len() - 10)?;
+                writeln!(
+                    writer,
+                    "... ({} more variables truncated, use debug_full_report=true to see all)",
+                    locals.len() - 10
+                )?;
             }
         } else {
             writeln!(writer, "(No local variables captured)")?;
@@ -340,22 +353,35 @@ fn generate_report_content(
     Ok(())
 }
 
-fn add_source_snippet(writer: &mut impl IoWrite, source: &str, error_line: usize) -> Result<(), std::io::Error> {
+fn add_source_snippet(
+    writer: &mut impl IoWrite,
+    source: &str,
+    error_line: usize,
+) -> Result<(), std::io::Error> {
     let lines: Vec<&str> = source.lines().collect();
     let err_line_index = error_line.saturating_sub(1); // 0-based index
 
     let start_line = err_line_index.saturating_sub(2);
     let end_line = std::cmp::min(err_line_index + 2, lines.len().saturating_sub(1));
 
-    for (i, line) in lines.iter().enumerate().skip(start_line).take(end_line - start_line + 1) {
+    for (i, line) in lines
+        .iter()
+        .enumerate()
+        .skip(start_line)
+        .take(end_line - start_line + 1)
+    {
         let line_marker = if i == err_line_index { ">> " } else { "   " };
         writeln!(writer, "{}{}: {}", line_marker, i + 1, line)?;
     }
-    
+
     Ok(())
 }
 
-fn extract_function_body(writer: &mut impl IoWrite, source: &str, func_name: &str) -> Result<(), std::io::Error> {
+fn extract_function_body(
+    writer: &mut impl IoWrite,
+    source: &str,
+    func_name: &str,
+) -> Result<(), std::io::Error> {
     let lines: Vec<&str> = source.lines().collect();
 
     let mut start_line = None;
@@ -379,11 +405,14 @@ fn extract_function_body(writer: &mut impl IoWrite, source: &str, func_name: &st
     } else {
         writeln!(writer, "(Could not locate action body)")?;
     }
-    
+
     Ok(())
 }
 
-#[deprecated(since = "0.2.0", note = "Use generate_report_content with a writer instead")]
+#[deprecated(
+    since = "0.2.0",
+    note = "Use generate_report_content with a writer instead"
+)]
 fn write_report_to_file(file_path: &Path, content: &str) -> Result<(), std::io::Error> {
     let mut file = BufWriter::new(File::create(file_path)?);
     file.write_all(content.as_bytes())?;

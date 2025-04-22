@@ -1,7 +1,7 @@
 pub mod ast;
+pub mod intern;
 #[cfg(test)]
 mod tests;
-pub mod intern;
 
 use crate::lexer::token::{Token, TokenWithPosition};
 use ast::*;
@@ -23,33 +23,33 @@ impl<'a> TokenStream<'a> {
         stream.advance();
         stream
     }
-    
+
     pub fn peek(&self) -> Option<&'a TokenWithPosition> {
         self.current
     }
-    
+
     pub fn next(&mut self) -> Option<&'a TokenWithPosition> {
         let result = self.current;
         self.advance();
         result
     }
-    
+
     fn advance(&mut self) {
         self.current = self.iter.peek().copied();
     }
-    
+
     pub fn clone(&self) -> Self {
         Self {
             iter: self.iter.clone(),
             current: self.current,
         }
     }
-    
+
     pub fn nth(&self, n: usize) -> Option<&'a TokenWithPosition> {
         if n == 0 {
             return self.current;
         }
-        
+
         let mut iter = self.iter.clone();
         for _ in 0..n {
             if iter.next().is_none() {
@@ -787,17 +787,13 @@ impl<'a> Parser<'a> {
                                 let mut arguments = Vec::with_capacity(4); // Most function calls have few arguments
 
                                 loop {
-                                    let arg_name =
-                                        if let Some(name_token) = self.tokens.peek() {
-                                            if let Token::Identifier(id) = &name_token.token {
-                                                if let Some(next) = self.tokens.clone().nth(1) {
-                                                    if matches!(next.token, Token::Colon) {
-                                                        self.tokens.next(); // Consume name
-                                                        self.tokens.next(); // Consume ":"
-                                                        Some(intern(id))
-                                                    } else {
-                                                        None
-                                                    }
+                                    let arg_name = if let Some(name_token) = self.tokens.peek() {
+                                        if let Token::Identifier(id) = &name_token.token {
+                                            if let Some(next) = self.tokens.clone().nth(1) {
+                                                if matches!(next.token, Token::Colon) {
+                                                    self.tokens.next(); // Consume name
+                                                    self.tokens.next(); // Consume ":"
+                                                    Some(intern(id))
                                                 } else {
                                                     None
                                                 }
@@ -806,7 +802,10 @@ impl<'a> Parser<'a> {
                                             }
                                         } else {
                                             None
-                                        };
+                                        }
+                                    } else {
+                                        None
+                                    };
 
                                     let arg_value = self.parse_expression()?;
 

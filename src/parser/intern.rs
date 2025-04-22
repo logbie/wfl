@@ -34,11 +34,11 @@ static INTERN_POOL: Lazy<Mutex<HashSet<String>>> = Lazy::new(|| {
 
 pub fn intern(s: &str) -> String {
     let mut pool = INTERN_POOL.lock().unwrap();
-    
+
     if let Some(interned) = pool.get(s) {
         return interned.clone();
     }
-    
+
     let string = s.to_string();
     pool.insert(string.clone());
     string

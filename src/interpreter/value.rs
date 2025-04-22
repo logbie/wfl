@@ -42,25 +42,29 @@ pub struct FutureValue {
 
 impl Value {
     pub fn new_list(items: Vec<Value>, interpreter: &Interpreter) -> Result<Self, RuntimeError> {
-        let size = std::mem::size_of::<Vec<Value>>() + items.capacity() * std::mem::size_of::<Value>();
+        let size =
+            std::mem::size_of::<Vec<Value>>() + items.capacity() * std::mem::size_of::<Value>();
         interpreter.track_allocation(size)?;
         Ok(Value::List(Rc::new(RefCell::new(items))))
     }
-    
-    pub fn new_object(map: HashMap<String, Value>, interpreter: &Interpreter) -> Result<Self, RuntimeError> {
-        let size = std::mem::size_of::<HashMap<String, Value>>() + 
-                  map.capacity() * (std::mem::size_of::<String>() + std::mem::size_of::<Value>());
+
+    pub fn new_object(
+        map: HashMap<String, Value>,
+        interpreter: &Interpreter,
+    ) -> Result<Self, RuntimeError> {
+        let size = std::mem::size_of::<HashMap<String, Value>>()
+            + map.capacity() * (std::mem::size_of::<String>() + std::mem::size_of::<Value>());
         interpreter.track_allocation(size)?;
         Ok(Value::Object(Rc::new(RefCell::new(map))))
     }
-    
+
     pub fn new_text(text: String, interpreter: &Interpreter) -> Result<Self, RuntimeError> {
         if text.len() > 128 {
             interpreter.track_allocation(text.len())?;
         }
         Ok(Value::Text(text.into()))
     }
-    
+
     pub fn type_name(&self) -> &'static str {
         match self {
             Value::Number(_) => "Number",
