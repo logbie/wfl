@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use wfl::interpreter::environment::Environment;
 use wfl::interpreter::value::{FunctionValue, Value};
-use wfl::parser::ast::Statement;
 use wfl::parser::Parser;
+use wfl::parser::ast::Statement;
 
 #[test]
 fn closure_cycle() {

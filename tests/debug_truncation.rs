@@ -15,7 +15,9 @@ fn test_list_truncation() {
 
     let list_value = Value::List(Rc::new(RefCell::new(items)));
 
-    let mut writer = TestWriter { output: String::new() };
+    let mut writer = TestWriter {
+        output: String::new(),
+    };
     let mut test_fmt = TestFormatter::new(&mut writer);
     list_value.safe_fmt(&mut test_fmt).unwrap();
 
@@ -31,7 +33,9 @@ fn test_string_truncation() {
     let long_string = "a".repeat(200);
     let text_value = Value::Text(Rc::from(long_string.as_str()));
 
-    let mut writer = TestWriter { output: String::new() };
+    let mut writer = TestWriter {
+        output: String::new(),
+    };
     let mut test_fmt = TestFormatter::new(&mut writer);
     text_value.safe_fmt(&mut test_fmt).unwrap();
 
@@ -58,7 +62,9 @@ fn test_object_truncation() {
 
     let object_value = Value::Object(Rc::new(RefCell::new(map)));
 
-    let mut writer = TestWriter { output: String::new() };
+    let mut writer = TestWriter {
+        output: String::new(),
+    };
     let mut test_fmt = TestFormatter::new(&mut writer);
     object_value.safe_fmt(&mut test_fmt).unwrap();
 

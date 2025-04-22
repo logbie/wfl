@@ -1,8 +1,8 @@
 use super::environment::Environment;
 use super::error::RuntimeError;
+use crate::Ident;
 use crate::debug::safe_debug::{SafeDebug, format_collection, format_map, truncate_utf8_safe};
 use crate::parser::ast::Statement;
-use crate::Ident;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
@@ -111,7 +111,9 @@ impl SafeDebug for Value {
                 write!(
                     f,
                     "Function({})",
-                    func.name.as_ref().unwrap_or(&crate::common::ident::intern("anonymous"))
+                    func.name
+                        .as_ref()
+                        .unwrap_or(&crate::common::ident::intern("anonymous"))
                 )
             }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
@@ -133,7 +135,9 @@ impl fmt::Display for Value {
                 write!(
                     f,
                     "action {}",
-                    func.name.as_ref().unwrap_or(&crate::common::ident::intern("anonymous"))
+                    func.name
+                        .as_ref()
+                        .unwrap_or(&crate::common::ident::intern("anonymous"))
                 )
             }
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),

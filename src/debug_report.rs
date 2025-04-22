@@ -119,12 +119,12 @@ impl CallFrame {
     pub fn capture_locals(&mut self, env: &Rc<RefCell<Environment>>) {
         self.locals = Some(
             env.borrow()
-               .values
-               .iter()
-               .filter(|(_, v)| !matches!(v, Value::List(_) | Value::Object(_)))
-               .take(16)
-               .map(|(k,v)| (k.clone(), v.clone()))
-               .collect()
+                .values
+                .iter()
+                .filter(|(_, v)| !matches!(v, Value::List(_) | Value::Object(_)))
+                .take(16)
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
         );
     }
 }

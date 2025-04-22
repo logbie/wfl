@@ -437,10 +437,8 @@ impl Interpreter {
                 line,
                 column,
             } => {
-                let param_names: Vec<crate::Ident> = parameters
-                    .iter()
-                    .map(|p| p.name.clone())
-                    .collect();
+                let param_names: Vec<crate::Ident> =
+                    parameters.iter().map(|p| p.name.clone()).collect();
 
                 let function = FunctionValue {
                     name: Some(name.clone()),

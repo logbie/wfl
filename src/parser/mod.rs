@@ -806,11 +806,7 @@ impl<'a> Parser<'a> {
 
                     let token_line = token.line;
                     let token_column = token.column;
-                    Ok(Expression::Variable(
-                        name.clone(),
-                        token_line,
-                        token_column,
-                    ))
+                    Ok(Expression::Variable(name.clone(), token_line, token_column))
                 }
                 Token::KeywordNot => {
                     self.tokens.next(); // Consume "not"

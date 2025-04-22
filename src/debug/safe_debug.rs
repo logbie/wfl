@@ -126,7 +126,7 @@ mod tests {
     fn test_format_collection() {
         let items = vec![1, 2, 3, 4, 5];
         let mut test_fmt = TestFormatter::new();
-        
+
         let result = format_collection(
             &items,
             &mut test_fmt,
@@ -134,13 +134,13 @@ mod tests {
             "[",
             "]",
         );
-        
+
         assert!(result.is_ok());
         assert_eq!(test_fmt.output, "[1, 2, 3, 4, 5]");
 
         let items: Vec<i32> = (1..=20).collect();
         let mut test_fmt = TestFormatter::new();
-        
+
         let result = format_collection(
             &items,
             &mut test_fmt,
@@ -148,7 +148,7 @@ mod tests {
             "[",
             "]",
         );
-        
+
         assert!(result.is_ok());
         assert!(test_fmt.output.contains("… (4 more)"));
     }
