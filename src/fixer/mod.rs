@@ -206,8 +206,8 @@ impl CodeFixer {
                     left: Box::new(simplified_left),
                     operator: operator.clone(),
                     right: Box::new(simplified_right),
-                    line: line,
-                    column: column,
+                    line: *line,
+                    column: *column,
                 }
             }
             _ => expression.clone(),
