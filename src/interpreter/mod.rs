@@ -10,7 +10,7 @@ use self::error::{ErrorKind, RuntimeError};
 use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
-use crate::stdlib;
+use crate::stdlib::{core, list, math, pattern, text};
 use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -32,6 +32,8 @@ pub struct Interpreter {
     call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
+    bytes_allocated: RefCell<usize>,
+    max_memory_bytes: usize,
 }
 
 #[allow(dead_code)]
@@ -191,10 +193,14 @@ impl Interpreter {
             let mut env = global_env.borrow_mut();
             env.define("display", Value::NativeFunction(Self::native_display));
 
-            stdlib::register_stdlib(&mut env);
+            // Register stdlib without pattern functions that need interpreter
+            core::register_core(&mut env);
+            math::register_math(&mut env);
+            text::register_text(&mut env);
+            list::register_list(&mut env);
         }
 
-        Interpreter {
+        let interpreter = Interpreter {
             global_env,
             current_count: RefCell::new(None),
             in_count_loop: RefCell::new(false),
@@ -202,7 +208,17 @@ impl Interpreter {
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
+            bytes_allocated: RefCell::new(0),
+            max_memory_bytes: 512 * 1024 * 1024, // Default 512 MB
+        };
+
+        // Register pattern functions that need interpreter reference
+        {
+            let mut env = interpreter.global_env.borrow_mut();
+            pattern::register(&mut env, &interpreter);
         }
+
+        interpreter
     }
 
     pub fn with_timeout(seconds: u64) -> Self {
@@ -212,15 +228,67 @@ impl Interpreter {
         interpreter
     }
 
+    pub fn with_config(config: &crate::config::WflConfig) -> Self {
+        let mut interpreter = Self::new();
+        interpreter.started = Instant::now();
+        interpreter.max_duration = Duration::from_secs(config.timeout_seconds);
+        interpreter.max_memory_bytes = config.max_memory_mb * 1024 * 1024;
+        interpreter
+    }
+
+    pub fn track_allocation(&self, bytes: usize) -> Result<(), RuntimeError> {
+        let mut alloc = self.bytes_allocated.borrow_mut();
+        *alloc += bytes;
+
+        if *alloc > self.max_memory_bytes {
+            return Err(RuntimeError::with_kind(
+                format!(
+                    "Out of memory: Used {}MB exceeds limit of {}MB",
+                    *alloc / (1024 * 1024),
+                    self.max_memory_bytes / (1024 * 1024)
+                ),
+                0,
+                0,
+                ErrorKind::OutOfMemory,
+            ));
+        }
+
+        Ok(())
+    }
+
+    pub fn track_deallocation(&self, bytes: usize) {
+        let mut alloc = self.bytes_allocated.borrow_mut();
+        *alloc = alloc.saturating_sub(bytes);
+    }
+
+    pub fn check_memory(&self) -> Result<(), RuntimeError> {
+        let bytes = *self.bytes_allocated.borrow();
+        if bytes > self.max_memory_bytes {
+            Err(RuntimeError::with_kind(
+                format!(
+                    "Out of memory: Used {}MB exceeds limit of {}MB",
+                    bytes / (1024 * 1024),
+                    self.max_memory_bytes / (1024 * 1024)
+                ),
+                0,
+                0,
+                ErrorKind::OutOfMemory,
+            ))
+        } else {
+            Ok(())
+        }
+    }
+
     pub fn get_call_stack(&self) -> Vec<CallFrame> {
         self.call_stack.borrow().clone()
     }
 
-    pub fn clear_call_stack(&self) {
-        self.call_stack.borrow_mut().clear();
-    }
     pub fn global_env(&self) -> &Rc<RefCell<Environment>> {
         &self.global_env
+    }
+
+    pub fn clear_call_stack(&mut self) {
+        self.call_stack.borrow_mut().clear();
     }
 
     fn check_time(&self) -> Result<(), RuntimeError> {
@@ -267,6 +335,13 @@ impl Interpreter {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
 
+        let mut errors = Vec::new();
+        if let Err(e) = self.check_memory() {
+            errors.push(e);
+            self.call_stack.borrow_mut().clear();
+            return Err(errors);
+        }
+
         println!(
             "Starting script execution with {} statements...",
             program.statements.len()
@@ -289,6 +364,7 @@ impl Interpreter {
                     program.statements.len()
                 );
                 errors.push(err);
+                self.call_stack.borrow_mut().clear();
                 return Err(errors);
             }
 
@@ -311,7 +387,13 @@ impl Interpreter {
                         program.statements.len(),
                         err
                     );
+                    let is_oom = matches!(err.kind, ErrorKind::OutOfMemory);
                     errors.push(err);
+
+                    if is_oom {
+                        self.call_stack.borrow_mut().clear();
+                    }
+
                     break; // Stop on first runtime error
                 }
             }
@@ -330,11 +412,17 @@ impl Interpreter {
                 match self.call_function(&main_func, vec![], 0, 0).await {
                     Ok(value) => last_value = value,
                     Err(err) => {
+                        let is_oom = matches!(err.kind, ErrorKind::OutOfMemory);
                         errors.push(err);
+
+                        if is_oom {
+                            self.call_stack.borrow_mut().clear();
+                        }
                     }
                 }
             }
 
+            self.call_stack.borrow_mut().clear();
             self.assert_invariants();
             Ok(last_value)
         } else {
@@ -448,6 +536,13 @@ impl Interpreter {
                     column: *column,
                 };
 
+                let function_size = std::mem::size_of::<FunctionValue>()
+                    + name.len()
+                    + parameters.iter().map(|p| p.name.len()).sum::<usize>()
+                    + 64; // Rough estimate for body size
+
+                self.track_allocation(function_size)?;
+
                 let function_value = Value::Function(Rc::new(function));
                 env.borrow_mut().define(name, function_value.clone());
 
@@ -513,6 +608,8 @@ impl Interpreter {
                 };
 
                 let mut count = start_num;
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
                 let loop_env = Environment::new_child_env(&env);
 
                 let should_continue: Box<dyn Fn(f64, f64) -> bool> = if *downward {
@@ -582,6 +679,8 @@ impl Interpreter {
                     .evaluate_expression(collection, Rc::clone(&env))
                     .await?;
 
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
                 let loop_env = Environment::new_child_env(&env);
 
                 match collection_val {
@@ -593,7 +692,26 @@ impl Interpreter {
                             } else {
                                 (0..list.len()).collect()
                             };
-                            indices.iter().map(|&i| list[i].clone()).collect()
+
+                            let mut tracked_items = Vec::with_capacity(indices.len());
+                            for &i in indices.iter() {
+                                match &list[i] {
+                                    Value::List(inner_list) => {
+                                        let cloned = inner_list.borrow().clone();
+                                        tracked_items.push(Value::new_list(cloned, self)?);
+                                    }
+                                    Value::Object(inner_obj) => {
+                                        let cloned = inner_obj.borrow().clone();
+                                        tracked_items.push(Value::new_object(cloned, self)?);
+                                    }
+                                    Value::Text(text) if text.len() > 128 => {
+                                        tracked_items
+                                            .push(Value::new_text(text.to_string(), self)?);
+                                    }
+                                    _ => tracked_items.push(list[i].clone()),
+                                }
+                            }
+                            tracked_items
                         };
 
                         for item in items {
@@ -604,7 +722,26 @@ impl Interpreter {
                     Value::Object(obj_rc) => {
                         let items: Vec<(String, Value)> = {
                             let obj = obj_rc.borrow();
-                            obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+                            let mut tracked_items = Vec::with_capacity(obj.len());
+
+                            for (k, v) in obj.iter() {
+                                let tracked_value = match v {
+                                    Value::List(inner_list) => {
+                                        let cloned = inner_list.borrow().clone();
+                                        Value::new_list(cloned, self)?
+                                    }
+                                    Value::Object(inner_obj) => {
+                                        let cloned = inner_obj.borrow().clone();
+                                        Value::new_object(cloned, self)?
+                                    }
+                                    Value::Text(text) if text.len() > 128 => {
+                                        Value::new_text(text.to_string(), self)?
+                                    }
+                                    _ => v.clone(),
+                                };
+                                tracked_items.push((k.clone(), tracked_value));
+                            }
+                            tracked_items
                         };
 
                         for (_, value) in items {
@@ -630,13 +767,18 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+
+                let loop_env = Environment::new_child_env(&env);
+
                 while self
                     .evaluate_expression(condition, Rc::clone(&env))
                     .await?
                     .is_truthy()
                 {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                 }
                 Ok(Value::Null)
             }
@@ -647,9 +789,12 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+                let loop_env = Environment::new_child_env(&env);
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                     if self
                         .evaluate_expression(condition, Rc::clone(&env))
                         .await?
@@ -666,9 +811,12 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+                let loop_env = Environment::new_child_env(&env);
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                 }
                 #[allow(unreachable_code)]
                 Ok(Value::Null)
@@ -698,8 +846,8 @@ impl Interpreter {
 
                 match self.io_client.open_file(&path_str).await {
                     Ok(handle) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(handle.into()));
+                        let text_value = Value::new_text(handle, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -732,8 +880,8 @@ impl Interpreter {
                     match self.io_client.open_file(&path_str).await {
                         Ok(handle) => match self.io_client.read_file(&handle).await {
                             Ok(content) => {
-                                env.borrow_mut()
-                                    .define(variable_name, Value::Text(content.into()));
+                                let text_value = Value::new_text(content, self)?;
+                                env.borrow_mut().define(variable_name, text_value);
                                 let _ = self.io_client.close_file(&handle).await;
                                 Ok(Value::Null)
                             }
@@ -747,8 +895,8 @@ impl Interpreter {
                 } else {
                     match self.io_client.read_file(&path_str).await {
                         Ok(content) => {
-                            env.borrow_mut()
-                                .define(variable_name, Value::Text(content.into()));
+                            let text_value = Value::new_text(content, self)?;
+                            env.borrow_mut().define(variable_name, text_value);
                             Ok(Value::Null)
                         }
                         Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -942,8 +1090,8 @@ impl Interpreter {
 
                 match self.io_client.http_get(&url_str).await {
                     Ok(body) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(body.into()));
+                        let text_value = Value::new_text(body, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -983,8 +1131,8 @@ impl Interpreter {
 
                 match self.io_client.http_post(&url_str, &data_str).await {
                     Ok(body) => {
-                        env.borrow_mut()
-                            .define(variable_name, Value::Text(body.into()));
+                        let text_value = Value::new_text(body, self)?;
+                        env.borrow_mut().define(variable_name, text_value);
                         Ok(Value::Null)
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
@@ -1007,6 +1155,8 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.assert_invariants();
+        let block_size = std::mem::size_of::<Statement>() * statements.len();
+        self.track_allocation(block_size)?;
         let mut last_value = Value::Null;
 
         for statement in statements {
@@ -1045,12 +1195,12 @@ impl Interpreter {
                 Ok(value)
             }
             Expression::Literal(literal, _line, _column) => match literal {
-                Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::String(s) => Value::new_text(s.clone(), self),
                 Literal::Integer(i) => Ok(Value::Number(*i as f64)),
                 Literal::Float(f) => Ok(Value::Number(*f)),
                 Literal::Boolean(b) => Ok(Value::Bool(*b)),
                 Literal::Nothing => Ok(Value::Null),
-                Literal::Pattern(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::Pattern(s) => Value::new_text(s.clone(), self),
             },
 
             Expression::Variable(name, line, column) => {
@@ -1197,7 +1347,20 @@ impl Interpreter {
                     Value::Object(obj_rc) => {
                         let obj = obj_rc.borrow();
                         if let Some(value) = obj.get(property) {
-                            Ok(value.clone())
+                            match value {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                }
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                }
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                }
+                                _ => Ok(value.clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no property '{}'", property),
@@ -1231,7 +1394,20 @@ impl Interpreter {
                         let idx = idx as usize;
 
                         if idx < list.len() {
-                            Ok(list[idx].clone())
+                            match &list[idx] {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                }
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                }
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                }
+                                _ => Ok(list[idx].clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!(
@@ -1249,7 +1425,20 @@ impl Interpreter {
                         let key_str = key.to_string();
 
                         if let Some(value) = obj.get(&key_str) {
-                            Ok(value.clone())
+                            match value {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                }
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                }
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                }
+                                _ => Ok(value.clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no key '{}'", key_str),
@@ -1290,7 +1479,7 @@ impl Interpreter {
                 };
 
                 let result = format!("{}{}", left_val, right_val);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
 
             Expression::PatternMatch {
@@ -1303,7 +1492,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_matches(args)
+                crate::stdlib::pattern::native_pattern_matches(args, self)
             }
 
             Expression::PatternFind {
@@ -1316,7 +1505,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![pattern_val, text_val]; // Note: pattern first, then text
-                crate::stdlib::pattern::native_pattern_find(args)
+                crate::stdlib::pattern::native_pattern_find(args, self)
             }
 
             Expression::PatternReplace {
@@ -1333,7 +1522,7 @@ impl Interpreter {
                     .await?;
 
                 let args = vec![pattern_val, replacement_val, text_val]; // Note: pattern, replacement, then text
-                crate::stdlib::pattern::native_pattern_replace(args)
+                crate::stdlib::pattern::native_pattern_replace(args, self)
             }
 
             Expression::PatternSplit {
@@ -1346,7 +1535,7 @@ impl Interpreter {
                 let pattern_val = self.evaluate_expression(pattern, Rc::clone(&env)).await?;
 
                 let args = vec![text_val, pattern_val];
-                crate::stdlib::pattern::native_pattern_split(args)
+                crate::stdlib::pattern::native_pattern_split(args, self)
             }
         };
         self.assert_invariants();
@@ -1384,10 +1573,25 @@ impl Interpreter {
             }
         };
 
+        let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+        self.track_allocation(env_size)?;
         let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
-            call_env.borrow_mut().define(param, arg);
+            let tracked_arg = match &arg {
+                Value::List(inner_list) => {
+                    let cloned = inner_list.borrow().clone();
+                    Value::new_list(cloned, self)?
+                }
+                Value::Object(inner_obj) => {
+                    let cloned = inner_obj.borrow().clone();
+                    Value::new_object(cloned, self)?
+                }
+                Value::Text(text) if text.len() > 128 => Value::new_text(text.to_string(), self)?,
+                _ => arg, // Primitives don't need tracking
+            };
+
+            call_env.borrow_mut().define(param, tracked_arg);
         }
 
         let frame = CallFrame::new(
@@ -1404,7 +1608,21 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 self.call_stack.borrow_mut().pop();
-                Ok(value)
+
+                match &value {
+                    Value::List(inner_list) => {
+                        let cloned = inner_list.borrow().clone();
+                        Value::new_list(cloned, self)
+                    }
+                    Value::Object(inner_obj) => {
+                        let cloned = inner_obj.borrow().clone();
+                        Value::new_object(cloned, self)
+                    }
+                    Value::Text(text) if text.len() > 128 => {
+                        Value::new_text(text.to_string(), self)
+                    }
+                    _ => Ok(value), // Primitives don't need tracking
+                }
             }
             Err(err) => {
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
@@ -1431,15 +1649,15 @@ impl Interpreter {
             (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
             (Value::Text(a), Value::Text(b)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (Value::Text(a), b) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (a, Value::Text(b)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (a, b) => Err(RuntimeError::new(
                 format!("Cannot add {} and {}", a.type_name(), b.type_name()),

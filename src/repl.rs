@@ -39,7 +39,7 @@ impl Default for ReplState {
 impl ReplState {
     pub fn new() -> Self {
         let config = WflConfig::default();
-        let interpreter = Interpreter::with_timeout(config.timeout_seconds);
+        let interpreter = Interpreter::with_config(&config);
 
         ReplState {
             interpreter,
