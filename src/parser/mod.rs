@@ -1772,7 +1772,7 @@ impl<'a> Parser<'a> {
                 name.clone()
             } else if let Token::KeywordContent = &token.token {
                 self.tokens.next(); // Consume the "content" keyword
-                "content".to_string().into()
+                "content".into()
             } else {
                 return Err(ParseError::new(
                     format!(
