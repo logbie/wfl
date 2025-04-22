@@ -198,6 +198,31 @@ impl CodeFixer {
         indent_level: usize,
         summary: &mut FixerSummary,
     ) {
+        let reserve_size = match statement {
+            Statement::VariableDeclaration { name, .. } => name.len() + 20,
+            Statement::Assignment { name, .. } => name.len() + 20,
+            Statement::ActionDefinition { name, parameters, body, .. } => {
+                name.len() + parameters.len() * 10 + body.len() * 5 + 50
+            },
+            Statement::IfStatement { condition, then_branch, else_branch, .. } => {
+                100 + then_branch.len() * 5 + else_branch.as_ref().map_or(0, |e| e.len() * 5)
+            },
+            Statement::ForEachLoop { variable, collection, body, .. } => {
+                variable.len() + 50 + body.len() * 5
+            },
+            Statement::CountLoop { variable, from, to, body, .. } => {
+                variable.len() + 50 + body.len() * 5
+            },
+            Statement::ReturnStatement { .. } => 20,
+            Statement::ExpressionStatement { .. } => 30,
+            _ => 50,
+        };
+        
+        let current_len = output.len();
+        if output.capacity() < current_len + reserve_size {
+            output.reserve(reserve_size);
+        }
+        
         let indent = " ".repeat(indent_level * self.indent_size);
 
         match statement {
@@ -266,8 +291,15 @@ impl CodeFixer {
 
                 output.push_str(":\n");
 
-                for stmt in body {
+                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                for (i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if body.len() > max_statements {
+                    let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                    output.push_str(&truncated_indent);
+                    output.push_str("// ... truncated for memory safety\n");
                 }
 
                 output.push_str(&indent);
@@ -344,8 +376,15 @@ impl CodeFixer {
                 self.pretty_print_expression(collection, output, indent_level, summary);
                 output.push_str(":\n");
 
-                for stmt in body {
+                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                for (i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if body.len() > max_statements {
+                    let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                    output.push_str(&truncated_indent);
+                    output.push_str("// ... truncated for memory safety\n");
                 }
 
                 output.push_str(&indent);
@@ -372,8 +411,15 @@ impl CodeFixer {
 
                 output.push_str(":\n");
 
-                for stmt in body {
+                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                for (i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if body.len() > max_statements {
+                    let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                    output.push_str(&truncated_indent);
+                    output.push_str("// ... truncated for memory safety\n");
                 }
 
                 output.push_str(&indent);
@@ -388,8 +434,15 @@ impl CodeFixer {
                 self.pretty_print_expression(condition, output, indent_level, summary);
                 output.push_str(":\n");
 
-                for stmt in body {
+                let max_statements = 100; // Arbitrary limit to prevent stack overflow
+                for (i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
+                }
+                
+                if body.len() > max_statements {
+                    let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
+                    output.push_str(&truncated_indent);
+                    output.push_str("// ... truncated for memory safety\n");
                 }
 
                 output.push_str(&indent);
