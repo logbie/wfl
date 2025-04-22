@@ -1374,13 +1374,13 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::VariableDeclaration {
-                    name: "x".to_string(),
+                    name: "x".to_string().into(),
                     value: Expression::Literal(Literal::Integer(10), 1, 1),
                     line: 1,
                     column: 1,
                 },
                 Statement::DisplayStatement {
-                    value: Expression::Variable("x".to_string(), 2, 9),
+                    value: Expression::Variable("x".to_string().into(), 2, 9),
                     line: 2,
                     column: 1,
                 },
@@ -1397,13 +1397,13 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::VariableDeclaration {
-                    name: "x".to_string(),
+                    name: "x".to_string().into(),
                     value: Expression::Literal(Literal::Integer(10), 1, 1),
                     line: 1,
                     column: 1,
                 },
                 Statement::Assignment {
-                    name: "x".to_string(),
+                    name: "x".to_string().into(),
                     value: Expression::Literal(Literal::String("hello".to_string()), 2, 1),
                     line: 2,
                     column: 1,
@@ -1427,7 +1427,7 @@ mod tests {
     fn test_binary_operation_type_checking() {
         let program = Program {
             statements: vec![Statement::VariableDeclaration {
-                name: "x".to_string(),
+                name: "x".to_string().into(),
                 value: Expression::BinaryOperation {
                     left: Box::new(Expression::Literal(
                         Literal::String("hello".to_string()),
@@ -1457,7 +1457,7 @@ mod tests {
 
         let program = Program {
             statements: vec![Statement::VariableDeclaration {
-                name: "x".to_string(),
+                name: "x".to_string().into(),
                 value: Expression::BinaryOperation {
                     left: Box::new(Expression::Literal(Literal::Integer(10), 1, 5)),
                     operator: crate::parser::ast::Operator::Minus,
@@ -1490,14 +1490,14 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::ActionDefinition {
-                    name: "greet".to_string(),
+                    name: "greet".to_string().into(),
                     parameters: vec![Parameter {
-                        name: "name".to_string(),
+                        name: "name".to_string().into(),
                         param_type: Some(Type::Text),
                         default_value: None,
                     }],
                     body: vec![Statement::DisplayStatement {
-                        value: Expression::Variable("name".to_string(), 2, 5),
+                        value: Expression::Variable("name".to_string().into(), 2, 5),
                         line: 2,
                         column: 5,
                     }],
@@ -1507,7 +1507,7 @@ mod tests {
                 },
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
+                        function: Box::new(Expression::Variable("greet".to_string().into(), 3, 1)),
                         arguments: vec![Argument {
                             name: None,
                             value: Expression::Literal(Literal::Integer(123), 3, 7),
