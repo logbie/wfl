@@ -1677,7 +1677,7 @@ impl<'a> Parser<'a> {
                 let variable_name = if let Some(token) = self.tokens.peek() {
                     if let Token::Identifier(name) = &token.token {
                         self.tokens.next(); // Consume the identifier
-                        name.clone()
+                        Arc::clone(name)
                     } else if let Token::KeywordContent = &token.token {
                         // Special case for "content" as an identifier
                         self.tokens.next(); // Consume the "content" keyword
@@ -1773,10 +1773,10 @@ impl<'a> Parser<'a> {
         let variable_name = if let Some(token) = self.tokens.peek() {
             if let Token::Identifier(name) = &token.token {
                 self.tokens.next(); // Consume the identifier
-                name.clone()
+                Arc::clone(name)
             } else if let Token::KeywordContent = &token.token {
                 self.tokens.next(); // Consume the "content" keyword
-                "content".into()
+                crate::parser::intern::intern("content")
             } else {
                 return Err(ParseError::new(
                     format!(
