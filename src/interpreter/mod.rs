@@ -536,6 +536,13 @@ impl Interpreter {
                     column: *column,
                 };
 
+                let function_size = std::mem::size_of::<FunctionValue>()
+                    + name.len()
+                    + parameters.iter().map(|p| p.name.len()).sum::<usize>()
+                    + 64; // Rough estimate for body size
+
+                self.track_allocation(function_size)?;
+
                 let function_value = Value::Function(Rc::new(function));
                 env.borrow_mut().define(name, function_value.clone());
 
@@ -601,6 +608,8 @@ impl Interpreter {
                 };
 
                 let mut count = start_num;
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
                 let loop_env = Environment::new_child_env(&env);
 
                 let should_continue: Box<dyn Fn(f64, f64) -> bool> = if *downward {
@@ -670,6 +679,8 @@ impl Interpreter {
                     .evaluate_expression(collection, Rc::clone(&env))
                     .await?;
 
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
                 let loop_env = Environment::new_child_env(&env);
 
                 match collection_val {
@@ -756,13 +767,18 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
+                self.track_allocation(env_size)?;
+
+                let loop_env = Environment::new_child_env(&env);
+
                 while self
                     .evaluate_expression(condition, Rc::clone(&env))
                     .await?
                     .is_truthy()
                 {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    self.execute_block(body, Rc::clone(&loop_env)).await?;
                 }
                 Ok(Value::Null)
             }
