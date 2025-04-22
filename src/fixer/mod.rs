@@ -204,14 +204,14 @@ impl CodeFixer {
             Statement::ActionDefinition { name, parameters, body, .. } => {
                 name.len() + parameters.len() * 10 + body.len() * 5 + 50
             },
-            Statement::IfStatement { condition, then_branch, else_branch, .. } => {
-                100 + then_branch.len() * 5 + else_branch.as_ref().map_or(0, |e| e.len() * 5)
+            Statement::IfStatement { condition, then_block, else_block, .. } => {
+                100 + then_block.len() * 5 + else_block.as_ref().map_or(0, |e| e.len() * 5)
             },
-            Statement::ForEachLoop { variable, collection, body, .. } => {
-                variable.len() + 50 + body.len() * 5
+            Statement::ForEachLoop { item_name, collection, body, .. } => {
+                item_name.len() + 50 + body.len() * 5
             },
-            Statement::CountLoop { variable, from, to, body, .. } => {
-                variable.len() + 50 + body.len() * 5
+            Statement::CountLoop { start, end, step, body, .. } => {
+                50 + body.len() * 5 // No variable name to measure
             },
             Statement::ReturnStatement { .. } => 20,
             Statement::ExpressionStatement { .. } => 30,
