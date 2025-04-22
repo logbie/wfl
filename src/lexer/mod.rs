@@ -147,7 +147,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_line_ending_normalization() {
         let input = "store x as 1\r\ndisplay x\r\n";
