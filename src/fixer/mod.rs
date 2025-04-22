@@ -51,7 +51,7 @@ impl CodeFixer {
     }
 
     pub fn fix(&self, program: &Program, _source: &str) -> (String, FixerSummary) {
-        let max_statements = 10; 
+        let max_statements = 5; // Even more aggressive limit
         let program_statements = if program.statements.len() > max_statements {
             let mut truncated = Vec::with_capacity(max_statements);
             truncated.extend_from_slice(&program.statements[0..max_statements]);
@@ -271,7 +271,7 @@ impl CodeFixer {
         let should_truncate = STMT_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
-            let too_deep = *d > 3; // Very aggressive limit
+            let too_deep = *d > 2; // Extremely aggressive limit
             too_deep
         });
         
@@ -634,7 +634,7 @@ impl CodeFixer {
         let should_truncate = EXPR_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
-            let too_deep = *d > 3; // Much more aggressive limit
+            let too_deep = *d > 2; // Extremely aggressive limit
             too_deep
         });
         
