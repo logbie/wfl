@@ -1,3 +1,5 @@
+use crate::Ident;
+use crate::parser::intern::intern;
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
@@ -167,8 +169,8 @@ pub enum Token {
     #[regex("[0-9]+", |lex| lex.slice().parse::<i64>().unwrap())]
     IntLiteral(i64),
 
-    #[regex("[A-Za-z][A-Za-z0-9_]*", |lex| lex.slice().to_string())]
-    Identifier(String),
+    #[regex("[A-Za-z][A-Za-z0-9_]*", |lex| intern(lex.slice()))]
+    Identifier(Ident),
 
     #[token("(")]
     LeftParen,

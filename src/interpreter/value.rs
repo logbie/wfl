@@ -1,5 +1,7 @@
 use super::environment::Environment;
 use super::error::RuntimeError;
+use crate::Ident;
+use crate::debug::safe_debug::{SafeDebug, format_collection, truncate_utf8_safe};
 use crate::parser::ast::Statement;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -12,7 +14,7 @@ pub enum Value {
     Text(Rc<str>),
     Bool(bool),
     List(Rc<RefCell<Vec<Value>>>),
-    Object(Rc<RefCell<HashMap<String, Value>>>),
+    Object(Rc<RefCell<HashMap<Ident, Value>>>),
     Function(Rc<FunctionValue>),
     NativeFunction(NativeFunction),
     Future(Rc<RefCell<FutureValue>>),
@@ -23,8 +25,8 @@ pub type NativeFunction = fn(Vec<Value>) -> Result<Value, RuntimeError>;
 
 #[derive(Clone)]
 pub struct FunctionValue {
-    pub name: Option<String>,
-    pub params: Vec<String>,
+    pub name: Option<Ident>,
+    pub params: Vec<Ident>,
     pub body: Vec<Statement>,
     pub env: Weak<RefCell<Environment>>,
     pub line: usize,
@@ -70,37 +72,48 @@ impl Value {
 
 impl fmt::Debug for Value {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        self.safe_fmt(f)
+    }
+}
+
+impl SafeDebug for Value {
+    fn safe_fmt<W: fmt::Write>(&self, f: &mut W) -> fmt::Result {
         match self {
             Value::Number(n) => write!(f, "{}", n),
-            Value::Text(s) => write!(f, "\"{}\"", s),
+            Value::Text(s) => {
+                const MAX_STRING_CHARS: usize = 128;
+                let truncated = truncate_utf8_safe(s, MAX_STRING_CHARS);
+                let ellipsis = if truncated.len() < s.len() { "..." } else { "" };
+                write!(f, "\"{}{}\"", truncated, ellipsis)
+            }
             Value::Bool(b) => write!(f, "{}", b),
             Value::List(l) => {
                 let values = l.borrow();
-                write!(f, "[")?;
-                for (i, v) in values.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{:?}", v)?;
-                }
-                write!(f, "]")
+                format_collection(&values, f, |v, f| v.safe_fmt(f), "[", "]")
             }
             Value::Object(o) => {
                 let map = o.borrow();
                 write!(f, "{{")?;
-                for (i, (k, v)) in map.iter().enumerate() {
-                    if i > 0 {
-                        write!(f, ", ")?;
-                    }
-                    write!(f, "{}: {:?}", k, v)?;
-                }
-                write!(f, "}}")
+
+                let entries: Vec<_> = map.iter().collect();
+                format_collection(
+                    &entries,
+                    f,
+                    |(k, v), f| {
+                        write!(f, "{}: ", k)?;
+                        v.safe_fmt(f)
+                    },
+                    "",
+                    "}",
+                )
             }
             Value::Function(func) => {
                 write!(
                     f,
                     "Function({})",
-                    func.name.as_ref().unwrap_or(&"anonymous".to_string())
+                    func.name
+                        .as_ref()
+                        .unwrap_or(&crate::common::ident::intern("anonymous"))
                 )
             }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
@@ -122,7 +135,9 @@ impl fmt::Display for Value {
                 write!(
                     f,
                     "action {}",
-                    func.name.as_ref().unwrap_or(&"anonymous".to_string())
+                    func.name
+                        .as_ref()
+                        .unwrap_or(&crate::common::ident::intern("anonymous"))
                 )
             }
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),

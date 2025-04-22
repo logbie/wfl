@@ -1,3 +1,4 @@
+use crate::Ident;
 use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
 use std::collections::HashMap;
 use std::fmt;
@@ -15,7 +16,7 @@ pub enum SymbolKind {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Symbol {
-    pub name: String,
+    pub name: Ident,
     pub kind: SymbolKind,
     pub symbol_type: Option<Type>,
     pub line: usize,
@@ -24,7 +25,7 @@ pub struct Symbol {
 
 #[derive(Debug, Clone)]
 pub struct Scope {
-    pub symbols: HashMap<String, Symbol>,
+    pub symbols: HashMap<Ident, Symbol>,
     pub parent: Option<Box<Scope>>,
 }
 
@@ -61,7 +62,7 @@ impl Scope {
         Ok(())
     }
 
-    pub fn resolve(&self, name: &str) -> Option<&Symbol> {
+    pub fn resolve(&self, name: &Ident) -> Option<&Symbol> {
         if let Some(symbol) = self.symbols.get(name) {
             Some(symbol)
         } else if let Some(parent) = &self.parent {
@@ -117,7 +118,7 @@ impl Analyzer {
         let mut global_scope = Scope::new();
 
         let yes_symbol = Symbol {
-            name: "yes".to_string(),
+            name: crate::parser::intern::intern("yes"),
             kind: SymbolKind::Variable { mutable: false },
             symbol_type: Some(Type::Boolean),
             line: 0,
@@ -126,7 +127,7 @@ impl Analyzer {
         let _ = global_scope.define(yes_symbol);
 
         let no_symbol = Symbol {
-            name: "no".to_string(),
+            name: crate::parser::intern::intern("no"),
             kind: SymbolKind::Variable { mutable: false },
             symbol_type: Some(Type::Boolean),
             line: 0,
@@ -135,7 +136,7 @@ impl Analyzer {
         let _ = global_scope.define(no_symbol);
 
         let nothing_symbol = Symbol {
-            name: "nothing".to_string(),
+            name: crate::parser::intern::intern("nothing"),
             kind: SymbolKind::Variable { mutable: false },
             symbol_type: Some(Type::Nothing),
             line: 0,
@@ -144,7 +145,7 @@ impl Analyzer {
         let _ = global_scope.define(nothing_symbol);
 
         let missing_symbol = Symbol {
-            name: "missing".to_string(),
+            name: crate::parser::intern::intern("missing"),
             kind: SymbolKind::Variable { mutable: false },
             symbol_type: Some(Type::Nothing),
             line: 0,
@@ -153,7 +154,7 @@ impl Analyzer {
         let _ = global_scope.define(missing_symbol);
 
         let undefined_symbol = Symbol {
-            name: "undefined".to_string(),
+            name: crate::parser::intern::intern("undefined"),
             kind: SymbolKind::Variable { mutable: false },
             symbol_type: Some(Type::Nothing),
             line: 0,
@@ -391,9 +392,9 @@ impl Analyzer {
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 let count_symbol = Symbol {
-                    name: "count".to_string(), // The count variable is implicitly defined
+                    name: crate::parser::intern::intern("count"), // The count variable is implicitly defined
                     kind: SymbolKind::Variable { mutable: false }, // Count variable is immutable
-                    symbol_type: Some(Type::Number), // Count is always a number
+                    symbol_type: Some(Type::Number),              // Count is always a number
                     line: 0,
                     column: 0,
                 };
@@ -445,11 +446,13 @@ impl Analyzer {
     }
 
     pub fn get_symbol(&self, name: &str) -> Option<&Symbol> {
-        self.current_scope.resolve(name)
+        let name_ident = crate::parser::intern::intern(name);
+        self.current_scope.resolve(&name_ident)
     }
 
     pub fn get_symbol_mut(&mut self, name: &str) -> Option<&mut Symbol> {
-        self.current_scope.symbols.get_mut(name)
+        let name_ident = crate::parser::intern::intern(name);
+        self.current_scope.symbols.get_mut(&name_ident)
     }
 
     pub fn register_builtin_function(
@@ -462,14 +465,14 @@ impl Analyzer {
             .iter()
             .enumerate()
             .map(|(i, t)| Parameter {
-                name: format!("param{}", i),
+                name: crate::parser::intern::intern(&format!("param{}", i)),
                 param_type: Some(t.clone()),
                 default_value: None,
             })
             .collect();
 
         let symbol = Symbol {
-            name: name.to_string(),
+            name: crate::parser::intern::intern(name),
             kind: SymbolKind::Function {
                 parameters,
                 return_type: Some(return_type.clone()),
@@ -627,13 +630,13 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::VariableDeclaration {
-                    name: "x".to_string(),
+                    name: "x".to_string().into(),
                     value: Expression::Literal(Literal::Integer(10), 1, 1),
                     line: 1,
                     column: 1,
                 },
                 Statement::DisplayStatement {
-                    value: Expression::Variable("x".to_string(), 2, 9),
+                    value: Expression::Variable("x".to_string().into(), 2, 9),
                     line: 2,
                     column: 1,
                 },
@@ -649,7 +652,7 @@ mod tests {
     fn test_undefined_variable() {
         let program = Program {
             statements: vec![Statement::DisplayStatement {
-                value: Expression::Variable("x".to_string(), 1, 9),
+                value: Expression::Variable("x".to_string().into(), 1, 9),
                 line: 1,
                 column: 1,
             }],
@@ -672,14 +675,14 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::ActionDefinition {
-                    name: "greet".to_string(),
+                    name: "greet".to_string().into(),
                     parameters: vec![Parameter {
-                        name: "name".to_string(),
+                        name: "name".to_string().into(),
                         param_type: Some(Type::Text),
                         default_value: None,
                     }],
                     body: vec![Statement::DisplayStatement {
-                        value: Expression::Variable("name".to_string(), 2, 5),
+                        value: Expression::Variable("name".to_string().into(), 2, 5),
                         line: 2,
                         column: 5,
                     }],
@@ -689,7 +692,7 @@ mod tests {
                 },
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 3, 1)),
+                        function: Box::new(Expression::Variable("greet".to_string().into(), 3, 1)),
                         arguments: vec![Argument {
                             name: None,
                             value: Expression::Literal(Literal::String("Alice".to_string()), 3, 7),
@@ -713,9 +716,9 @@ mod tests {
         let program = Program {
             statements: vec![
                 Statement::ActionDefinition {
-                    name: "greet".to_string(),
+                    name: "greet".to_string().into(),
                     parameters: vec![Parameter {
-                        name: "name".to_string(),
+                        name: "name".to_string().into(),
                         param_type: Some(Type::Text),
                         default_value: None,
                     }],
@@ -726,7 +729,7 @@ mod tests {
                 },
                 Statement::ExpressionStatement {
                     expression: Expression::FunctionCall {
-                        function: Box::new(Expression::Variable("greet".to_string(), 2, 1)),
+                        function: Box::new(Expression::Variable("greet".to_string().into(), 2, 1)),
                         arguments: vec![], // No arguments provided
                         line: 2,
                         column: 1,

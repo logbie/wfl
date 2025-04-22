@@ -1,5 +1,6 @@
 pub mod token;
 
+use crate::parser::intern::intern;
 use logos::Logos;
 use token::{Token, TokenWithPosition};
 
@@ -11,7 +12,7 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
     let input = normalize_line_endings(input);
     let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
-    let mut current_id: Option<String> = None;
+    let mut current_id: Option<String> = None; // Temporary string for building multi-word identifiers
 
     while let Some(token_result) = lexer.next() {
         match token_result {
@@ -27,12 +28,12 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     id.push(' ');
                     id.push_str(&word);
                 } else {
-                    current_id = Some(word);
+                    current_id = Some(word.to_string());
                 }
             }
             Ok(other) => {
                 if let Some(id) = current_id.take() {
-                    tokens.push(Token::Identifier(id));
+                    tokens.push(Token::Identifier(intern(&id)));
                 }
                 tokens.push(other);
             }
@@ -47,7 +48,7 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
     }
 
     if let Some(id) = current_id.take() {
-        tokens.push(Token::Identifier(id));
+        tokens.push(Token::Identifier(intern(&id)));
     }
     tokens
 }
@@ -56,7 +57,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
     let input = normalize_line_endings(input);
     let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
-    let mut current_id: Option<String> = None;
+    let mut current_id: Option<String> = None; // Temporary string for building multi-word identifiers// Temporary string for building multi-word identifiers
     let mut current_id_start_line = 0;
     let mut current_id_start_column = 0;
     let mut current_id_length = 0;
@@ -101,7 +102,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     id.push_str(&word);
                     current_id_length = span.end - current_id_start_column;
                 } else {
-                    current_id = Some(word);
+                    current_id = Some(word.to_string());
                     current_id_start_line = token_line;
                     current_id_start_column = span.start;
                     current_id_length = token_length;
@@ -110,7 +111,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
             Ok(other) => {
                 if let Some(id) = current_id.take() {
                     tokens.push(TokenWithPosition::new(
-                        Token::Identifier(id),
+                        Token::Identifier(intern(&id)),
                         current_id_start_line,
                         current_id_start_column,
                         current_id_length,
@@ -135,7 +136,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 
     if let Some(id) = current_id.take() {
         tokens.push(TokenWithPosition::new(
-            Token::Identifier(id),
+            Token::Identifier(intern(&id)),
             current_id_start_line,
             current_id_start_column,
             current_id_length,
@@ -167,11 +168,11 @@ mod tests {
             tokens,
             vec![
                 Token::KeywordStore,
-                Token::Identifier("user name".to_string()),
+                Token::Identifier(intern("user name")),
                 Token::KeywordAs,
                 Token::StringLiteral("Alice".to_string()),
                 Token::KeywordDisplay,
-                Token::Identifier("user name".to_string()),
+                Token::Identifier(intern("user name")),
                 Token::KeywordWith,
                 Token::StringLiteral(" is logged in.".to_string()),
             ]
@@ -198,7 +199,7 @@ mod tests {
         assert!(tokens.contains(&Token::IntLiteral(42)));
 
         assert!(tokens.contains(&Token::KeywordIs));
-        assert!(tokens.contains(&Token::Identifier("active".to_string())));
+        assert!(tokens.contains(&Token::Identifier(intern("active"))));
 
         assert!(tokens.contains(&Token::StringLiteral("Hello".to_string())));
         assert!(tokens.contains(&Token::KeywordWith));
@@ -210,7 +211,7 @@ mod tests {
         assert!(tokens.contains(&Token::StringLiteral("data.txt".to_string())));
         assert!(tokens.contains(&Token::KeywordAs));
         assert!(tokens.contains(&Token::KeywordFile));
-        assert!(tokens.contains(&Token::Identifier("handle".to_string())));
+        assert!(tokens.contains(&Token::Identifier(intern("handle"))));
     }
 
     #[test]
@@ -228,7 +229,7 @@ mod tests {
                 Token::KeywordDefine,
                 Token::KeywordAction,
                 Token::KeywordCalled,
-                Token::Identifier("main".to_string()),
+                Token::Identifier(intern("main")),
                 Token::Colon,
                 Token::KeywordDisplay,
                 Token::StringLiteral("Hello, World!".to_string()),
@@ -253,7 +254,7 @@ mod tests {
             vec![
                 Token::KeywordCheck,
                 Token::KeywordIf,
-                Token::Identifier("user name".to_string()),
+                Token::Identifier(intern("user name")),
                 Token::KeywordIs,
                 Token::StringLiteral("Alice".to_string()),
                 Token::Colon,
@@ -264,7 +265,7 @@ mod tests {
                 Token::KeywordDisplay,
                 Token::StringLiteral("Hello, ".to_string()),
                 Token::KeywordWith,
-                Token::Identifier("user name".to_string()),
+                Token::Identifier(intern("user name")),
                 Token::KeywordEnd,
                 Token::KeywordCheck,
             ]
@@ -311,11 +312,11 @@ mod tests {
             tokens,
             vec![
                 Token::KeywordStore,
-                Token::Identifier("user_name".to_string()),
+                Token::Identifier(intern("user_name")),
                 Token::KeywordAs,
                 Token::StringLiteral("Alice".to_string()),
                 Token::KeywordDisplay,
-                Token::Identifier("user_name".to_string()),
+                Token::Identifier(intern("user_name")),
                 Token::KeywordWith,
                 Token::StringLiteral(" is logged in.".to_string()),
             ]

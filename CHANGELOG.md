@@ -2,6 +2,20 @@
 
 All notable changes to the WFL project will be documented in this file.
 
+## [v0.0.0-nightly+memfix] - 2025-04-22
+
+### Fixed
+- Eliminated memory leaks by using weak references for captured environments
+- Optimized parser memory usage by reducing unnecessary cloning and pre-allocating collections
+- Implemented string interning for identifiers to reduce memory usage
+- Added SafeDebug trait with truncation limits to prevent memory explosions in debug output
+- Improved call stack hygiene to prevent lingering references
+
+### Added
+- Memory leak regression tests to prevent future regressions
+- Heaptrack integration for memory profiling
+- Documentation for memory management strategies
+
 ## [v0.0.0-nightly+CDR3] - 2025-04-20
 
 ### Fixed
