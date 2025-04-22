@@ -388,11 +388,11 @@ impl Interpreter {
                         err
                     );
                     errors.push(err);
-                    
+
                     if matches!(err.kind, ErrorKind::OutOfMemory) {
                         self.call_stack.borrow_mut().clear();
                     }
-                    
+
                     break; // Stop on first runtime error
                 }
             }
@@ -412,7 +412,7 @@ impl Interpreter {
                     Ok(value) => last_value = value,
                     Err(err) => {
                         errors.push(err);
-                        
+
                         if matches!(err.kind, ErrorKind::OutOfMemory) {
                             self.call_stack.borrow_mut().clear();
                         }

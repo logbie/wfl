@@ -186,7 +186,6 @@ impl CodeFixer {
         summary: &mut FixerSummary,
     ) {
         output.reserve(program.statements.len() * 64);
-        
         for statement in &program.statements {
             self.pretty_print_statement(statement, output, indent_level, summary);
         }
@@ -441,20 +440,20 @@ impl CodeFixer {
         let reserve_size = match expression {
             Expression::Literal(Literal::String(s), ..) => s.len() + 2, // quotes
             Expression::Literal(Literal::Pattern(p), ..) => p.len() + 2, // slashes
-            Expression::Literal(Literal::Integer(_), ..) => 20, // typical int size
-            Expression::Literal(Literal::Float(_), ..) => 20, // typical float size
+            Expression::Literal(Literal::Integer(_), ..) => 20,         // typical int size
+            Expression::Literal(Literal::Float(_), ..) => 20,           // typical float size
             Expression::Variable(name, ..) => name.len(),
             Expression::BinaryOperation { .. } => 100, // rough estimate
             Expression::UnaryOperation { .. } => 50,   // rough estimate
             Expression::FunctionCall { .. } => 100,    // rough estimate
-            _ => 50, // default size
+            _ => 50,                                   // default size
         };
-        
+
         let current_len = output.len();
         if output.capacity() < current_len + reserve_size {
             output.reserve(reserve_size);
         }
-        
+
         match expression {
             Expression::Literal(literal, ..) => match literal {
                 Literal::String(s) => {
