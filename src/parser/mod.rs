@@ -1726,7 +1726,7 @@ impl<'a> Parser<'a> {
 
         Ok(Statement::OpenFileStatement {
             path,
-            variable_name,
+            variable_name: variable_name.to_string(),
             line: open_token.line,
             column: open_token.column,
         })
@@ -1772,7 +1772,7 @@ impl<'a> Parser<'a> {
                 name.clone()
             } else if let Token::KeywordContent = &token.token {
                 self.tokens.next(); // Consume the "content" keyword
-                "content".to_string()
+                "content".to_string().into()
             } else {
                 return Err(ParseError::new(
                     format!(
@@ -1789,7 +1789,7 @@ impl<'a> Parser<'a> {
 
         Ok(Statement::ReadFileStatement {
             path: path_expr,
-            variable_name,
+            variable_name: variable_name.to_string(),
             line: open_token.line,
             column: open_token.column,
         })
@@ -1822,7 +1822,7 @@ impl<'a> Parser<'a> {
         let expr = self.parse_expression()?;
 
         let default_token = TokenWithPosition {
-            token: Token::Identifier("expression".to_string()),
+            token: Token::Identifier("expression".to_string().into()),
             line: 0,
             column: 0,
             length: 0,
