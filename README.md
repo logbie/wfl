@@ -1,5 +1,7 @@
 # WFL (WebFirst Language)
 
+**⚠️ IMPORTANT: This software is alpha quality at best and should not be relied on for production use. ⚠️**
+
 WFL is a programming language designed to be readable and intuitive, using natural language constructs to lower the barrier to entry for new programmers while still providing powerful features for experienced developers.
 
 ## Overview
@@ -24,6 +26,7 @@ The WFL compiler is currently under development. Here's the current status:
   - ✅ Try/when/otherwise exception handling
   - 🔄 Asynchronous operations support in progress
 - ✅ **Error Reporting System**: Complete - Comprehensive diagnostics with actionable messages
+- ✅ **Linter and Code Fixer**: Complete - Code quality tools with CLI integration
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
 - 🔄 **Virtual Machine**: Planned - Will execute bytecode instructions
 
@@ -226,6 +229,14 @@ The fixer performs the following operations:
 - Renames identifiers to follow snake_case convention
 - Removes dead code
 - Simplifies boolean expressions
+
+#### Recent Improvements
+
+- Fixed linter CLI behavior to allow `--lint --fix` combination
+- Removed unconditional linter run during normal execution
+- Updated CLI help text to reflect new flag behavior
+- Added support for combined flags (e.g., `--lint --fix --diff`)
+- Improved reporting methods for better fixer summaries
 
 ## Logging and Debugging
 
