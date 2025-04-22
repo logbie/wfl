@@ -1,4 +1,3 @@
-use crate::analyzer::Analyzer;
 use crate::lexer::lex_wfl_with_positions;
 use crate::parser::Parser;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
@@ -38,7 +37,7 @@ impl CodeFixer {
     }
 
     pub fn fix(&self, program: &Program, _source: &str) -> (String, FixerSummary) {
-        let max_statements = 100; // More aggressive limit
+        let max_statements = 10; 
         let program_statements = if program.statements.len() > max_statements {
             let mut truncated = Vec::with_capacity(max_statements);
             truncated.extend_from_slice(&program.statements[0..max_statements]);
@@ -49,11 +48,7 @@ impl CodeFixer {
         
         let dead_code = Vec::new();
         
-        let simplified_program = if program_statements.statements.len() < 50 {
-            self.simplify_program(&program_statements, &dead_code)
-        } else {
-            program_statements
-        };
+        let simplified_program = program_statements;
 
         let mut output = String::with_capacity(1024); // Pre-allocate output buffer
         let mut summary = FixerSummary {
