@@ -96,18 +96,20 @@ impl fmt::Debug for SafeDebug<'_> {
     }
 }
 
+use crate::Ident;
+
 #[derive(Debug, Clone)]
 pub struct CallFrame {
-    pub func_name: String,
+    pub func_name: String, // Keep as String for now for backward compatibility
     pub call_line: usize,
     pub call_col: usize,
-    pub locals: Option<HashMap<String, Value>>,
+    pub locals: Option<HashMap<Ident, Value>>,
 }
 
 impl CallFrame {
-    pub fn new(func_name: String, call_line: usize, call_col: usize) -> Self {
+    pub fn new<N: Into<String>>(func_name: N, call_line: usize, call_col: usize) -> Self {
         Self {
-            func_name,
+            func_name: func_name.into(),
             call_line,
             call_col,
             locals: None,
@@ -115,7 +117,15 @@ impl CallFrame {
     }
 
     pub fn capture_locals(&mut self, env: &Rc<RefCell<Environment>>) {
-        self.locals = Some(env.borrow().values.clone());
+        self.locals = Some(
+            env.borrow()
+               .values
+               .iter()
+               .filter(|(_, v)| !matches!(v, Value::List(_) | Value::Object(_)))
+               .take(16)
+               .map(|(k,v)| (k.clone(), v.clone()))
+               .collect()
+        );
     }
 }
 
