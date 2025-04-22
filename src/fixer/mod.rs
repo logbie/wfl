@@ -275,7 +275,7 @@ impl CodeFixer {
         let should_truncate = STMT_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
-            let too_deep = *d > 2; // Extremely aggressive limit
+            let too_deep = *d > 1; // Even more aggressive limit (1 instead of 2)
             too_deep
         });
 
@@ -284,6 +284,9 @@ impl CodeFixer {
                 let mut d = depth.borrow_mut();
                 *d -= 1;
             });
+            if let Some(interpreter) = &self.interpreter {
+                let _ = interpreter.track_deallocation(256);
+            }
         });
 
         if should_truncate {
