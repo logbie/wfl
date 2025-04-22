@@ -620,6 +620,8 @@ mod tests {
         assert!(config.logging_enabled);
         assert_eq!(config.max_line_length, 120);
         assert!(config.debug_report_enabled); // Default
+        assert_eq!(config.debug_full_report, false); // Default
+        assert_eq!(config.max_memory_mb, 512); // Default
     }
 
     #[test]
