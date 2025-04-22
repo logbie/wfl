@@ -23,7 +23,7 @@ where
         self.iter.peek()
     }
 
-    pub fn next(&mut self) -> Option<I::Item> {
+    pub fn advance(&mut self) -> Option<I::Item> {
         self.iter.next()
     }
 
@@ -38,11 +38,9 @@ where
 
     pub fn nth(&mut self, n: usize) -> Option<I::Item> {
         for _ in 0..n {
-            if self.next().is_none() {
-                return None;
-            }
+            self.advance()?;
         }
-        self.next()
+        self.advance()
     }
 
     pub fn is_some(&mut self) -> bool {

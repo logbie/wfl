@@ -21,7 +21,7 @@ impl<'a> TestFormatter<'a> {
     }
 }
 
-impl<'a> fmt::Write for TestFormatter<'a> {
+impl fmt::Write for TestFormatter<'_> {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         self.writer.write_str(s)
     }

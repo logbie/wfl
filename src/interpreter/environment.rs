@@ -39,8 +39,8 @@ impl Environment {
 
     pub fn assign<N: Into<Ident>>(&mut self, name: N, value: Value) -> Result<(), String> {
         let name_ident = name.into();
-        if self.values.contains_key(&name_ident) {
-            self.values.insert(name_ident, value);
+        if let std::collections::hash_map::Entry::Occupied(mut e) = self.values.entry(name_ident.clone()) {
+            e.insert(value);
             Ok(())
         } else if let Some(parent_weak) = &self.parent {
             if let Some(parent) = parent_weak.upgrade() {
