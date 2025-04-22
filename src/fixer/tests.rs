@@ -8,7 +8,9 @@ fn test_fix_variable_naming() {
     let tokens = lex_wfl_with_positions(input);
     let program = Parser::new(&tokens).parse().unwrap();
 
-    let fixer = CodeFixer::new();
+    let config = crate::config::WflConfig::default();
+    let interpreter = std::rc::Rc::new(crate::interpreter::Interpreter::with_config(&config));
+    let fixer = CodeFixer::with_interpreter(interpreter);
     let (fixed_code, summary) = fixer.fix(&program, input);
 
     assert_eq!(fixed_code.trim(), "store counter as 5");
@@ -21,7 +23,9 @@ fn test_fix_indentation() {
     let tokens = lex_wfl_with_positions(input);
     let program = Parser::new(&tokens).parse().unwrap();
 
-    let fixer = CodeFixer::new();
+    let config = crate::config::WflConfig::default();
+    let interpreter = std::rc::Rc::new(crate::interpreter::Interpreter::with_config(&config));
+    let fixer = CodeFixer::with_interpreter(interpreter);
     let (_fixed_code, summary) = fixer.fix(&program, input);
 
     assert!(summary.lines_reformatted > 0);
@@ -33,7 +37,9 @@ fn test_idempotence() {
     let tokens = lex_wfl_with_positions(input);
     let program = Parser::new(&tokens).parse().unwrap();
 
-    let fixer = CodeFixer::new();
+    let config = crate::config::WflConfig::default();
+    let interpreter = std::rc::Rc::new(crate::interpreter::Interpreter::with_config(&config));
+    let fixer = CodeFixer::with_interpreter(interpreter);
     let (fixed_code, _) = fixer.fix(&program, input);
 
     let tokens2 = lex_wfl_with_positions(&fixed_code);

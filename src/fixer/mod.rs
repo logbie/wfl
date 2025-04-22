@@ -5,8 +5,12 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::Path;
 
+use crate::interpreter::Interpreter;
+use std::rc::Rc;
+
 pub struct CodeFixer {
     indent_size: usize,
+    interpreter: Option<Rc<Interpreter>>,
 }
 
 pub enum FixerOutputMode {
@@ -29,7 +33,17 @@ impl FixerSummary {
 
 impl CodeFixer {
     pub fn new() -> Self {
-        Self { indent_size: 4 }
+        Self { 
+            indent_size: 4,
+            interpreter: None,
+        }
+    }
+    
+    pub fn with_interpreter(interpreter: Rc<Interpreter>) -> Self {
+        Self {
+            indent_size: 4,
+            interpreter: Some(interpreter),
+        }
     }
 
     pub fn set_indent_size(&mut self, size: usize) {
@@ -50,7 +64,11 @@ impl CodeFixer {
         
         let simplified_program = program_statements;
 
+        // Track memory allocation for output buffer
         let mut output = String::with_capacity(1024); // Pre-allocate output buffer
+        if let Some(interpreter) = &self.interpreter {
+            let _ = interpreter.track_allocation(1024);
+        }
         let mut summary = FixerSummary {
             lines_reformatted: 0,
             vars_renamed: 0,
@@ -243,6 +261,11 @@ impl CodeFixer {
     ) {
         thread_local! {
             static STMT_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+        }
+        
+        // Track memory allocation for statement processing
+        if let Some(interpreter) = &self.interpreter {
+            let _ = interpreter.track_allocation(256); // Base allocation for statement processing
         }
         
         let should_truncate = STMT_DEPTH.with(|depth| {
@@ -601,6 +624,11 @@ impl CodeFixer {
     ) {
         thread_local! {
             static EXPR_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
+        }
+        
+        // Track memory allocation for expression processing
+        if let Some(interpreter) = &self.interpreter {
+            let _ = interpreter.track_allocation(128); // Base allocation for expression processing
         }
         
         let should_truncate = EXPR_DEPTH.with(|depth| {
