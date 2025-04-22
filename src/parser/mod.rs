@@ -325,7 +325,7 @@ impl<'a> Parser<'a> {
             }
         }
 
-        Ok(name_parts.join(" "))
+        Ok(intern(&name_parts.join(" ")))
     }
 
     fn expect_token(&mut self, expected: Token, error_message: &str) -> Result<(), ParseError> {
@@ -833,7 +833,7 @@ impl<'a> Parser<'a> {
                                 let token_column = token.column;
                                 return Ok(Expression::FunctionCall {
                                     function: Box::new(Expression::Variable(
-                                        name.clone(),
+                                        intern(name),
                                         token_line,
                                         token_column,
                                     )),
@@ -847,7 +847,7 @@ impl<'a> Parser<'a> {
 
                     let token_line = token.line;
                     let token_column = token.column;
-                    Ok(Expression::Variable(name.clone(), token_line, token_column))
+                    Ok(Expression::Variable(intern(name), token_line, token_column))
                 }
                 Token::KeywordNot => {
                     self.tokens.next(); // Consume "not"
@@ -871,7 +871,7 @@ impl<'a> Parser<'a> {
                     let token_line = token.line;
                     let token_column = token.column;
                     Ok(Expression::Variable(
-                        "count".to_string(),
+                        intern("count"),
                         token_line,
                         token_column,
                     ))
@@ -970,7 +970,7 @@ impl<'a> Parser<'a> {
                                     } else {
                                         expr = Expression::MemberAccess {
                                             object: Box::new(expr),
-                                            property: prop.clone(),
+                                            property: intern(prop),
                                             line: prop_token.line,
                                             column: prop_token.column,
                                         };
