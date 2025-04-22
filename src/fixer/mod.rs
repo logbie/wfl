@@ -46,7 +46,7 @@ impl CodeFixer {
             Program { statements: program.statements.clone() }
         };
         
-        let dead_code = Vec::new();
+        let dead_code: Vec<usize> = Vec::new();
         
         let simplified_program = program_statements;
 
