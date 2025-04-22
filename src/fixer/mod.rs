@@ -128,7 +128,6 @@ impl CodeFixer {
         Ok(summary)
     }
 
-
     fn pretty_print(
         &self,
         program: &Program,
