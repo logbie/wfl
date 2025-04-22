@@ -84,22 +84,16 @@ impl SafeDebug for Value {
                 let truncated = truncate_utf8_safe(s, MAX_STRING_CHARS);
                 let ellipsis = if truncated.len() < s.len() { "..." } else { "" };
                 write!(f, "\"{}{}\"", truncated, ellipsis)
-            },
+            }
             Value::Bool(b) => write!(f, "{}", b),
             Value::List(l) => {
                 let values = l.borrow();
-                format_collection(
-                    &values, 
-                    f, 
-                    |v, f| v.safe_fmt(f), 
-                    "[", 
-                    "]"
-                )
-            },
+                format_collection(&values, f, |v, f| v.safe_fmt(f), "[", "]")
+            }
             Value::Object(o) => {
                 let map = o.borrow();
                 write!(f, "{{")?;
-                
+
                 let entries: Vec<_> = map.iter().collect();
                 format_collection(
                     &entries,
@@ -109,16 +103,16 @@ impl SafeDebug for Value {
                         v.safe_fmt(f)
                     },
                     "",
-                    "}"
+                    "}",
                 )
-            },
+            }
             Value::Function(func) => {
                 write!(
                     f,
                     "Function({})",
                     func.name.as_ref().unwrap_or(&"anonymous".to_string())
                 )
-            },
+            }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "null"),

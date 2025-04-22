@@ -1,6 +1,6 @@
+use crate::parser::intern::intern;
 use logos::Logos;
 use std::sync::Arc;
-use crate::parser::intern::intern;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
 #[logos(skip r"(?:[ \t\n\f\r]+|//.*)")] // Skip whitespace and line comments

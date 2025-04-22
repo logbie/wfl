@@ -1,9 +1,9 @@
 pub mod token;
 
+use crate::parser::intern::intern;
 use logos::Logos;
 use std::sync::Arc;
 use token::{Token, TokenWithPosition};
-use crate::parser::intern::intern;
 
 pub fn normalize_line_endings(input: &str) -> String {
     input.replace("\r\n", "\n")
