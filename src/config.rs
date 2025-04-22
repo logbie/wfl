@@ -758,6 +758,8 @@ mod test_reproduce_ci {
 
         // This should pass if the environment variable is correctly used
         assert_eq!(config.timeout_seconds, 180); // Local override
-        assert!(config.logging_enabled); // From global - THIS MIGHT FAIL
+        assert_eq!(config.debug_report_enabled, true);
+        assert_eq!(config.debug_full_report, false);
+        assert_eq!(config.max_memory_mb, 512);
     }
 }
