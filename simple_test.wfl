@@ -1,0 +1,11 @@
+store small_list as create list with 1 with 2 with 3 with 4 with 5
+store big_list as create list
+
+count from 1 to 100:
+    store item as count
+    store big_list as big_list with item
+end count
+
+display "Lists created successfully"
+display "Small list: " with small_list
+display "Big list length: " with length of big_list

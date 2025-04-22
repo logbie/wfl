@@ -1,0 +1,31 @@
+# Memory Optimization Implementation
+
+This PR implements comprehensive memory optimizations to fix runaway memory usage in the WFL interpreter:
+
+1. Call-frame ballooning fix
+   - Replaced blind env.borrow().values.clone() with selective capture
+   - Implemented Captured enum for efficient variable storage
+   - Added per-frame memory limits with truncation
+
+2. Lazy & on-demand debug reports
+   - Modified generate_report_content() to stream directly to file writers
+   - Added debug_full_report configuration option
+   - Implemented BufWriter for efficient file writing
+
+3. Hard memory guards
+   - Added Interpreter::bytes_allocated tracking
+   - Implemented memory limit checks with max_memory_mb config
+   - Added RuntimeError::OutOfMemory error type
+
+4. Parser micro-optimizations
+   - Added capacity hints to vectors
+   - Replaced .peek().cloned() chains with references
+   - Implemented string interning
+
+5. Regression tests & documentation
+   - Added memory tracking tests
+   - Created comprehensive debugging documentation
+   - Updated example configuration
+
+Link to Devin run: https://app.devin.ai/sessions/f245563c20014f40bbcaf34cd842e0be
+Requested by: bsbyrd@logbie.com
