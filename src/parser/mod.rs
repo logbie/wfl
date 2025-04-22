@@ -676,7 +676,10 @@ impl<'a> Parser<'a> {
                             return Ok(expr);
                         } else {
                             return Err(ParseError::new(
-                                format!("Expected closing parenthesis, found {:?}", next_token.token),
+                                format!(
+                                    "Expected closing parenthesis, found {:?}",
+                                    next_token.token
+                                ),
                                 next_token.line,
                                 next_token.column,
                             ));
@@ -740,15 +743,19 @@ impl<'a> Parser<'a> {
                                 let mut arguments = Vec::new();
 
                                 loop {
-                                    let arg_name = if let Some(name_token) = { self.tokens.peek().cloned() } {
-                                        if let Token::Identifier(id) = &name_token.token {
-                                            let mut iter = self.tokens.clone_iter();
-                                            iter.next(); // Skip current token
-                                            if let Some(next) = iter.next() {
-                                                if matches!(next.token, Token::Colon) {
-                                                    self.tokens.next(); // Consume name
-                                                    self.tokens.next(); // Consume ":"
-                                                    Some(Arc::clone(id))
+                                    let arg_name =
+                                        if let Some(name_token) = { self.tokens.peek().cloned() } {
+                                            if let Token::Identifier(id) = &name_token.token {
+                                                let mut iter = self.tokens.clone_iter();
+                                                iter.next(); // Skip current token
+                                                if let Some(next) = iter.next() {
+                                                    if matches!(next.token, Token::Colon) {
+                                                        self.tokens.next(); // Consume name
+                                                        self.tokens.next(); // Consume ":"
+                                                        Some(Arc::clone(id))
+                                                    } else {
+                                                        None
+                                                    }
                                                 } else {
                                                     None
                                                 }
@@ -757,10 +764,7 @@ impl<'a> Parser<'a> {
                                             }
                                         } else {
                                             None
-                                        }
-                                    } else {
-                                        None
-                                    };
+                                        };
 
                                     let arg_value = self.parse_expression()?;
 

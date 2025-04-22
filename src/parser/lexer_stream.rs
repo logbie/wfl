@@ -44,7 +44,7 @@ where
         }
         self.next()
     }
-    
+
     pub fn is_some(&mut self) -> bool {
         self.peek().is_some()
     }
