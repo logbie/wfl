@@ -22,12 +22,8 @@ where
         self.iter.peek()
     }
 
-    pub fn next(&mut self) -> Option<I::Item> {
-        self.iter.next()
-    }
-
     pub fn advance(&mut self) -> Option<I::Item> {
-        self.next()
+        self.iter.next()
     }
 
     pub fn clone_iter(&self) -> Peekable<IntoIter<I::Item>>
