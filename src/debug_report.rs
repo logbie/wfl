@@ -122,14 +122,15 @@ impl CallFrame {
     }
 
     pub fn capture_locals(&mut self, env: &Rc<RefCell<Environment>>) {
-        let env_values = env.borrow().values.clone();
-
+        let env_ref = env.borrow();
+        let env_values = &env_ref.values;
+        
         let mut captured_locals = HashMap::with_capacity(env_values.len());
         let mut total_bytes = 0;
         const MAX_CAPTURE_BYTES: usize = 32 * 1024; // 32 KiB limit per frame
 
         for (name, value) in env_values {
-            let captured = match &value {
+            let captured = match value {
                 Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value),
 
                 Value::Text(s) if s.len() < 256 => Captured::Primitive(value),

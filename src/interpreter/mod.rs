@@ -193,10 +193,14 @@ impl Interpreter {
             let mut env = global_env.borrow_mut();
             env.define("display", Value::NativeFunction(Self::native_display));
 
-            stdlib::register_stdlib(&mut env);
+            // Register stdlib without pattern functions that need interpreter
+            core::register_core(&mut env);
+            math::register_math(&mut env);
+            text::register_text(&mut env);
+            list::register_list(&mut env);
         }
 
-        Interpreter {
+        let mut interpreter = Interpreter {
             global_env,
             current_count: RefCell::new(None),
             in_count_loop: RefCell::new(false),
@@ -206,7 +210,15 @@ impl Interpreter {
             io_client: Rc::new(IoClient::new()),
             bytes_allocated: RefCell::new(0),
             max_memory_bytes: 512 * 1024 * 1024, // Default 512 MB
+        };
+        
+        // Register pattern functions that need interpreter reference
+        {
+            let mut env = interpreter.global_env.borrow_mut();
+            pattern::register(&mut env, &interpreter);
         }
+        
+        interpreter
     }
 
     pub fn with_timeout(seconds: u64) -> Self {
