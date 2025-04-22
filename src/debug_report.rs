@@ -222,8 +222,8 @@ pub fn create_report(
     script_path: &str,
     config: &WflConfig,
 ) -> Result<PathBuf, std::io::Error> {
-    if matches!(error.kind, ErrorKind::OutOfMemory) && config.debug_report_enabled {
-        log::warn!("Skipping debug report for OutOfMemory error to avoid recursive OOM");
+    if matches!(error.kind, ErrorKind::OutOfMemory) || !config.debug_report_enabled {
+        log::warn!("Skipping debug report for OutOfMemory error or debug reports disabled");
         return Ok(PathBuf::new());
     }
 
@@ -255,6 +255,24 @@ fn generate_report_content(
     config: &WflConfig,
     writer: &mut impl IoWrite,
 ) -> Result<(), std::io::Error> {
+    if matches!(error.kind, ErrorKind::OutOfMemory) {
+        writeln!(writer, "=== WFL Debug Report (Limited) ===")?;
+        writeln!(writer, "Script: {}", script_path)?;
+        writeln!(
+            writer,
+            "Time: {}",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+        )?;
+        writeln!(writer, "\n=== Error Summary ===")?;
+        writeln!(
+            writer,
+            "Out of Memory error at line {}, column {}: {}",
+            error.line, error.column, error.message
+        )?;
+        writeln!(writer, "Full debug report skipped to avoid recursive OOM.")?;
+        return Ok(());
+    }
+
     writeln!(writer, "=== WFL Debug Report ===")?;
     writeln!(writer, "Script: {}", script_path)?;
     writeln!(
@@ -322,7 +340,7 @@ fn generate_report_content(
     if let Some(frame) = call_stack.last() {
         if let Some(locals) = &frame.locals {
             let locals_iter = if config.debug_full_report {
-                locals.iter().collect::<Vec<_>>()
+                locals.iter().take(100).collect::<Vec<_>>()
             } else {
                 locals.iter().take(10).collect::<Vec<_>>()
             };
@@ -339,11 +357,12 @@ fn generate_report_content(
                 }
             }
 
-            if !config.debug_full_report && locals.len() > 10 {
+            let truncated_count = locals.len() - locals_iter.len();
+            if truncated_count > 0 {
                 writeln!(
                     writer,
                     "... ({} more variables truncated, use debug_full_report=true to see all)",
-                    locals.len() - 10
+                    truncated_count
                 )?;
             }
         } else {

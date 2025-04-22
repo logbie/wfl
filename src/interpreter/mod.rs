@@ -338,6 +338,7 @@ impl Interpreter {
         let mut errors = Vec::new();
         if let Err(e) = self.check_memory() {
             errors.push(e);
+            self.call_stack.borrow_mut().clear();
             return Err(errors);
         }
 
@@ -363,6 +364,7 @@ impl Interpreter {
                     program.statements.len()
                 );
                 errors.push(err);
+                self.call_stack.borrow_mut().clear();
                 return Err(errors);
             }
 
@@ -386,6 +388,11 @@ impl Interpreter {
                         err
                     );
                     errors.push(err);
+                    
+                    if matches!(err.kind, ErrorKind::OutOfMemory) {
+                        self.call_stack.borrow_mut().clear();
+                    }
+                    
                     break; // Stop on first runtime error
                 }
             }
@@ -405,10 +412,15 @@ impl Interpreter {
                     Ok(value) => last_value = value,
                     Err(err) => {
                         errors.push(err);
+                        
+                        if matches!(err.kind, ErrorKind::OutOfMemory) {
+                            self.call_stack.borrow_mut().clear();
+                        }
                     }
                 }
             }
 
+            self.call_stack.borrow_mut().clear();
             self.assert_invariants();
             Ok(last_value)
         } else {
