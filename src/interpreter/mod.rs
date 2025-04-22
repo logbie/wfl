@@ -681,7 +681,25 @@ impl Interpreter {
                             } else {
                                 (0..list.len()).collect()
                             };
-                            indices.iter().map(|&i| list[i].clone()).collect()
+                            
+                            let mut tracked_items = Vec::with_capacity(indices.len());
+                            for &i in indices.iter() {
+                                match &list[i] {
+                                    Value::List(inner_list) => {
+                                        let cloned = inner_list.borrow().clone();
+                                        tracked_items.push(Value::new_list(cloned, self)?);
+                                    },
+                                    Value::Object(inner_obj) => {
+                                        let cloned = inner_obj.borrow().clone();
+                                        tracked_items.push(Value::new_object(cloned, self)?);
+                                    },
+                                    Value::Text(text) if text.len() > 128 => {
+                                        tracked_items.push(Value::new_text(text.to_string(), self)?);
+                                    },
+                                    _ => tracked_items.push(list[i].clone()),
+                                }
+                            }
+                            tracked_items
                         };
 
                         for item in items {
@@ -692,7 +710,26 @@ impl Interpreter {
                     Value::Object(obj_rc) => {
                         let items: Vec<(String, Value)> = {
                             let obj = obj_rc.borrow();
-                            obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+                            let mut tracked_items = Vec::with_capacity(obj.len());
+                            
+                            for (k, v) in obj.iter() {
+                                let tracked_value = match v {
+                                    Value::List(inner_list) => {
+                                        let cloned = inner_list.borrow().clone();
+                                        Value::new_list(cloned, self)?
+                                    },
+                                    Value::Object(inner_obj) => {
+                                        let cloned = inner_obj.borrow().clone();
+                                        Value::new_object(cloned, self)?
+                                    },
+                                    Value::Text(text) if text.len() > 128 => {
+                                        Value::new_text(text.to_string(), self)?
+                                    },
+                                    _ => v.clone(),
+                                };
+                                tracked_items.push((k.clone(), tracked_value));
+                            }
+                            tracked_items
                         };
 
                         for (_, value) in items {
@@ -1285,7 +1322,20 @@ impl Interpreter {
                     Value::Object(obj_rc) => {
                         let obj = obj_rc.borrow();
                         if let Some(value) = obj.get(property) {
-                            Ok(value.clone())
+                            match value {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                },
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                },
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                },
+                                _ => Ok(value.clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no property '{}'", property),
@@ -1319,7 +1369,20 @@ impl Interpreter {
                         let idx = idx as usize;
 
                         if idx < list.len() {
-                            Ok(list[idx].clone())
+                            match &list[idx] {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                },
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                },
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                },
+                                _ => Ok(list[idx].clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!(
@@ -1337,7 +1400,20 @@ impl Interpreter {
                         let key_str = key.to_string();
 
                         if let Some(value) = obj.get(&key_str) {
-                            Ok(value.clone())
+                            match value {
+                                Value::List(inner_list) => {
+                                    let cloned = inner_list.borrow().clone();
+                                    Value::new_list(cloned, self)
+                                },
+                                Value::Object(inner_obj) => {
+                                    let cloned = inner_obj.borrow().clone();
+                                    Value::new_object(cloned, self)
+                                },
+                                Value::Text(text) if text.len() > 128 => {
+                                    Value::new_text(text.to_string(), self)
+                                },
+                                _ => Ok(value.clone()),
+                            }
                         } else {
                             Err(RuntimeError::new(
                                 format!("Object has no key '{}'", key_str),
@@ -1475,7 +1551,22 @@ impl Interpreter {
         let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
-            call_env.borrow_mut().define(param, arg);
+            let tracked_arg = match &arg {
+                Value::List(inner_list) => {
+                    let cloned = inner_list.borrow().clone();
+                    Value::new_list(cloned, self)?
+                },
+                Value::Object(inner_obj) => {
+                    let cloned = inner_obj.borrow().clone();
+                    Value::new_object(cloned, self)?
+                },
+                Value::Text(text) if text.len() > 128 => {
+                    Value::new_text(text.to_string(), self)?
+                },
+                _ => arg, // Primitives don't need tracking
+            };
+            
+            call_env.borrow_mut().define(param, tracked_arg);
         }
 
         let frame = CallFrame::new(
@@ -1492,7 +1583,21 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 self.call_stack.borrow_mut().pop();
-                Ok(value)
+                
+                match &value {
+                    Value::List(inner_list) => {
+                        let cloned = inner_list.borrow().clone();
+                        Value::new_list(cloned, self)
+                    },
+                    Value::Object(inner_obj) => {
+                        let cloned = inner_obj.borrow().clone();
+                        Value::new_object(cloned, self)
+                    },
+                    Value::Text(text) if text.len() > 128 => {
+                        Value::new_text(text.to_string(), self)
+                    },
+                    _ => Ok(value), // Primitives don't need tracking
+                }
             }
             Err(err) => {
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
