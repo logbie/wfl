@@ -631,7 +631,7 @@ pub fn native_pattern_matches(
 
 pub fn native_pattern_find(
     args: Vec<Value>,
-    _interpreter: &Interpreter,
+    interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -688,7 +688,7 @@ pub fn native_pattern_find(
 
 pub fn native_pattern_replace(
     args: Vec<Value>,
-    _interpreter: &Interpreter,
+    interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -748,7 +748,7 @@ pub fn native_pattern_replace(
 
 pub fn native_pattern_split(
     args: Vec<Value>,
-    _interpreter: &Interpreter,
+    interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
