@@ -1,4 +1,5 @@
 pub mod ast;
+pub mod intern;
 #[cfg(test)]
 mod tests;
 

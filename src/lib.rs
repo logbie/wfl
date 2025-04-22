@@ -2,6 +2,7 @@
 
 pub mod analyzer;
 pub mod config;
+pub mod debug;
 pub mod debug_report;
 pub mod diagnostics;
 pub mod fixer;
