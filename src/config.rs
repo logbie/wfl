@@ -19,6 +19,8 @@ pub struct WflConfig {
     pub timeout_seconds: u64,
     pub logging_enabled: bool,
     pub debug_report_enabled: bool,
+    pub debug_full_report: bool,
+    pub max_memory_mb: usize,
     pub log_level: LogLevel,
     // Code quality suite settings
     pub max_line_length: usize,
@@ -40,9 +42,11 @@ pub enum LogLevel {
 impl Default for WflConfig {
     fn default() -> Self {
         Self {
-            timeout_seconds: 60,
+            timeout_seconds: 180,
             logging_enabled: false,
             debug_report_enabled: true,
+            debug_full_report: false,
+            max_memory_mb: 512,
             log_level: LogLevel::Info,
             // Code quality suite defaults - strict by default
             max_line_length: 100,
@@ -162,6 +166,44 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                         log::debug!(
                             "Loaded debug_report_enabled: {} from {}",
                             config.debug_report_enabled,
+                            file.display()
+                        );
+                    }
+                },
+                "debug_full_report" => {
+                    if let Ok(enabled) = value.parse::<bool>() {
+                        if config.debug_full_report != WflConfig::default().debug_full_report
+                        {
+                            log::debug!(
+                                "Overriding debug_full_report: {} -> {} from {}",
+                                config.debug_full_report,
+                                enabled,
+                                file.display()
+                            );
+                        }
+                        config.debug_full_report = enabled;
+                        log::debug!(
+                            "Loaded debug_full_report: {} from {}",
+                            config.debug_full_report,
+                            file.display()
+                        );
+                    }
+                },
+                "max_memory_mb" => {
+                    if let Ok(mb) = value.parse::<usize>() {
+                        if config.max_memory_mb != WflConfig::default().max_memory_mb
+                        {
+                            log::debug!(
+                                "Overriding max_memory_mb: {} -> {} from {}",
+                                config.max_memory_mb,
+                                mb,
+                                file.display()
+                            );
+                        }
+                        config.max_memory_mb = mb;
+                        log::debug!(
+                            "Loaded max_memory_mb: {} from {}",
+                            config.max_memory_mb,
                             file.display()
                         );
                     }
@@ -435,7 +477,7 @@ mod tests {
     fn test_load_timeout_default() {
         let temp_dir = tempfile::tempdir().unwrap();
         let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
-        assert_eq!(timeout, 60);
+        assert_eq!(timeout, 180);
     }
 
     #[test]
@@ -476,7 +518,7 @@ mod tests {
         }
 
         let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
-        assert_eq!(timeout, 60); // Should fall back to default
+        assert_eq!(timeout, 180); // Should fall back to default
     }
 
     #[test]
@@ -488,7 +530,7 @@ mod tests {
             load_config(temp_dir.path())
         });
 
-        assert_eq!(config.timeout_seconds, 60);
+        assert_eq!(config.timeout_seconds, 180);
         assert!(!config.logging_enabled);
         assert!(config.debug_report_enabled);
         assert_eq!(config.log_level, LogLevel::Info);
@@ -630,7 +672,7 @@ mod tests {
 
         let local_config_content = r#"
         # Local WFL Configuration (overrides global)
-        timeout_seconds = 60
+        timeout_seconds = 180
         log_level = debug
         snake_case_variables = false
         "#;
@@ -643,7 +685,7 @@ mod tests {
             load_config_with_global(script_dir.path())
         });
 
-        assert_eq!(config.timeout_seconds, 60); // Local override
+        assert_eq!(config.timeout_seconds, 180); // Local override
         assert!(config.logging_enabled); // From global
         assert_eq!(config.max_line_length, 120); // From global
         assert_eq!(config.log_level, LogLevel::Debug); // Local override
@@ -699,7 +741,7 @@ mod test_reproduce_ci {
 
         let local_config_content = r#"
         # Local WFL Configuration
-        timeout_seconds = 60
+        timeout_seconds = 180
         "#;
 
         let mut file3 = fs::File::create(&local_config_path).unwrap();
@@ -717,7 +759,7 @@ mod test_reproduce_ci {
         println!("Config logging_enabled: {}", config.logging_enabled);
 
         // This should pass if the environment variable is correctly used
-        assert_eq!(config.timeout_seconds, 60); // Local override
+        assert_eq!(config.timeout_seconds, 180); // Local override
         assert!(config.logging_enabled); // From global - THIS MIGHT FAIL
     }
 }

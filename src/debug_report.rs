@@ -1,11 +1,12 @@
+use crate::config::WflConfig;
 use crate::interpreter::environment::Environment;
-use crate::interpreter::error::RuntimeError;
+use crate::interpreter::error::{ErrorKind, RuntimeError};
 use crate::interpreter::value::Value;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
-use std::fmt::{self, Write};
+use std::fmt::{self};
 use std::fs::File;
-use std::io::Write as IoWrite;
+use std::io::{BufWriter, Write as IoWrite};
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
@@ -101,7 +102,13 @@ pub struct CallFrame {
     pub func_name: String,
     pub call_line: usize,
     pub call_col: usize,
-    pub locals: Option<HashMap<String, Value>>,
+    pub locals: Option<HashMap<String, Captured>>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Captured {
+    Primitive(Value),
+    Truncated(String),
 }
 
 impl CallFrame {
@@ -115,7 +122,87 @@ impl CallFrame {
     }
 
     pub fn capture_locals(&mut self, env: &Rc<RefCell<Environment>>) {
-        self.locals = Some(env.borrow().values.clone());
+        let env_values = env.borrow().values.clone();
+        
+        let mut captured_locals = HashMap::with_capacity(env_values.len());
+        let mut total_bytes = 0;
+        const MAX_CAPTURE_BYTES: usize = 32 * 1024; // 32 KiB limit per frame
+        
+        for (name, value) in env_values {
+            let captured = match &value {
+                Value::Number(_) | Value::Bool(_) | Value::Null => Captured::Primitive(value),
+                
+                Value::Text(s) if s.len() < 256 => Captured::Primitive(value),
+                
+                Value::List(rc) => {
+                    let approx_size = std::mem::size_of_val(&value) + rc.borrow().len() * 8;
+                    total_bytes += approx_size;
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<list with {} items truncated...>", rc.borrow().len()))
+                    } else {
+                        Captured::Truncated(format!("<list with {} items>", rc.borrow().len()))
+                    }
+                },
+                Value::Object(rc) => {
+                    let approx_size = std::mem::size_of_val(&value) + rc.borrow().len() * 16;
+                    total_bytes += approx_size;
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<object with {} fields truncated...>", rc.borrow().len()))
+                    } else {
+                        Captured::Truncated(format!("<object with {} fields>", rc.borrow().len()))
+                    }
+                },
+                Value::Function(_rc) => {
+                    total_bytes += std::mem::size_of_val(&value) + 64; // Rough estimate for function
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<{} truncated...>", value.type_name()))
+                    } else {
+                        Captured::Truncated(format!("<{}>", value.type_name()))
+                    }
+                },
+                Value::NativeFunction(_) => {
+                    total_bytes += std::mem::size_of_val(&value) + 64; // Rough estimate for function
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<{} truncated...>", value.type_name()))
+                    } else {
+                        Captured::Truncated(format!("<{}>", value.type_name()))
+                    }
+                },
+                Value::Future(_) => {
+                    total_bytes += std::mem::size_of_val(&value) + 32; // Rough estimate for future
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<future truncated...>"))
+                    } else {
+                        Captured::Truncated(format!("<future>"))
+                    }
+                },
+                Value::Text(s) => {
+                    let approx_size = std::mem::size_of_val(&value) + s.len();
+                    total_bytes += approx_size;
+                    
+                    if total_bytes > MAX_CAPTURE_BYTES {
+                        Captured::Truncated(format!("<text of length {} truncated...>", s.len()))
+                    } else {
+                        if s.len() > 256 {
+                            let truncated = format!("{}... (truncated, {} chars total)", 
+                                                   &s[..250], s.len());
+                            Captured::Truncated(truncated)
+                        } else {
+                            Captured::Primitive(value)
+                        }
+                    }
+                }
+            };
+            
+            captured_locals.insert(name, captured);
+        }
+        
+        self.locals = Some(captured_locals);
     }
 }
 
@@ -124,12 +211,21 @@ pub fn create_report(
     call_stack: &[CallFrame],
     source: &str,
     script_path: &str,
+    config: &WflConfig,
 ) -> Result<PathBuf, std::io::Error> {
+    if matches!(error.kind, ErrorKind::OutOfMemory) && config.debug_report_enabled {
+        log::warn!("Skipping debug report for OutOfMemory error to avoid recursive OOM");
+        return Ok(PathBuf::new());
+    }
+
     let debug_file_path = generate_debug_filename(script_path);
-
-    let report = generate_report_content(error, call_stack, source, script_path);
-
-    write_report_to_file(&debug_file_path, &report)?;
+    
+    let file = File::create(&debug_file_path)?;
+    let mut writer = BufWriter::new(file);
+    
+    generate_report_content(error, call_stack, source, script_path, config, &mut writer)?;
+    
+    writer.flush()?;
 
     Ok(debug_file_path)
 }
@@ -147,98 +243,119 @@ fn generate_report_content(
     call_stack: &[CallFrame],
     source: &str,
     script_path: &str,
-) -> String {
-    let mut report = String::new();
-
-    writeln!(&mut report, "=== WFL Debug Report ===").unwrap();
-    writeln!(&mut report, "Script: {}", script_path).unwrap();
+    config: &WflConfig,
+    writer: &mut impl IoWrite,
+) -> Result<(), std::io::Error> {
+    writeln!(writer, "=== WFL Debug Report ===")?;
+    writeln!(writer, "Script: {}", script_path)?;
     writeln!(
-        &mut report,
+        writer,
         "Time: {}",
         chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
-    )
-    .unwrap();
-    writeln!(&mut report, "\n=== Error Summary ===").unwrap();
+    )?;
+    
+    writeln!(writer, "\n=== Error Summary ===")?;
     writeln!(
-        &mut report,
+        writer,
         "Runtime error at line {}, column {}: {}",
         error.line, error.column, error.message
-    )
-    .unwrap();
+    )?;
 
-    writeln!(&mut report, "\n=== Stack Trace ===").unwrap();
+    writeln!(writer, "\n=== Stack Trace ===")?;
     if call_stack.is_empty() {
         writeln!(
-            &mut report,
+            writer,
             "In main script at line {}, column {}",
             error.line, error.column
-        )
-        .unwrap();
+        )?;
     } else {
-        for (i, frame) in call_stack.iter().enumerate().rev() {
+        let start_idx = if config.debug_full_report {
+            0
+        } else {
+            call_stack.len().saturating_sub(5)
+        };
+        
+        if start_idx > 0 && !config.debug_full_report {
+            writeln!(writer, "... ({} earlier frames truncated, use debug_full_report=true to see all)", start_idx)?;
+        }
+        
+        for (i, frame) in call_stack.iter().enumerate().skip(start_idx).rev() {
             if i == call_stack.len() - 1 {
                 writeln!(
-                    &mut report,
+                    writer,
                     "At action \"{}\" (line {}, column {})",
                     frame.func_name, error.line, error.column
-                )
-                .unwrap();
+                )?;
             } else {
                 writeln!(
-                    &mut report,
+                    writer,
                     "Called from action \"{}\" (line {}, column {})",
                     frame.func_name, frame.call_line, frame.call_col
-                )
-                .unwrap();
+                )?;
             }
         }
     }
 
-    writeln!(&mut report, "\n=== Source Code ===").unwrap();
-    add_source_snippet(&mut report, source, error.line);
+    writeln!(writer, "\n=== Source Code ===")?;
+    add_source_snippet(writer, source, error.line)?;
 
-    if !call_stack.is_empty() {
+    if config.debug_full_report && !call_stack.is_empty() {
         let frame = &call_stack[call_stack.len() - 1];
-        writeln!(&mut report, "\n=== Action Body ===").unwrap();
-
-        extract_function_body(&mut report, source, &frame.func_name);
+        writeln!(writer, "\n=== Action Body ===")?;
+        extract_function_body(writer, source, &frame.func_name)?;
     }
 
-    writeln!(&mut report, "\n=== Local Variables ===").unwrap();
+    writeln!(writer, "\n=== Local Variables ===")?;
     if let Some(frame) = call_stack.last() {
         if let Some(locals) = &frame.locals {
-            for (name, value) in locals {
-                writeln!(&mut report, "{} = {:?}", name, SafeDebug::new(value, 4)).unwrap();
+            let locals_iter = if config.debug_full_report {
+                locals.iter().collect::<Vec<_>>()
+            } else {
+                locals.iter().take(10).collect::<Vec<_>>()
+            };
+            
+            for (name, captured) in locals_iter {
+                write!(writer, "{} = ", name)?;
+                match captured {
+                    Captured::Primitive(value) => {
+                        writeln!(writer, "{:?}", SafeDebug::new(value, 4))?;
+                    },
+                    Captured::Truncated(summary) => {
+                        writeln!(writer, "{}", summary)?;
+                    }
+                }
+            }
+            
+            if !config.debug_full_report && locals.len() > 10 {
+                writeln!(writer, "... ({} more variables truncated, use debug_full_report=true to see all)", 
+                         locals.len() - 10)?;
             }
         } else {
-            writeln!(&mut report, "(No local variables captured)").unwrap();
+            writeln!(writer, "(No local variables captured)")?;
         }
     } else {
-        writeln!(&mut report, "(No local variables in global scope)").unwrap();
+        writeln!(writer, "(No local variables in global scope)")?;
     }
 
-    report
+    Ok(())
 }
 
-fn add_source_snippet(report: &mut String, source: &str, error_line: usize) {
+fn add_source_snippet(writer: &mut impl IoWrite, source: &str, error_line: usize) -> Result<(), std::io::Error> {
     let lines: Vec<&str> = source.lines().collect();
     let err_line_index = error_line.saturating_sub(1); // 0-based index
 
     let start_line = err_line_index.saturating_sub(2);
     let end_line = std::cmp::min(err_line_index + 2, lines.len().saturating_sub(1));
 
-    lines
-        .iter()
-        .enumerate()
-        .skip(start_line)
-        .take(end_line - start_line + 1)
-        .for_each(|(i, line)| {
-            let line_marker = if i == err_line_index { ">> " } else { "   " };
-            writeln!(report, "{}{}: {}", line_marker, i + 1, line).unwrap();
-        });
+    for (i, line) in lines.iter().enumerate().skip(start_line).take(end_line - start_line + 1) {
+        let line_marker = if i == err_line_index { ">> " } else { "   " };
+        writeln!(writer, "{}{}: {}", line_marker, i + 1, line)?;
+    }
+    
+    Ok(())
 }
 
-fn extract_function_body(report: &mut String, source: &str, func_name: &str) {
+fn extract_function_body(writer: &mut impl IoWrite, source: &str, func_name: &str) -> Result<(), std::io::Error> {
     let lines: Vec<&str> = source.lines().collect();
 
     let mut start_line = None;
@@ -256,22 +373,21 @@ fn extract_function_body(report: &mut String, source: &str, func_name: &str) {
     }
 
     if let (Some(start), Some(end)) = (start_line, end_line) {
-        lines
-            .iter()
-            .enumerate()
-            .skip(start)
-            .take(end - start + 1)
-            .for_each(|(i, line)| {
-                writeln!(report, "{}: {}", i + 1, line).unwrap();
-            });
+        for (i, line) in lines.iter().enumerate().skip(start).take(end - start + 1) {
+            writeln!(writer, "{}: {}", i + 1, line)?;
+        }
     } else {
-        writeln!(report, "(Could not locate action body)").unwrap();
+        writeln!(writer, "(Could not locate action body)")?;
     }
+    
+    Ok(())
 }
 
+#[deprecated(since = "0.2.0", note = "Use generate_report_content with a writer instead")]
 fn write_report_to_file(file_path: &Path, content: &str) -> Result<(), std::io::Error> {
-    let mut file = File::create(file_path)?;
+    let mut file = BufWriter::new(File::create(file_path)?);
     file.write_all(content.as_bytes())?;
+    file.flush()?;
     Ok(())
 }
 
@@ -305,11 +421,14 @@ mod tests {
         let script_path = temp_dir.path().join("test_script.wfl");
         fs::write(&script_path, script_content).unwrap();
 
+        let config = WflConfig::default();
+
         let report_path = create_report(
             &error,
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
+            &config,
         )
         .unwrap();
 
@@ -362,6 +481,7 @@ mod tests {
         let call_frame = CallFrame::new("test_function".to_string(), 1, 1);
         let call_stack = vec![call_frame];
         let script_content = "store x as 42";
+        let config = WflConfig::default();
 
         let temp_dir = tempdir().unwrap();
         let script_path = temp_dir.path().join("test_script.wfl");
@@ -376,6 +496,7 @@ mod tests {
             &call_stack,
             script_content,
             script_path.to_str().unwrap(),
+            &config,
         );
 
         assert!(result.is_err());

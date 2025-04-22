@@ -32,6 +32,8 @@ pub struct Interpreter {
     call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
+    bytes_allocated: RefCell<usize>,
+    max_memory_bytes: usize,
 }
 
 #[allow(dead_code)]
@@ -202,6 +204,8 @@ impl Interpreter {
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
+            bytes_allocated: RefCell::new(0),
+            max_memory_bytes: 512 * 1024 * 1024, // Default 512 MB
         }
     }
 
@@ -211,16 +215,62 @@ impl Interpreter {
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
     }
+    
+    pub fn with_config(config: &crate::config::WflConfig) -> Self {
+        let mut interpreter = Self::new();
+        interpreter.started = Instant::now();
+        interpreter.max_duration = Duration::from_secs(config.timeout_seconds);
+        interpreter.max_memory_bytes = config.max_memory_mb * 1024 * 1024;
+        interpreter
+    }
+    
+    pub fn track_allocation(&self, bytes: usize) -> Result<(), RuntimeError> {
+        let mut alloc = self.bytes_allocated.borrow_mut();
+        *alloc += bytes;
+        
+        if *alloc > self.max_memory_bytes {
+            return Err(RuntimeError::with_kind(
+                format!("Out of memory: Used {}MB exceeds limit of {}MB", 
+                    *alloc / (1024 * 1024), 
+                    self.max_memory_bytes / (1024 * 1024)),
+                0, 0,
+                ErrorKind::OutOfMemory
+            ));
+        }
+        
+        Ok(())
+    }
+    
+    pub fn track_deallocation(&self, bytes: usize) {
+        let mut alloc = self.bytes_allocated.borrow_mut();
+        *alloc = alloc.saturating_sub(bytes);
+    }
+    
+    pub fn check_memory(&self) -> Result<(), RuntimeError> {
+        let bytes = *self.bytes_allocated.borrow();
+        if bytes > self.max_memory_bytes {
+            Err(RuntimeError::with_kind(
+                format!("Out of memory: Used {}MB exceeds limit of {}MB", 
+                    bytes / (1024 * 1024), 
+                    self.max_memory_bytes / (1024 * 1024)),
+                0, 0,
+                ErrorKind::OutOfMemory
+            ))
+        } else {
+            Ok(())
+        }
+    }
 
     pub fn get_call_stack(&self) -> Vec<CallFrame> {
         self.call_stack.borrow().clone()
     }
 
-    pub fn clear_call_stack(&self) {
-        self.call_stack.borrow_mut().clear();
-    }
     pub fn global_env(&self) -> &Rc<RefCell<Environment>> {
         &self.global_env
+    }
+    
+    pub fn clear_call_stack(&mut self) {
+        self.call_stack.borrow_mut().clear();
     }
 
     fn check_time(&self) -> Result<(), RuntimeError> {
@@ -266,6 +316,12 @@ impl Interpreter {
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
+
+        let mut errors = Vec::new();
+        if let Err(e) = self.check_memory() {
+            errors.push(e);
+            return Err(errors);
+        }
 
         println!(
             "Starting script execution with {} statements...",
@@ -1045,12 +1101,12 @@ impl Interpreter {
                 Ok(value)
             }
             Expression::Literal(literal, _line, _column) => match literal {
-                Literal::String(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::String(s) => Value::new_text(s.clone(), self),
                 Literal::Integer(i) => Ok(Value::Number(*i as f64)),
                 Literal::Float(f) => Ok(Value::Number(*f)),
                 Literal::Boolean(b) => Ok(Value::Bool(*b)),
                 Literal::Nothing => Ok(Value::Null),
-                Literal::Pattern(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::Pattern(s) => Value::new_text(s.clone(), self),
             },
 
             Expression::Variable(name, line, column) => {
@@ -1290,7 +1346,7 @@ impl Interpreter {
                 };
 
                 let result = format!("{}{}", left_val, right_val);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
 
             Expression::PatternMatch {
@@ -1431,15 +1487,15 @@ impl Interpreter {
             (Value::Number(a), Value::Number(b)) => Ok(Value::Number(a + b)),
             (Value::Text(a), Value::Text(b)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (Value::Text(a), b) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (a, Value::Text(b)) => {
                 let result = format!("{}{}", a, b);
-                Ok(Value::Text(Rc::from(result.as_str())))
+                Value::new_text(result, self)
             }
             (a, b) => Err(RuntimeError::new(
                 format!("Cannot add {} and {}", a.type_name(), b.type_name()),

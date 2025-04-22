@@ -5,6 +5,7 @@ pub enum ErrorKind {
     General,
     EnvDropped,
     Timeout,
+    OutOfMemory,
 }
 
 #[derive(Debug, Clone)]
@@ -41,6 +42,7 @@ impl fmt::Display for RuntimeError {
             ErrorKind::General => "",
             ErrorKind::EnvDropped => "[Environment dropped] ",
             ErrorKind::Timeout => "[Timeout] ",
+            ErrorKind::OutOfMemory => "[Out of Memory] ",
         };
         write!(
             f,

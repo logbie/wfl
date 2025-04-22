@@ -358,7 +358,7 @@ async fn main() -> io::Result<()> {
                     }
                 }
 
-                let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                let mut interpreter = Interpreter::with_config(&config);
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
                     Ok(result) => {
@@ -385,8 +385,11 @@ async fn main() -> io::Result<()> {
                                 &call_stack,
                                 &input,
                                 &file_path,
+                                &config,
                             ) {
                                 Ok(report_path) => {
+                                    interpreter.clear_call_stack();
+                                    
                                     let report_msg =
                                         format!("Debug report created: {}", report_path.display());
                                     eprintln!("{}", report_msg);
@@ -396,6 +399,8 @@ async fn main() -> io::Result<()> {
                                     }
                                 }
                                 Err(_) => {
+                                    interpreter.clear_call_stack();
+                                    
                                     eprintln!("Could not create debug report");
 
                                     if config.logging_enabled {
