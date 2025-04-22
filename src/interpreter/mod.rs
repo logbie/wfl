@@ -10,7 +10,6 @@ use self::error::{ErrorKind, RuntimeError};
 use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
-use crate::stdlib;
 use crate::stdlib::{core, list, math, pattern, text};
 use std::cell::RefCell;
 use std::path::PathBuf;
@@ -201,7 +200,7 @@ impl Interpreter {
             list::register_list(&mut env);
         }
 
-        let mut interpreter = Interpreter {
+        let interpreter = Interpreter {
             global_env,
             current_count: RefCell::new(None),
             in_count_loop: RefCell::new(false),

@@ -3,9 +3,7 @@ use crate::interpreter::environment::Environment;
 use crate::interpreter::error::RuntimeError;
 use crate::interpreter::value::Value;
 use regex::Regex;
-use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum PatternPart {
@@ -584,7 +582,7 @@ fn parse_part(pattern_str: &str, pos: usize) -> Result<(PatternPart, String, usi
 
 pub fn native_pattern_matches(
     args: Vec<Value>,
-    interpreter: &Interpreter,
+    _interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -633,7 +631,7 @@ pub fn native_pattern_matches(
 
 pub fn native_pattern_find(
     args: Vec<Value>,
-    interpreter: &Interpreter,
+    _interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -690,7 +688,7 @@ pub fn native_pattern_find(
 
 pub fn native_pattern_replace(
     args: Vec<Value>,
-    interpreter: &Interpreter,
+    _interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -750,7 +748,7 @@ pub fn native_pattern_replace(
 
 pub fn native_pattern_split(
     args: Vec<Value>,
-    interpreter: &Interpreter,
+    _interpreter: &Interpreter,
 ) -> Result<Value, RuntimeError> {
     let line = 0;
     let column = 0;
@@ -803,7 +801,7 @@ pub fn native_pattern_split(
 }
 
 pub fn register(env: &mut Environment, _interpreter: &Interpreter) {
-    fn matches_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+    fn matches_wrapper(_args: Vec<Value>) -> Result<Value, RuntimeError> {
         Err(RuntimeError::new(
             "Pattern functions must be called through the interpreter".to_string(),
             0,
@@ -811,7 +809,7 @@ pub fn register(env: &mut Environment, _interpreter: &Interpreter) {
         ))
     }
 
-    fn find_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+    fn find_wrapper(_args: Vec<Value>) -> Result<Value, RuntimeError> {
         Err(RuntimeError::new(
             "Pattern functions must be called through the interpreter".to_string(),
             0,
@@ -819,7 +817,7 @@ pub fn register(env: &mut Environment, _interpreter: &Interpreter) {
         ))
     }
 
-    fn replace_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+    fn replace_wrapper(_args: Vec<Value>) -> Result<Value, RuntimeError> {
         Err(RuntimeError::new(
             "Pattern functions must be called through the interpreter".to_string(),
             0,
@@ -827,7 +825,7 @@ pub fn register(env: &mut Environment, _interpreter: &Interpreter) {
         ))
     }
 
-    fn split_wrapper(args: Vec<Value>) -> Result<Value, RuntimeError> {
+    fn split_wrapper(_args: Vec<Value>) -> Result<Value, RuntimeError> {
         Err(RuntimeError::new(
             "Pattern functions must be called through the interpreter".to_string(),
             0,
