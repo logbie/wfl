@@ -344,7 +344,7 @@ fn generate_report_content(
             } else {
                 locals.iter().take(10).collect::<Vec<_>>()
             };
-            
+
             let truncated_count = locals.len() - locals_iter.len();
 
             for (name, captured) in &locals_iter {

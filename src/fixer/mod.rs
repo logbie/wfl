@@ -33,12 +33,12 @@ impl FixerSummary {
 
 impl CodeFixer {
     pub fn new() -> Self {
-        Self { 
+        Self {
             indent_size: 4,
             interpreter: None,
         }
     }
-    
+
     pub fn with_interpreter(interpreter: Rc<Interpreter>) -> Self {
         Self {
             indent_size: 4,
@@ -55,13 +55,17 @@ impl CodeFixer {
         let program_statements = if program.statements.len() > max_statements {
             let mut truncated = Vec::with_capacity(max_statements);
             truncated.extend_from_slice(&program.statements[0..max_statements]);
-            Program { statements: truncated }
+            Program {
+                statements: truncated,
+            }
         } else {
-            Program { statements: program.statements.clone() }
+            Program {
+                statements: program.statements.clone(),
+            }
         };
-        
+
         let dead_code: Vec<usize> = Vec::new();
-        
+
         let simplified_program = program_statements;
 
         // Track memory allocation for output buffer
@@ -154,14 +158,14 @@ impl CodeFixer {
         thread_local! {
             static RECURSION_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
         }
-        
+
         let should_return_early = RECURSION_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
             let too_deep = *d > 5; // Much more aggressive limit
             too_deep
         });
-        
+
         if should_return_early {
             RECURSION_DEPTH.with(|depth| {
                 let mut d = depth.borrow_mut();
@@ -169,7 +173,7 @@ impl CodeFixer {
             });
             return statement.clone();
         }
-        
+
         let result = match statement.clone() {
             Statement::IfStatement {
                 condition,
@@ -181,7 +185,7 @@ impl CodeFixer {
                 let simplified_condition = self.simplify_boolean_expression(&condition);
 
                 let mut simplified_then = Vec::with_capacity(then_block.len());
-                
+
                 let max_statements = 100; // Arbitrary limit
                 for (_i, stmt) in then_block.iter().enumerate().take(max_statements) {
                     simplified_then.push(self.simplify_statement(stmt));
@@ -196,7 +200,7 @@ impl CodeFixer {
                 } else {
                     None
                 };
-                
+
                 RECURSION_DEPTH.with(|depth| {
                     let mut d = depth.borrow_mut();
                     *d -= 1;
@@ -262,62 +266,83 @@ impl CodeFixer {
         thread_local! {
             static STMT_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
         }
-        
+
         // Track memory allocation for statement processing
         if let Some(interpreter) = &self.interpreter {
             let _ = interpreter.track_allocation(256); // Base allocation for statement processing
         }
-        
+
         let should_truncate = STMT_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
             let too_deep = *d > 2; // Extremely aggressive limit
             too_deep
         });
-        
+
         let _guard = scopeguard::guard((), |_| {
             STMT_DEPTH.with(|depth| {
                 let mut d = depth.borrow_mut();
                 *d -= 1;
             });
         });
-        
+
         if should_truncate {
             output.push_str("# Truncated statement due to depth limit\n");
             summary.lines_reformatted += 1;
             return;
         }
-        
+
         let reserve_size = match statement {
             Statement::VariableDeclaration { name, .. } => name.len() + 20,
             Statement::Assignment { name, .. } => name.len() + 20,
-            Statement::ActionDefinition { name, parameters, body, .. } => {
+            Statement::ActionDefinition {
+                name,
+                parameters,
+                body,
+                ..
+            } => {
                 let body_len = std::cmp::min(body.len(), 5);
                 name.len() + parameters.len() * 10 + body_len * 5 + 50
-            },
-            Statement::IfStatement { condition: _condition, then_block, else_block, .. } => {
+            }
+            Statement::IfStatement {
+                condition: _condition,
+                then_block,
+                else_block,
+                ..
+            } => {
                 let then_len = std::cmp::min(then_block.len(), 3);
                 let else_len = else_block.as_ref().map_or(0, |e| std::cmp::min(e.len(), 3));
                 100 + then_len * 5 + else_len * 5
-            },
-            Statement::ForEachLoop { item_name, collection: _collection, body, .. } => {
+            }
+            Statement::ForEachLoop {
+                item_name,
+                collection: _collection,
+                body,
+                ..
+            } => {
                 let body_len = std::cmp::min(body.len(), 3);
                 item_name.len() + 50 + body_len * 5
-            },
-            Statement::CountLoop { start: _start, end: _end, step: _step, body, .. } => {
+            }
+            Statement::CountLoop {
+                start: _start,
+                end: _end,
+                step: _step,
+                body,
+                ..
+            } => {
                 let body_len = std::cmp::min(body.len(), 3);
                 50 + body_len * 5
-            },
+            }
             Statement::ReturnStatement { .. } => 20,
             Statement::ExpressionStatement { .. } => 30,
             _ => 50,
         };
-        
+
         let current_len = output.len();
         if output.capacity() < current_len + reserve_size {
             output.reserve(reserve_size);
         }
-        
+
         let indent = " ".repeat(indent_level * self.indent_size);
 
         match statement {
@@ -390,7 +415,7 @@ impl CodeFixer {
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
-                
+
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
@@ -416,7 +441,7 @@ impl CodeFixer {
                 for (_i, stmt) in then_block.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
-                
+
                 if then_block.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
@@ -430,7 +455,7 @@ impl CodeFixer {
                     for (_i, stmt) in else_stmts.iter().enumerate().take(max_statements) {
                         self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                     }
-                    
+
                     if else_stmts.len() > max_statements {
                         let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                         output.push_str(&truncated_indent);
@@ -456,14 +481,14 @@ impl CodeFixer {
                 thread_local! {
                     static SINGLE_LINE_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
                 }
-                
+
                 let should_truncate = SINGLE_LINE_DEPTH.with(|depth| {
                     let mut d = depth.borrow_mut();
                     *d += 1;
                     let too_deep = *d > 3; // Lower limit for single line statements
                     too_deep
                 });
-                
+
                 if should_truncate {
                     output.push_str("<truncated>");
                     SINGLE_LINE_DEPTH.with(|depth| {
@@ -475,16 +500,16 @@ impl CodeFixer {
                     self.pretty_print_statement(then_stmt, &mut then_output, 0, summary);
                     let then_str = then_output.trim();
                     output.push_str(then_str);
-    
+
                     if let Some(else_stmt) = else_stmt {
                         output.push_str(" otherwise ");
-    
+
                         let mut else_output = String::with_capacity(100); // Pre-allocate
                         self.pretty_print_statement(else_stmt, &mut else_output, 0, summary);
                         let else_str = else_output.trim();
                         output.push_str(else_str);
                     }
-                    
+
                     SINGLE_LINE_DEPTH.with(|depth| {
                         let mut d = depth.borrow_mut();
                         *d -= 1;
@@ -512,7 +537,7 @@ impl CodeFixer {
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
-                
+
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
@@ -547,7 +572,7 @@ impl CodeFixer {
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
-                
+
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
@@ -570,7 +595,7 @@ impl CodeFixer {
                 for (_i, stmt) in body.iter().enumerate().take(max_statements) {
                     self.pretty_print_statement(stmt, output, indent_level + 1, summary);
                 }
-                
+
                 if body.len() > max_statements {
                     let truncated_indent = " ".repeat((indent_level + 1) * self.indent_size);
                     output.push_str(&truncated_indent);
@@ -625,19 +650,19 @@ impl CodeFixer {
         thread_local! {
             static EXPR_DEPTH: std::cell::RefCell<usize> = std::cell::RefCell::new(0);
         }
-        
+
         // Track memory allocation for expression processing
         if let Some(interpreter) = &self.interpreter {
             let _ = interpreter.track_allocation(128); // Base allocation for expression processing
         }
-        
+
         let should_truncate = EXPR_DEPTH.with(|depth| {
             let mut d = depth.borrow_mut();
             *d += 1;
             let too_deep = *d > 2; // Extremely aggressive limit
             too_deep
         });
-        
+
         if should_truncate {
             output.push_str("<expr truncated>");
             EXPR_DEPTH.with(|depth| {
@@ -646,14 +671,14 @@ impl CodeFixer {
             });
             return;
         }
-        
+
         let _guard = scopeguard::guard((), |_| {
             EXPR_DEPTH.with(|depth| {
                 let mut d = depth.borrow_mut();
                 *d -= 1;
             });
         });
-        
+
         let reserve_size = match expression {
             Expression::Literal(Literal::String(s), ..) => s.len() + 2, // quotes
             Expression::Literal(Literal::Pattern(p), ..) => p.len() + 2, // slashes
