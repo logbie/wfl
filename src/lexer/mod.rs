@@ -3,8 +3,13 @@ pub mod token;
 use logos::Logos;
 use token::{Token, TokenWithPosition};
 
+pub fn normalize_line_endings(input: &str) -> String {
+    input.replace("\r\n", "\n")
+}
+
 pub fn lex_wfl(input: &str) -> Vec<Token> {
-    let mut lexer = Token::lexer(input);
+    let input = normalize_line_endings(input);
+    let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
     let mut current_id: Option<String> = None;
 
@@ -48,7 +53,8 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
 }
 
 pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
-    let mut lexer = Token::lexer(input);
+    let input = normalize_line_endings(input);
+    let mut lexer = Token::lexer(&input);
     let mut tokens = Vec::new();
     let mut current_id: Option<String> = None;
     let mut current_id_start_line = 0;
@@ -141,6 +147,14 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn test_line_ending_normalization() {
+        let input = "store x as 1\r\ndisplay x\r\n";
+        let normalized = normalize_line_endings(input);
+        assert!(!normalized.contains('\r'));
+        assert_eq!(normalized.matches('\n').count(), 2);
+    }
 
     #[test]
     fn test_multi_word_identifier() {
