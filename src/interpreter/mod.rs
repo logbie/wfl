@@ -1155,10 +1155,8 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.assert_invariants();
-        
         let block_size = std::mem::size_of::<Statement>() * statements.len();
         self.track_allocation(block_size)?;
-        
         let mut last_value = Value::Null;
 
         for statement in statements {
@@ -1577,7 +1575,6 @@ impl Interpreter {
 
         let env_size = std::mem::size_of::<Environment>() + 64; // Base size + estimate
         self.track_allocation(env_size)?;
-        
         let call_env = Environment::new_child_env(&func_env);
 
         for (param, arg) in func.params.iter().zip(args) {
