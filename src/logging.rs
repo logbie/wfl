@@ -132,7 +132,11 @@ mod tests {
     #[test]
     fn test_logger_fallback_when_file_creation_fails() {
         let temp_dir = tempdir().unwrap();
+        #[cfg(unix)]
         let dir_path = temp_dir.path();
+        
+        #[cfg(not(unix))]
+        let _dir_path = temp_dir.path();
 
         #[cfg(unix)]
         {
