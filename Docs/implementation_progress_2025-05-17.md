@@ -44,6 +44,40 @@ Added comprehensive execution logging that traces all runtime actions when compi
   - Documented best practices
   - Explained the differences between debug and release builds
 
+## WFL Configuration Checker Tool
+
+Added a new Python utility to verify configuration files (.wflcfg) across the project:
+
+### New Features
+- Created `wfl_config_checker.py` in the Tools directory:
+  - Checks for existence of both global and local configuration files
+  - Validates all settings for correctness
+  - Generates detailed reports of issues found
+  - Provides automatic fixing capabilities with `--fix` flag
+
+- Implemented validation for all configuration settings:
+  - Type checking for integer, boolean, and string values
+  - Validation of acceptable values (e.g., log levels must be debug/info/warn/error)
+  - Detection of unknown settings
+
+- Added smart file discovery:
+  - Recursively finds all `.wflcfg` files in project directories
+  - Checks global configuration paths based on the current platform
+  - Respects environment variable override for global config path
+
+- Included auto-fixing functionality:
+  - Can create missing config files with default settings
+  - Corrects invalid settings to their default values
+  - Preserves existing valid settings
+
+### Files Added
+- `Tools/wfl_config_checker.py` - New configuration validation tool
+
+### Usage
+```
+python Tools/wfl_config_checker.py [--project-dir DIR] [--fix] [--verbose]
+```
+
 ## Bug Fixes
 
 ### Fixed Missing Macro Imports
