@@ -20,6 +20,7 @@ pub struct WflConfig {
     pub logging_enabled: bool,
     pub debug_report_enabled: bool,
     pub log_level: LogLevel,
+    pub execution_logging: bool,
     // Code quality suite settings
     pub max_line_length: usize,
     pub max_nesting_depth: usize,
@@ -44,6 +45,10 @@ impl Default for WflConfig {
             logging_enabled: false,
             debug_report_enabled: true,
             log_level: LogLevel::Info,
+            #[cfg(debug_assertions)]
+            execution_logging: true,  // Enable by default in debug builds
+            #[cfg(not(debug_assertions))]
+            execution_logging: false, // Disable by default in release builds
             // Code quality suite defaults - strict by default
             max_line_length: 100,
             max_nesting_depth: 5,
@@ -162,6 +167,24 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                         log::debug!(
                             "Loaded debug_report_enabled: {} from {}",
                             config.debug_report_enabled,
+                            file.display()
+                        );
+                    }
+                }
+                "execution_logging" => {
+                    if let Ok(enabled) = value.parse::<bool>() {
+                        if config.execution_logging != WflConfig::default().execution_logging {
+                            log::debug!(
+                                "Overriding execution_logging: {} -> {} from {}",
+                                config.execution_logging,
+                                enabled,
+                                file.display()
+                            );
+                        }
+                        config.execution_logging = enabled;
+                        log::debug!(
+                            "Loaded execution_logging: {} from {}",
+                            config.execution_logging,
                             file.display()
                         );
                     }

@@ -1,21 +1,43 @@
-use crate::config::LogLevel;
+use crate::config::{LogLevel, WflConfig};
 use chrono::Local;
 use log::{LevelFilter, SetLoggerError};
 use once_cell::sync::Lazy;
 use simplelog::{
     ColorChoice, CombinedLogger, ConfigBuilder, TermLogger, TerminalMode, WriteLogger,
 };
+use std::cell::RefCell;
 use std::fs::File;
-use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::time::Instant;
 use time;
 use time::format_description::FormatItem;
 
 static LOGGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
+static EXEC_LOGGER_INITIALIZED: AtomicBool = AtomicBool::new(false);
 static START_TIME: Lazy<Instant> = Lazy::new(Instant::now);
 static TIME_FORMAT: Lazy<Vec<FormatItem>> =
     Lazy::new(|| time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap());
+static INDENTATION_LEVEL: AtomicUsize = AtomicUsize::new(0);
+thread_local! {
+    static EXECUTION_LOG_FILE: RefCell<Option<PathBuf>> = RefCell::new(None);
+}
+
+// Helper for execution log indentation
+pub struct IndentGuard;
+
+impl IndentGuard {
+    pub fn new() -> Self {
+        INDENTATION_LEVEL.fetch_add(1, Ordering::SeqCst);
+        IndentGuard
+    }
+}
+
+impl Drop for IndentGuard {
+    fn drop(&mut self) {
+        INDENTATION_LEVEL.fetch_sub(1, Ordering::SeqCst);
+    }
+}
 
 pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLoggerError> {
     if LOGGER_INITIALIZED.load(Ordering::Relaxed) {
@@ -80,10 +102,76 @@ pub fn init_logger(log_level: LogLevel, file_path: &Path) -> Result<(), SetLogge
     Ok(())
 }
 
+// Initialize a separate logger for execution trace
+pub fn init_execution_logger(config: &WflConfig, base_log_path: &Path) -> Result<(), SetLoggerError> {
+    if !config.execution_logging || EXEC_LOGGER_INITIALIZED.load(Ordering::Relaxed) {
+        return Ok(());
+    }
+
+    // Create execution log file path (append _exec to the base filename)
+    let file_name = base_log_path.file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or("wfl.log");
+    
+    let exec_file_name = if let Some(pos) = file_name.rfind('.') {
+        format!("{}_exec{}", &file_name[..pos], &file_name[pos..])
+    } else {
+        format!("{}_exec.log", file_name)
+    };
+    
+    let exec_log_path = base_log_path.with_file_name(exec_file_name);
+    
+    // Store the execution log path for later use
+    EXECUTION_LOG_FILE.with(|path| {
+        *path.borrow_mut() = Some(exec_log_path.clone());
+    });
+
+    // Create the execution log file
+    let file_result = File::create(&exec_log_path);
+    
+    if let Err(e) = &file_result {
+        eprintln!(
+            "Warning: Could not create execution log file at {}: {}",
+            exec_log_path.display(),
+            e
+        );
+        return Ok(());
+    }
+    
+    let config = ConfigBuilder::new()
+        .set_time_format_custom(&TIME_FORMAT)
+        .set_location_level(LevelFilter::Debug)
+        .build();
+    
+    let file_logger = WriteLogger::new(
+        LevelFilter::Debug,
+        config,
+        file_result.unwrap(),
+    );
+    
+    // Only the file logger for execution tracing, no terminal output
+    CombinedLogger::init(vec![file_logger])?;
+    EXEC_LOGGER_INITIALIZED.store(true, Ordering::Relaxed);
+    
+    log::info!(
+        "WFL execution logging initialized at {} - {}",
+        Local::now().format("%Y-%m-%d %H:%M:%S"),
+        exec_log_path.display()
+    );
+    
+    Ok(())
+}
+
 pub fn elapsed_time() -> std::time::Duration {
     START_TIME.elapsed()
 }
 
+pub fn current_indent() -> String {
+    let level = INDENTATION_LEVEL.load(Ordering::Relaxed);
+    "  ".repeat(level)
+}
+
+// Standard logging macros
 #[macro_export]
 macro_rules! debug {
     ($($arg:tt)*) => {
@@ -111,6 +199,195 @@ macro_rules! error {
         log::error!("[{:?}] {}", $crate::logging::elapsed_time(), format!($($arg)*))
     };
 }
+
+// Execution logging macros - these only compile in debug builds
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_trace {
+    ($($arg:tt)*) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}{}", $crate::logging::current_indent(), format!($($arg)*))
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_var_declare {
+    ($name:expr, $value:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Declaration: '{}' = {:?}", 
+                                $crate::logging::current_indent(), 
+                                $name, 
+                                $value)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_var_assign {
+    ($name:expr, $value:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Assignment: '{}' = {:?}", 
+                                $crate::logging::current_indent(), 
+                                $name, 
+                                $value)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_expr_eval {
+    ($expr_desc:expr, $value:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Expression: {} = {:?}", 
+                                $crate::logging::current_indent(), 
+                                $expr_desc, 
+                                $value)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_control_flow {
+    ($desc:expr, $result:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Control flow: {} = {:?}", 
+                                $crate::logging::current_indent(), 
+                                $desc, 
+                                $result)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_function_call {
+    ($name:expr, $args:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Function call: {}({})", 
+                                $crate::logging::current_indent(), 
+                                $name, 
+                                $args.iter()
+                                     .map(|arg| format!("{:?}", arg))
+                                     .collect::<Vec<_>>()
+                                     .join(", "))
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_function_return {
+    ($name:expr, $value:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}Function return: {} = {:?}", 
+                                $crate::logging::current_indent(), 
+                                $name, 
+                                $value)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_block_enter {
+    ($desc:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}┌─ Block entry: {}", 
+                                $crate::logging::current_indent(), 
+                                $desc)
+                }
+            }
+        }
+    };
+}
+
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_block_exit {
+    ($desc:expr) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging {
+                    log::debug!("EXEC: {}└─ Block exit: {}", 
+                                $crate::logging::current_indent(), 
+                                $desc)
+                }
+            }
+        }
+    };
+}
+
+// No-op versions for release builds
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_trace { ($($arg:tt)*) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_var_declare { ($name:expr, $value:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_var_assign { ($name:expr, $value:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_expr_eval { ($expr_desc:expr, $value:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_control_flow { ($desc:expr, $result:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_function_call { ($name:expr, $args:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_function_return { ($name:expr, $value:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_block_enter { ($desc:expr) => {}; }
+
+#[cfg(not(debug_assertions))]
+#[macro_export]
+macro_rules! exec_block_exit { ($desc:expr) => {}; }
 
 #[cfg(test)]
 mod tests {

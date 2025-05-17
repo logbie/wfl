@@ -11,11 +11,10 @@ use wfl::diagnostics::DiagnosticReporter;
 use wfl::fixer::{CodeFixer, FixerOutputMode};
 use wfl::lexer::lex_wfl_with_positions;
 use wfl::linter::Linter;
-use wfl::logging;
 use wfl::parser::Parser;
 use wfl::repl;
 use wfl::typechecker::TypeChecker;
-use wfl::{error, info};
+use wfl::{error, exec_trace, info};
 
 fn print_help() {
     println!("WebFirst Language (WFL) Compiler and Interpreter");
@@ -349,16 +348,22 @@ async fn main() -> io::Result<()> {
                 println!("Script directory: {:?}", script_dir);
                 println!("Timeout seconds: {}", config.timeout_seconds);
 
+                // Initialize both regular and execution logging
+                let log_path = script_dir.join("wfl.log");
+                wfl::init_loggers(&log_path, script_dir);
+                
                 if config.logging_enabled {
-                    let log_path = script_dir.join("wfl.log");
-                    if let Err(e) = logging::init_logger(config.log_level, &log_path) {
-                        eprintln!("Failed to initialize logging: {}", e);
-                    } else {
-                        info!("WebFirst Language started with script: {}", &file_path);
-                    }
+                    info!("WebFirst Language started with script: {}", &file_path);
                 }
+                
+                // Log execution start if execution logging is enabled
+                exec_trace!("Starting execution of script: {}", &file_path);
 
                 let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                
+                // Log program details if execution logging is enabled
+                exec_trace!("Program contains {} statements", program.statements.len());
+                
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
                     Ok(result) => {
