@@ -1,17 +1,17 @@
 pub mod token;
 
 use logos::Logos;
-use token::{Token, TokenWithPosition};
 use std::collections::HashMap;
 use std::sync::Mutex;
 use std::sync::OnceLock;
+use token::{Token, TokenWithPosition};
 
 static STRING_POOL: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
 
 fn intern_string(s: String) -> String {
     let pool = STRING_POOL.get_or_init(|| Mutex::new(HashMap::new()));
     let mut pool_guard = pool.lock().unwrap();
-    
+
     if let Some(interned) = pool_guard.get(&s) {
         interned.clone()
     } else {
@@ -137,7 +137,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                         current_id_length,
                     ));
                 }
-                
+
                 if let Token::StringLiteral(s) = &other {
                     tokens.push(TokenWithPosition::new(
                         Token::StringLiteral(intern_string(s.clone())),
