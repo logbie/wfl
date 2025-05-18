@@ -56,6 +56,11 @@ time = { version = "0.3", features = ["formatting", "macros"] }
 [dev-dependencies]
 tempfile = "3.19.1"
 libc = "0.2.152"
+criterion = "0.4"
+
+[[bench]]
+name = "parser_bench"
+harness = false
 
 [profile.release]
 debug = true

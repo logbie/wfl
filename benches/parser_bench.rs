@@ -1,0 +1,20 @@
+use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use wfl::lexer::{lex_wfl_with_positions, normalize_line_endings};
+use wfl::parser::Parser;
+use std::fs;
+
+fn benchmark_parser(c: &mut Criterion) {
+    let input = fs::read_to_string("examples/leak_demo.wfl").unwrap();
+    let normalized = normalize_line_endings(&input);
+    
+    c.bench_function("parse_leak_demo", |b| {
+        b.iter(|| {
+            let tokens = lex_wfl_with_positions(&normalized);
+            let mut parser = Parser::new(&tokens);
+            black_box(parser.parse().unwrap());
+        })
+    });
+}
+
+criterion_group!(benches, benchmark_parser);
+criterion_main!(benches);
