@@ -1,7 +1,24 @@
 pub mod token;
 
 use logos::Logos;
+use std::collections::HashMap;
+use std::sync::Mutex;
+use std::sync::OnceLock;
 use token::{Token, TokenWithPosition};
+
+static STRING_POOL: OnceLock<Mutex<HashMap<String, String>>> = OnceLock::new();
+
+fn intern_string(s: String) -> String {
+    let pool = STRING_POOL.get_or_init(|| Mutex::new(HashMap::new()));
+    let mut pool_guard = pool.lock().unwrap();
+
+    if let Some(interned) = pool_guard.get(&s) {
+        interned.clone()
+    } else {
+        pool_guard.insert(s.clone(), s.clone());
+        s
+    }
+}
 
 pub fn normalize_line_endings(input: &str) -> String {
     input.replace("\r\n", "\n")
@@ -27,14 +44,18 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     id.push(' ');
                     id.push_str(&word);
                 } else {
-                    current_id = Some(word);
+                    current_id = Some(intern_string(word));
                 }
             }
             Ok(other) => {
                 if let Some(id) = current_id.take() {
-                    tokens.push(Token::Identifier(id));
+                    tokens.push(Token::Identifier(intern_string(id)));
                 }
-                tokens.push(other);
+                if let Token::StringLiteral(s) = &other {
+                    tokens.push(Token::StringLiteral(intern_string(s.clone())));
+                } else {
+                    tokens.push(other);
+                }
             }
             Err(_) => {
                 eprintln!(
@@ -47,7 +68,7 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
     }
 
     if let Some(id) = current_id.take() {
-        tokens.push(Token::Identifier(id));
+        tokens.push(Token::Identifier(intern_string(id)));
     }
     tokens
 }
@@ -101,7 +122,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     id.push_str(&word);
                     current_id_length = span.end - current_id_start_column;
                 } else {
-                    current_id = Some(word);
+                    current_id = Some(intern_string(word));
                     current_id_start_line = token_line;
                     current_id_start_column = span.start;
                     current_id_length = token_length;
@@ -110,18 +131,28 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
             Ok(other) => {
                 if let Some(id) = current_id.take() {
                     tokens.push(TokenWithPosition::new(
-                        Token::Identifier(id),
+                        Token::Identifier(intern_string(id)),
                         current_id_start_line,
                         current_id_start_column,
                         current_id_length,
                     ));
                 }
-                tokens.push(TokenWithPosition::new(
-                    other,
-                    token_line,
-                    token_column,
-                    token_length,
-                ));
+
+                if let Token::StringLiteral(s) = &other {
+                    tokens.push(TokenWithPosition::new(
+                        Token::StringLiteral(intern_string(s.clone())),
+                        token_line,
+                        token_column,
+                        token_length,
+                    ));
+                } else {
+                    tokens.push(TokenWithPosition::new(
+                        other,
+                        token_line,
+                        token_column,
+                        token_length,
+                    ));
+                }
             }
             Err(_) => {
                 eprintln!(
@@ -135,7 +166,7 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
 
     if let Some(id) = current_id.take() {
         tokens.push(TokenWithPosition::new(
-            Token::Identifier(id),
+            Token::Identifier(intern_string(id)),
             current_id_start_line,
             current_id_start_column,
             current_id_length,
