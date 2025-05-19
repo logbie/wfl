@@ -2,6 +2,8 @@
 
 ## Completed
 
+- Added file association for .wfl files in MSI installer
+- Created MSI build launcher script in Tools directory (`launch_msi_build.py`)
 - Created automated MSI installer build script for Windows (`build_msi.ps1`)
 - Resolved version conflict issues in WiX Toolset configuration
 - Implemented proper dependency checking for WiX Toolset and cargo-wix
@@ -23,7 +25,13 @@
 
 ## Technical Details
 
+- Created new MSI build launcher (`launch_msi_build.py`) with version management and documentation features
+- Added automatic implementation progress updating to track build attempts
+- Provided a unified command-line interface for version control and MSI building
 - MSI installer now properly packages WFL with version 2025.4
+- Added .wfl file association to MSI installer for seamless script execution
+- Configured file icons for WFL script files
+- Added both Open and Edit verbs to allow direct execution or editing of .wfl files
 - Default configuration file is included in the installer
 - Installer properly updates system PATH variable
 - WiX source files are automatically generated if missing
@@ -87,3 +95,66 @@
 4. Enhance automated testing for the installer
 5. Add telemetry collection option (opt-in)
 6. Add automated release notes generation based on commits
+
+## MSI Build - 08:53:23
+
+- Version: 2025.6
+
+## MSI Build - 08:53:49
+
+- Version: 2025.6
+
+## MSI Build - 09:01:49
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:02:06
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+## MSI Build - 09:14:54
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:19:44
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:20:39
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:22:20
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:23:01
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+
+
+## MSI Build - 09:28:04
+
+- Version: 2025.6
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
+

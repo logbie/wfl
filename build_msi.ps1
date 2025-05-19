@@ -1,3 +1,8 @@
+# Add parameter support
+param (
+    [string]$OutputDir
+)
+
 # Check for required dependencies
 Write-Host "Checking for required dependencies..." -ForegroundColor Cyan
 
@@ -128,16 +133,35 @@ if (-not (Test-Path $binaryPath)) {
 # Build MSI with corrected cargo-wix command
 Write-Host "Building MSI installer..." -ForegroundColor Cyan
 try {
+    # Get version from wix.toml
+    $wixTomlContent = Get-Content -Path "wix.toml" -Raw
+    $versionMatch = [regex]::Match($wixTomlContent, 'version\s*=\s*"([^"]*)"')
+    $version = "2025.4"
+    if ($versionMatch.Success) {
+        $version = $versionMatch.Groups[1].Value.Split('.')[0..1] -join '.'
+    }
+    
+    # Determine output path
+    $outputPath = "target/x86_64-pc-windows-msvc/release/wfl-$version.msi"
+    if ($OutputDir) {
+        # Create the output directory if it doesn't exist
+        if (-not (Test-Path $OutputDir)) {
+            New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+            Write-Host "Created output directory: $OutputDir" -ForegroundColor Green
+        }
+        $outputPath = Join-Path -Path $OutputDir -ChildPath "wfl-$version.msi"
+        Write-Host "Using custom output path: $outputPath" -ForegroundColor Cyan
+    }
+    
     cargo wix --no-build --nocapture `
-      --output "target/x86_64-pc-windows-msvc/release/wfl-2025.4.msi" `
+      --output $outputPath `
       -p wfl
     
     if ($LASTEXITCODE -eq 0) {
-        $msiPath = "target/x86_64-pc-windows-msvc/release/wfl-2025.4.msi"
-        if (Test-Path $msiPath) {
-            Write-Host "MSI successfully created at: $msiPath" -ForegroundColor Green
+        if (Test-Path $outputPath) {
+            Write-Host "MSI successfully created at: $outputPath" -ForegroundColor Green
         } else {
-            Write-Host "Build command succeeded but MSI file not found at expected location: $msiPath" -ForegroundColor Yellow
+            Write-Host "Build command succeeded but MSI file not found at expected location: $outputPath" -ForegroundColor Yellow
         }
     } else {
         Write-Host "Failed to build MSI installer. Exit code: $LASTEXITCODE" -ForegroundColor Red

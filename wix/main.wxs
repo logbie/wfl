@@ -122,6 +122,14 @@
                                 DiskId='1'
                                 Source='$(var.CargoTargetBinDir)\wfl.exe'
                                 KeyPath='yes'/>
+                            
+                            <!-- Add file association for .wfl files -->
+                            <ProgId Id='wfl.wflfile' Description='WFL Script File' Icon='exe0' IconIndex='0'>
+                                <Extension Id='wfl' ContentType='application/x-wfl'>
+                                    <Verb Id='open' Command='Open' TargetFile='exe0' Argument='"%1"' />
+                                    <Verb Id='edit' Command='Edit' TargetFile='exe0' Argument='--edit "%1"' />
+                                </Extension>
+                            </ProgId>
                         </Component>
                     </Directory>
                 </Directory>
@@ -158,14 +166,9 @@
         <SetProperty Id='ARPINSTALLLOCATION' Value='[APPLICATIONFOLDER]' After='CostFinalize'/>
 
         
-        <!--
-          Uncomment the following `Icon` and `Property` tags to change the product icon.
-
-          The product icon is the graphic that appears in the Add/Remove
-          Programs control panel for the application.
-        -->
-        <!--<Icon Id='ProductICO' SourceFile='wix\Product.ico'/>-->
-        <!--<Property Id='ARPPRODUCTICON' Value='ProductICO' />-->
+        <!-- Icons for the application -->
+        <Icon Id='ProductICO' SourceFile='icons\wfl.png'/>
+        <Property Id='ARPPRODUCTICON' Value='ProductICO' />
 
         
         <!--
