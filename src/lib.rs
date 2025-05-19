@@ -1,5 +1,10 @@
 #![deny(clippy::await_holding_refcell_ref)]
 
+// Global allocator for dhat heap profiling
+#[cfg(feature = "dhat-heap")]
+#[global_allocator]
+static ALLOC: dhat::Alloc = dhat::Alloc;
+
 pub mod analyzer;
 pub mod config;
 pub mod debug_report;

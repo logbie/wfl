@@ -47,8 +47,16 @@ fn print_help() {
     println!("If no file is specified, the REPL will be started.");
 }
 
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
+    // Initialize dhat profiler if enabled
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+
+    #[cfg(feature = "dhat-ad-hoc")]
+    let _profiler = dhat::Profiler::new_ad_hoc();
+
     let args: Vec<String> = env::args().collect();
 
     if args.len() == 1 {

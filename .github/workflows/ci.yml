@@ -41,3 +41,19 @@ jobs:
         run: cargo test --verbose
       - name: Run Clippy
         run: cargo clippy --all-targets -- -D warnings
+
+  windows-memory-tests:
+    name: Windows Memory Tests
+    runs-on: windows-latest
+    needs: fmt
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+      - name: Build with dhat-heap
+        run: cargo build --release --features dhat-heap
+      - name: Memory-usage tests
+        run: cargo test --features dhat-heap --release -- --test-threads 1 memory_usage

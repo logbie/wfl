@@ -332,7 +332,14 @@ impl ReplState {
     }
 }
 
+
 pub async fn run_repl() -> RustylineResult<()> {
+    #[cfg(feature = "dhat-heap")]
+    let _profiler = dhat::Profiler::new_heap();
+    
+    #[cfg(feature = "dhat-ad-hoc")]
+    let _profiler = dhat::Profiler::new_ad_hoc();
+
     let mut repl_state = ReplState::new();
     let mut rl = DefaultEditor::new()?;
 

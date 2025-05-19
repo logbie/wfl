@@ -9,8 +9,12 @@ pub struct Environment {
     pub parent: Option<Weak<RefCell<Environment>>>,
 }
 
+
 impl Environment {
     pub fn new_global() -> Rc<RefCell<Self>> {
+        #[cfg(feature = "dhat-ad-hoc")]
+        dhat::ad_hoc_event(1);
+
         Rc::new(RefCell::new(Environment {
             values: HashMap::new(),
             parent: None,
@@ -18,6 +22,9 @@ impl Environment {
     }
 
     pub fn new(parent: &Rc<RefCell<Environment>>) -> Rc<RefCell<Self>> {
+        #[cfg(feature = "dhat-ad-hoc")]
+        dhat::ad_hoc_event(1);
+
         Rc::new(RefCell::new(Environment {
             values: HashMap::new(),
             parent: Some(Rc::downgrade(parent)),
@@ -26,6 +33,9 @@ impl Environment {
 
     #[inline]
     pub fn new_child_env(parent: &Rc<RefCell<Environment>>) -> Rc<RefCell<Self>> {
+        #[cfg(feature = "dhat-ad-hoc")]
+        dhat::ad_hoc_event(1);
+
         Rc::new(RefCell::new(Self {
             values: HashMap::new(),
             parent: Some(Rc::downgrade(parent)),
