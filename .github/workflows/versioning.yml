@@ -1,0 +1,48 @@
+name: Auto Version Bump
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Bump version
+        run: python scripts/bump_version.py
+
+      - name: Push changes
+        if: ${{ success() }}
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
+      
+      - name: Tag the new version
+        if: ${{ success() }}
+        run: |
+          # Fetch existing tags to avoid conflicts
+          git fetch --tags
+          
+          # Extract version from version.rs
+          VERSION=$(grep -oP '(?<=VERSION: &str = ")[0-9]+\.[0-9]+' src/version.rs)
+          
+          # Check if this version tag already exists
+          if ! git tag -l | grep -q "^v$VERSION$"; then
+            git tag -a "v$VERSION" -m "Release $VERSION"
+            git push origin --tags
+          else
+            echo "Tag v$VERSION already exists, skipping tagging"
+          fi
