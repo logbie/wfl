@@ -75,15 +75,29 @@ try {
     exit 1
 }
 
-# Update the version in wix.toml
-Write-Host "Updating version in wix.toml..." -ForegroundColor Cyan
+# Update version information with the version script
+Write-Host "Updating version information..." -ForegroundColor Cyan
 try {
-    $wixTomlContent = Get-Content -Path "wix.toml" -Raw
-    $updatedWixTomlContent = $wixTomlContent -replace 'version = "0.0.0.0" # Will be overridden by cargo-wix command line', 'version = "2025.4.0.0" # Updated by build_msi.ps1'
-    Set-Content -Path "wix.toml" -Value $updatedWixTomlContent
-    Write-Host "Version updated in wix.toml." -ForegroundColor Green
+    if (Test-Path "scripts/bump_version.py") {
+        # Use the enhanced version script with --update-wix-only to avoid bumping the version number
+        python scripts/bump_version.py --update-wix-only --skip-git
+        
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "Failed to update version information. Exit code: $LASTEXITCODE" -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "Version information successfully updated." -ForegroundColor Green
+    } else {
+        Write-Host "Warning: Version script not found at scripts/bump_version.py" -ForegroundColor Yellow
+        Write-Host "Falling back to manual version update..." -ForegroundColor Yellow
+        
+        $wixTomlContent = Get-Content -Path "wix.toml" -Raw
+        $updatedWixTomlContent = $wixTomlContent -replace 'version = "0.0.0.0" # Will be overridden by cargo-wix command line', 'version = "2025.4.0.0" # Updated by build_msi.ps1'
+        Set-Content -Path "wix.toml" -Value $updatedWixTomlContent
+        Write-Host "Version updated in wix.toml." -ForegroundColor Green
+    }
 } catch {
-    Write-Host "An error occurred while updating wix.toml:" -ForegroundColor Red
+    Write-Host "An error occurred while updating version information:" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
     exit 1
 }

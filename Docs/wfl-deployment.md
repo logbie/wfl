@@ -93,11 +93,66 @@ if (-not (Test-Path "wix")) {
 
 ## Versioning
 
-The WFL project uses the following versioning scheme:
+The WFL project uses a comprehensive versioning system that manages version consistency across multiple files:
 
-- Release versions: `YYYY.MM.patch.build` (e.g., `2025.4.0.0`)
-- The version should be set in both `Cargo.toml` and `wix.toml`
-- For automated builds, extract the version from `.build_meta.json` or set it via environment variables
+### Versioning Scheme
+
+- Core format: `YYYY.build` (e.g., `2025.4`)
+- MSI installer format: `YYYY.build.0.0` (e.g., `2025.4.0.0` - Windows requires four components)
+- Cargo/SemVer format: `YYYY.build.0` (e.g., `2025.4.0`)
+
+### Versioning Files
+
+- `.build_meta.json`: Source of truth containing year and build number
+- `src/version.rs`: Core version constant used in the application
+- `Cargo.toml`: Package and metadata versions in SemVer format 
+- `wix.toml`: MSI installer version in Windows quad-format
+- VS Code extension `package.json` files: Version information for extensions
+
+### Version Management Script
+
+The project provides `scripts/bump_version.py`, a comprehensive version management tool:
+
+```bash
+# Usage examples:
+
+# Increment the build number and update all version references
+python scripts/bump_version.py --update-all
+
+# Update all version references without incrementing the build number
+python scripts/bump_version.py --skip-bump --update-all
+
+# Update only wix.toml for MSI builds (used by build_msi.ps1)
+python scripts/bump_version.py --update-wix-only --skip-git
+
+# Increment build and commit changes to git
+python scripts/bump_version.py --update-all
+```
+
+#### Command Line Options
+
+| Option | Description |
+|--------|-------------|
+| `--skip-bump` | Use the current version without incrementing |
+| `--update-all` | Update versions in all project files |
+| `--update-wix-only` | Only update wix.toml for MSI builds |
+| `--skip-git` | Prevent automatic git commit of version changes |
+| `--verbose` | Show detailed output during updates |
+
+### Automated Integration
+
+The versioning system is integrated with:
+
+- `build_msi.ps1` script for local builds
+- GitHub Actions workflow for CI/CD builds
+- Release automation for consistent version tagging
+
+### Version Override
+
+For specific releases, you can override the version:
+
+- In CI/CD: Use the `version_override` input in the GitHub Actions workflow
+- In local builds: Manually edit `.build_meta.json` or directly use `--skip-bump` with the script
 
 ## Best Practices
 

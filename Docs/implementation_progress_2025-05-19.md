@@ -9,6 +9,7 @@
 - Enhanced error handling with clear user guidance and recovery paths
 - Created comprehensive documentation for deployment process in `Docs/wfl-deployment.md`
 - Updated GitHub Actions workflow for improved MSI building in CI/CD pipeline
+- Enhanced versioning system with comprehensive updates across multiple files
 
 ## Key Improvements
 
@@ -30,11 +31,38 @@
 - GitHub Actions workflow includes extended error checking and reporting
 - Improved artifact validation ensures only valid installers are published
 
+## Comprehensive Versioning System
+
+1. **Enhanced Version Script**:
+   - Extended `scripts/bump_version.py` with comprehensive version management
+   - Added support for updating all version references across the project
+   - Created command-line flags for fine-grained control of update behavior
+   - Implemented version consistency between core files and MSI installer
+
+2. **Version Synchronization**:
+   - `.build_meta.json`: Source of truth for year.build format (e.g., 2025.4)
+   - `src/version.rs`: Core code version constant used by the application
+   - `Cargo.toml`: Package and metadata versions in SemVer format
+   - `wix.toml`: MSI installer version in Windows quad-format (year.build.0.0)
+   - VS Code extensions: Synchronized version in package.json files
+
+3. **Build Integration**:
+   - Local builds: Integrated with `build_msi.ps1` for consistent versioning
+   - CI/CD: Added workflow steps to manage versions in GitHub Actions
+   - Removed error-prone `--define` parameter from cargo-wix commands
+
+4. **User Controls**:
+   - Added `--skip-bump` to use existing version without incrementing
+   - Added `--update-all` to update all files with current version
+   - Added `--update-wix-only` for MSI-only version updates
+   - Added `--skip-git` to prevent automatic commits during builds
+
 ## GitHub Actions Workflow Improvements
 
 1. **Enhanced Version Management**: 
    - Added version override input parameter for manual builds
    - Direct modification of wix.toml version instead of command line parameters
+   - Added version validation and debugging output
 
 2. **Improved Reliability**:
    - Added explicit dependency checks with clear error messages

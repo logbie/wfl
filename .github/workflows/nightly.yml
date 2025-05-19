@@ -205,6 +205,21 @@ jobs:
           }
 
       # ---------- Packaging (Windows) ----------
+      - name: Update Version Information
+        run: |
+          Write-Host "Updating version information..."
+          # Check if we have a version override from the workflow input
+          if ("${{ inputs.version_override }}" -ne "") {
+            # Use the provided version without updating build_meta.json (just update wix.toml)
+            python scripts/bump_version.py --skip-bump --update-wix-only --skip-git
+          } else {
+            # Use the version from build_meta.json without bumping it
+            python scripts/bump_version.py --skip-bump --update-all --skip-git
+          }
+          
+          # Output the current version for debugging
+          python -c "import json; print(f'Using version: {json.load(open(\".build_meta.json\"))[\"year\"]}.{json.load(open(\".build_meta.json\"))[\"build\"]}')"
+
       - name: Package WFL
         run: |
           # Create default config file
@@ -218,12 +233,6 @@ jobs:
           # Copy config to root for wix.toml
           Write-Host "Copying configuration to root directory..."
           Copy-Item target/${{ env.TARGET }}/release/package/.wflcfg -Destination .wflcfg
-
-          # Update version in wix.toml
-          Write-Host "Updating version in wix.toml..."
-          $wixTomlContent = Get-Content -Path "wix.toml" -Raw
-          $updatedWixTomlContent = $wixTomlContent -replace 'version = "0.0.0.0" # Will be overridden by cargo-wix command line', 'version = "${{ needs.check-for-changes.outputs.version }}.0.0" # Updated by GitHub Actions'
-          Set-Content -Path "wix.toml" -Value $updatedWixTomlContent
 
           # Verify binaries exist
           Write-Host "Verifying binaries exist..."
@@ -240,7 +249,7 @@ jobs:
             exit 1
           }
 
-          # Build MSI with cargo-wix
+          # Build MSI with cargo-wix (no --define parameter needed as version is in wix.toml)
           Write-Host "Building MSI installer..."
           cargo wix --no-build --nocapture `
             --output "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi" `
