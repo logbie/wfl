@@ -457,7 +457,11 @@ mod tests {
     #[test]
     fn test_load_timeout_default() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let timeout = with_test_global_path(|| load_timeout(temp_dir.path()));
+        let timeout = with_test_global_path(|| {
+            // Explicitly set a non-existent path to ensure we don't pick up any global config
+            set_test_env_var(Some("/non/existent/path"));
+            load_timeout(temp_dir.path())
+        });
         assert_eq!(timeout, 60);
     }
 
