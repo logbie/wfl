@@ -24,7 +24,7 @@ The WFL compiler is currently under development. Here's the current status:
   - ✅ Includes runtime error handling and reporting
   - ✅ HTTP GET/POST support
   - ✅ Try/when/otherwise exception handling
-  - 🔄 Asynchronous operations support in progress
+  - 🔄 Asynchronous operations support (in progress, tracked in issue #51)
 - ✅ **Error Reporting System**: Complete - Comprehensive diagnostics with actionable messages
 - ✅ **Linter and Code Fixer**: Complete - Code quality tools with CLI integration
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
