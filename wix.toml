@@ -1,0 +1,67 @@
+# WiX configuration for WFL Windows installer
+
+[package]
+name = "WFL"
+manufacturer = "Logbie LLC"
+version = "0.0.0.0" # Will be overridden by cargo-wix command line
+description = "WebFirst Language"
+license = "LICENSE"
+
+# Upgrade settings
+upgrade_guid = "1F4E8BF0-8C3A-4BC1-B5D9-8F1A2A5C0001"
+product_icon = "icons/wfl.ico"
+
+# Installation directories
+install_dir = "ProgramFiles64Folder:WFL"
+bin_dir = "bin"
+
+# Custom actions
+[package.custom_actions]
+install_vscode_extension = "scripts/install_vscode_extension.ps1"
+init_config = "scripts/init_config.ps1"
+
+# Features
+[package.features]
+vscode_extension = "Install VS Code Extension"
+
+# Environment variables
+[package.env_vars]
+PATH = { value = "[INSTALLDIR]bin", action = "set", permanent = "yes" }
+
+# Files to include
+[[package.files]]
+source = "target/release/wfl.exe"
+destination = "bin/wfl.exe"
+
+[[package.files]]
+source = "target/release/wfl-lsp.exe"
+destination = "bin/wfl-lsp.exe"
+
+[[package.files]]
+source = ".wflcfg"
+destination = "config/wfl.cfg"
+
+[[package.files]]
+source = "vscode-extension/out"
+destination = "vscode-extension/out"
+
+[[package.files]]
+source = "vscode-extension/package.json"
+destination = "vscode-extension/package.json"
+
+[[package.files]]
+source = "vscode-extension/syntaxes"
+destination = "vscode-extension/syntaxes"
+
+[[package.files]]
+source = "vscode-extension/language-configuration.json"
+destination = "vscode-extension/language-configuration.json"
+
+# Shortcuts
+[[package.shortcuts]]
+name = "WebFirst Language"
+description = "WebFirst Language (WFL)"
+target = "bin/wfl.exe"
+working_dir = "INSTALLDIR"
+arguments = ""
+icon_index = 0

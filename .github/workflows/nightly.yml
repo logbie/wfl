@@ -84,148 +84,106 @@ jobs:
             fi
           fi
 
-      - name: Set nightly version string
+      - name: Load version from build_meta.json
         id: version
         shell: bash
         run: |
-          DATE=$(date +'%Y%m%d')
+          # Read version from .build_meta.json
+          YEAR=$(jq -r '.year' .build_meta.json)
+          BUILD=$(jq -r '.build' .build_meta.json)
+          VERSION="${YEAR}.${BUILD}"
           SHORT_SHA=$(git rev-parse --short HEAD)
-          VERSION="0.0.0-nightly.${DATE}+${SHORT_SHA}"
-
-          echo "Nightly version: $VERSION"
-          echo "version=$VERSION"   >> "$GITHUB_OUTPUT"
+          
+          echo "Using version from build_meta.json: $VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
   # ------------------------------------------------------------
-  # BUILD JOB (matrix over Windows / Linux / macOS)
+  # BUILD JOB (Windows only)
   # ------------------------------------------------------------
   build:
-    name: Build WFL for ${{ matrix.os }}
+    name: Build WFL for Windows
     needs: check-for-changes
     if: needs.check-for-changes.outputs.should_build == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: wfl-${{ needs.check-for-changes.outputs.version }}.msi
-            artifact_path: wfl-*.msi
-            updater_name: wfl-Updater.exe
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            artifact_name: wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz
-            artifact_path: "wfl-*.{tar.gz,deb}"
+    runs-on: windows-latest
+    env:
+      TARGET: x86_64-pc-windows-msvc
+      ARTIFACT_NAME: wfl-${{ needs.check-for-changes.outputs.version }}.msi
+      ARTIFACT_PATH: wfl-*.msi
 
     steps:
       - uses: actions/checkout@v4
-
-      # GitHub CLI is not needed in build jobs, only in check-for-changes and release jobs
-      # Removed unnecessary GitHub CLI installation to speed up builds
 
       # ---------- Rust toolchain ----------
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: ${{ matrix.target }}
+          target: ${{ env.TARGET }}
           override: true
 
       - name: Cache Cargo registry + target dir
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ${{ matrix.target }}
+          shared-key: ${{ env.TARGET }}
 
       # ---------- Platform‑specific packaging helpers ----------
-      - name: Install packaging tools (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Install packaging tools
         run: |
           choco install wix
           cargo install cargo-wix@0.3.3 --locked
 
-      - name: Install packaging tools (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo install cargo-deb@2.12.1 --locked
-
-      # macOS packaging removed as requested
-
       # ---------- Build & test ----------
-      - name: Build WFL
-        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Build WFL and LSP
+        run: |
+          cargo build --release --locked --target ${{ env.TARGET }} --bin wfl
+          cargo build --release --locked --target ${{ env.TARGET }} --bin wfl-lsp
 
       - name: Run tests
-        run: cargo test --release --locked --target ${{ matrix.target }}
+        run: cargo test --release --locked --target ${{ env.TARGET }}
+
+      # ---------- Build VS Code Extension ----------
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build VS Code Extension
+        working-directory: vscode-extension
+        run: |
+          npm ci
+          npm run vscode:prepublish
 
       # ---------- Packaging (Windows) ----------
-      - name: Package WFL (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Package WFL
         run: |
-          mkdir -p target/${{ matrix.target }}/release/package
-          echo "timeout_seconds = 60"   > target/${{ matrix.target }}/release/package/.wflcfg
-          echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
-          echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
-          echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
+          # Create default config file
+          mkdir -p target/${{ env.TARGET }}/release/package
+          echo "timeout_seconds = 60"   > target/${{ env.TARGET }}/release/package/.wflcfg
+          echo "logging_enabled = false" >> target/${{ env.TARGET }}/release/package/.wflcfg
+          echo "debug_report_enabled = true" >> target/${{ env.TARGET }}/release/package/.wflcfg
+          echo "log_level = info"       >> target/${{ env.TARGET }}/release/package/.wflcfg
 
-          # Placeholder updater
-          echo "Updater placeholder" > target/${{ matrix.target }}/release/package/wfl-Updater.exe
+          # Copy config to root for wix.toml
+          Copy-Item target/${{ env.TARGET }}/release/package/.wflcfg -Destination .wflcfg
 
-          # Build MSI
-          cargo wix --no-build \
-            --output target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi \
+          # Build MSI with custom wix.toml
+          cargo wix --no-build --nocapture `
+            --output target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi `
             --define Version=${{ needs.check-for-changes.outputs.version }}
 
-      # ---------- Packaging (Linux) ----------
-      - name: Package WFL (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          mkdir -p target/${{ matrix.target }}/release/package
-          echo "timeout_seconds = 60"   > target/${{ matrix.target }}/release/package/.wflcfg
-          echo "logging_enabled = false" >> target/${{ matrix.target }}/release/package/.wflcfg
-          echo "debug_report_enabled = true" >> target/${{ matrix.target }}/release/package/.wflcfg
-          echo "log_level = info"       >> target/${{ matrix.target }}/release/package/.wflcfg
-
-          # Include .wflcfg file in the DEB package at /etc/wfl/wfl.cfg
-          # Configuration is now in Cargo.toml [package.metadata.deb] section
-          cargo deb --no-build --target ${{ matrix.target }}
-
-          mkdir -p target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}
-          cp target/${{ matrix.target }}/release/wfl \
-             target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}/
-          cp target/${{ matrix.target }}/release/package/.wflcfg \
-             target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}/
-          tar -C target/${{ matrix.target }}/release -czvf \
-             target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz \
-             wfl-${{ needs.check-for-changes.outputs.version }}
-
-      # macOS packaging removed as requested
-
       # ---------- Smoke tests ----------
-      - name: Smoke test installer (Windows)
-        if: matrix.os == 'windows-latest'
+      - name: Smoke test installer
         run: |
-          Start-Process msiexec.exe -Wait -ArgumentList "/i target\${{ matrix.target }}\release\wfl-${{ needs.check-for-changes.outputs.version }}.msi /qn"
+          Start-Process msiexec.exe -Wait -ArgumentList "/i target\${{ env.TARGET }}\release\wfl-${{ needs.check-for-changes.outputs.version }}.msi /qn"
           "$env:ProgramFiles\WFL\bin\wfl.exe" --version
-
-      - name: Smoke test installer (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          # cargo-deb places the DEB file in target/<target>/debian/ not in target/<target>/release/
-          DEB=$(find target/${{ matrix.target }}/debian -name "*.deb" | head -n1)
-          echo "Found DEB package at: $DEB"
-          sudo dpkg -i "$DEB"
-          wfl --version
-          sudo dpkg -r wfl
-          mkdir -p ~/wfl-test
-          tar -xzf target/${{ matrix.target }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.tar.gz -C ~/wfl-test
-          ~/wfl-test/wfl-${{ needs.check-for-changes.outputs.version }}/wfl --version
-
-      # macOS smoke test removed as requested
+          "$env:ProgramFiles\WFL\bin\wfl-lsp.exe" --version
 
       # ---------- Upload artifacts ----------
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: target/${{ matrix.target }}/release/${{ matrix.artifact_path }}
+          name: ${{ env.ARTIFACT_NAME }}
+          path: target/${{ env.TARGET }}/release/${{ env.ARTIFACT_PATH }}
           if-no-files-found: error
 
   # ------------------------------------------------------------
@@ -275,5 +233,4 @@ jobs:
           Commit:  ${{ github.sha }}" \
             --prerelease
 
-          find artifacts -type f \( -name "*.msi" -o -name "*.deb" -o -name "*.tar.gz" -o -name "*.pkg" \) \
-            -exec gh release upload "$TAG" {} \;
+          find artifacts -type f -name "*.msi" -exec gh release upload "$TAG" {} \;
