@@ -137,7 +137,7 @@ jobs:
       - name: Build WFL and LSP
         run: |
           cargo build --release --locked --target ${{ env.TARGET }} --bin wfl
-          cargo build --release --locked --target ${{ env.TARGET }} --bin wfl-lsp
+          cargo build --release --locked --target ${{ env.TARGET }} -p wfl-lsp --bin wfl-lsp
 
       - name: Run tests
         run: cargo test --release --locked --target ${{ env.TARGET }}
