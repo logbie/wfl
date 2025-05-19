@@ -2,7 +2,7 @@ name: Nightly Build
 
 on:
   schedule:
-    # Run at 05:00 UTC (00:00 AM America/Chicago during DST, 06:00 UTC during standard time)
+    # Run at 05:00 UTC (00:00 AM America/Chicago during DST, 06:00 UTC during standard time)
     - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
@@ -10,10 +10,16 @@ on:
         description: 'Last successful build SHA (leave empty to compare with last nightly release)'
         required: false
         type: string
+      version_override:
+        description: 'Override version number (format: YYYY.MM.patch.build)'
+        required: false
+        type: string
 
 env:
   CARGO_TERM_COLOR: always
   SIGNING_SKIP: true
+  CACHE_ON_FAILURE: false
+  CARGO_INCREMENTAL: 0
 
 jobs:
   check-for-changes:
@@ -88,13 +94,19 @@ jobs:
         id: version
         shell: bash
         run: |
-          # Read version from .build_meta.json
-          YEAR=$(jq -r '.year' .build_meta.json)
-          BUILD=$(jq -r '.build' .build_meta.json)
-          VERSION="${YEAR}.${BUILD}"
-          SHORT_SHA=$(git rev-parse --short HEAD)
+          # Check for version override
+          if [[ -n "${{ inputs.version_override }}" ]]; then
+            VERSION="${{ inputs.version_override }}"
+            echo "Using version override: $VERSION"
+          else
+            # Read version from .build_meta.json
+            YEAR=$(jq -r '.year' .build_meta.json)
+            BUILD=$(jq -r '.build' .build_meta.json)
+            VERSION="${YEAR}.${BUILD}"
+            echo "Using version from build_meta.json: $VERSION"
+          fi
           
-          echo "Using version from build_meta.json: $VERSION"
+          SHORT_SHA=$(git rev-parse --short HEAD)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
@@ -110,7 +122,6 @@ jobs:
       TARGET: x86_64-pc-windows-msvc
       ARTIFACT_NAME: wfl-${{ needs.check-for-changes.outputs.version }}.msi
       ARTIFACT_PATH: wfl-*.msi
-
     steps:
       - uses: actions/checkout@v4
 
@@ -121,6 +132,7 @@ jobs:
           toolchain: stable
           target: ${{ env.TARGET }}
           override: true
+          components: rustfmt, clippy
 
       - name: Cache Cargo registry + target dir
         uses: Swatinem/rust-cache@v2
@@ -130,8 +142,31 @@ jobs:
       # ---------- Platform‑specific packaging helpers ----------
       - name: Install packaging tools
         run: |
-          choco install wix
+          Write-Host "Installing WiX Toolset..."
+          choco install wix --no-progress -y
+          
+          Write-Host "Installing cargo-wix..."
           cargo install cargo-wix@0.3.3 --locked
+          
+          # Verify installations
+          if (-not ((cargo --list 2>$null) | Select-String -Pattern "wix" -Quiet)) {
+            Write-Host "::error::cargo-wix installation failed"
+            exit 1
+          }
+          
+          if (-not ((Test-Path "${env:ProgramFiles(x86)}\WiX Toolset*" -ErrorAction SilentlyContinue) -or 
+                   (Test-Path "${env:ProgramFiles}\WiX Toolset*" -ErrorAction SilentlyContinue) -or
+                   ($null -ne $env:WIX))) {
+            Write-Host "::error::WiX Toolset installation failed"
+            exit 1
+          }
+
+      # ---------- Linting & Format Checking ----------
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
 
       # ---------- Build & test ----------
       - name: Build WFL and LSP
@@ -155,30 +190,93 @@ jobs:
           npm install -g typescript
           npm run vscode:prepublish
 
+      # ---------- Initialize WiX Source Files ----------
+      - name: Initialize WiX source files
+        run: |
+          if (-not (Test-Path "wix")) {
+            Write-Host "Generating WiX source files..."
+            cargo wix init -p wfl
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::Failed to initialize WiX source files"
+              exit 1
+            }
+          } else {
+            Write-Host "WiX source files already exist"
+          }
+
       # ---------- Packaging (Windows) ----------
       - name: Package WFL
         run: |
           # Create default config file
-          mkdir -p target/${{ env.TARGET }}/release/package
-          echo "timeout_seconds = 60"   > target/${{ env.TARGET }}/release/package/.wflcfg
-          echo "logging_enabled = false" >> target/${{ env.TARGET }}/release/package/.wflcfg
-          echo "debug_report_enabled = true" >> target/${{ env.TARGET }}/release/package/.wflcfg
-          echo "log_level = info"       >> target/${{ env.TARGET }}/release/package/.wflcfg
+          Write-Host "Creating default configuration files..."
+          New-Item -ItemType Directory -Force -Path target/${{ env.TARGET }}/release/package | Out-Null
+          Set-Content -Path "target/${{ env.TARGET }}/release/package/.wflcfg" -Value "timeout_seconds = 60"
+          Add-Content -Path "target/${{ env.TARGET }}/release/package/.wflcfg" -Value "logging_enabled = false"
+          Add-Content -Path "target/${{ env.TARGET }}/release/package/.wflcfg" -Value "debug_report_enabled = true"
+          Add-Content -Path "target/${{ env.TARGET }}/release/package/.wflcfg" -Value "log_level = info"
 
           # Copy config to root for wix.toml
+          Write-Host "Copying configuration to root directory..."
           Copy-Item target/${{ env.TARGET }}/release/package/.wflcfg -Destination .wflcfg
 
-          # Build MSI with custom wix.toml
+          # Update version in wix.toml
+          Write-Host "Updating version in wix.toml..."
+          $wixTomlContent = Get-Content -Path "wix.toml" -Raw
+          $updatedWixTomlContent = $wixTomlContent -replace 'version = "0.0.0.0" # Will be overridden by cargo-wix command line', 'version = "${{ needs.check-for-changes.outputs.version }}.0.0" # Updated by GitHub Actions'
+          Set-Content -Path "wix.toml" -Value $updatedWixTomlContent
+
+          # Verify binaries exist
+          Write-Host "Verifying binaries exist..."
+          $binaryPath = "target/${{ env.TARGET }}/release/wfl.exe"
+          $lspPath = "target/${{ env.TARGET }}/release/wfl-lsp.exe"
+          
+          if (-not (Test-Path $binaryPath)) {
+            Write-Host "::error::Binary not found at expected path: $binaryPath"
+            exit 1
+          }
+          
+          if (-not (Test-Path $lspPath)) {
+            Write-Host "::error::LSP binary not found at expected path: $lspPath"
+            exit 1
+          }
+
+          # Build MSI with cargo-wix
+          Write-Host "Building MSI installer..."
           cargo wix --no-build --nocapture `
-            --output target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi `
-            --define Version=${{ needs.check-for-changes.outputs.version }}
+            --output "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi" `
+            -p wfl
+
+      # ---------- Verify MSI Created Successfully ----------
+      - name: Verify installer was created
+        run: |
+          $msiPath = "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi"
+          if (-not (Test-Path $msiPath)) {
+            Write-Host "::error::MSI installer not found at expected path: $msiPath"
+            exit 1
+          }
+          $msiInfo = Get-Item $msiPath
+          Write-Host "MSI created successfully: $($msiInfo.Name), Size: $($msiInfo.Length) bytes"
 
       # ---------- Smoke tests ----------
       - name: Smoke test installer
         run: |
-          Start-Process msiexec.exe -Wait -ArgumentList "/i target\${{ env.TARGET }}\release\wfl-${{ needs.check-for-changes.outputs.version }}.msi /qn"
-          "$env:ProgramFiles\WFL\bin\wfl.exe" --version
-          "$env:ProgramFiles\WFL\bin\wfl-lsp.exe" --version
+          try {
+            Start-Process msiexec.exe -Wait -ArgumentList "/i target\${{ env.TARGET }}\release\wfl-${{ needs.check-for-changes.outputs.version }}.msi /qn"
+            
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "::error::MSI installation failed with exit code $LASTEXITCODE"
+              exit 1
+            }
+            
+            $wflVersion = & "$env:ProgramFiles\WFL\bin\wfl.exe" --version
+            Write-Host "WFL version: $wflVersion"
+            
+            $lspVersion = & "$env:ProgramFiles\WFL\bin\wfl-lsp.exe" --version
+            Write-Host "WFL-LSP version: $lspVersion"
+          } catch {
+            Write-Host "::error::Smoke test failed: $_"
+            exit 1
+          }
 
       # ---------- Upload artifacts ----------
       - uses: actions/upload-artifact@v4
@@ -211,6 +309,16 @@ jobs:
         with:
           path: artifacts
 
+      - name: Verify artifacts
+        run: |
+          echo "Verifying downloaded artifacts..."
+          find artifacts -type f -name "*.msi" -exec ls -la {} \;
+          
+          if [ $(find artifacts -type f -name "*.msi" | wc -l) -eq 0 ]; then
+            echo "::error::No MSI artifacts found in downloaded artifacts directory"
+            exit 1
+          fi
+
       - name: Tag commit for nightly
         run: |
           DATE=$(date +'%Y-%m-%d')
@@ -235,3 +343,5 @@ jobs:
             --prerelease
 
           find artifacts -type f -name "*.msi" -exec gh release upload "$TAG" {} \;
+          
+          echo "Release created successfully: $TAG"

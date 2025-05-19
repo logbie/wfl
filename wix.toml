@@ -3,7 +3,7 @@
 [package]
 name = "WFL"
 manufacturer = "Logbie LLC"
-version = "0.0.0.0" # Will be overridden by cargo-wix command line
+version = "2025.4.0.0" # Updated by build_msi.ps1
 description = "WebFirst Language"
 license = "LICENSE"
 
@@ -65,3 +65,5 @@ target = "bin/wfl.exe"
 working_dir = "INSTALLDIR"
 arguments = ""
 icon_index = 0
+
+
