@@ -26,21 +26,21 @@ pub static CONFIG: Lazy<RwLock<Option<WflConfig>>> = Lazy::new(|| RwLock::new(No
 pub fn init_loggers(log_path: &Path, script_dir: &Path) {
     // Load the configuration
     let config = config::load_config_with_global(script_dir);
-    
+
     // Initialize the main logger
     if config.logging_enabled {
         if let Err(e) = logging::init_logger(config.log_level, log_path) {
             eprintln!("Failed to initialize logger: {}", e);
         }
     }
-    
+
     // Initialize the execution logger if enabled
     if config.execution_logging {
         if let Err(e) = logging::init_execution_logger(&config, log_path) {
             eprintln!("Failed to initialize execution logger: {}", e);
         }
     }
-    
+
     // Store config globally
     if let Ok(mut global_config) = CONFIG.write() {
         *global_config = Some(config);

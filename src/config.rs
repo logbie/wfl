@@ -46,7 +46,7 @@ impl Default for WflConfig {
             debug_report_enabled: true,
             log_level: LogLevel::Info,
             #[cfg(debug_assertions)]
-            execution_logging: true,  // Enable by default in debug builds
+            execution_logging: true, // Enable by default in debug builds
             #[cfg(not(debug_assertions))]
             execution_logging: false, // Disable by default in release builds
             // Code quality suite defaults - strict by default
@@ -504,13 +504,15 @@ mod tests {
     #[test]
     fn test_load_config_defaults() {
         // First, explicitly remove any global environment variable
-        unsafe { ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH"); }
-        
+        unsafe {
+            ::std::env::remove_var("WFL_GLOBAL_CONFIG_PATH");
+        }
+
         let temp_dir = tempfile::tempdir().unwrap();
-        
+
         // We'll use direct function call without with_test_global_path to ensure clean state
         let config = load_config(temp_dir.path());
-        
+
         // Verify default configuration values
         assert_eq!(config.timeout_seconds, 60);
         assert!(!config.logging_enabled);

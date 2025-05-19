@@ -351,19 +351,19 @@ async fn main() -> io::Result<()> {
                 // Initialize both regular and execution logging
                 let log_path = script_dir.join("wfl.log");
                 wfl::init_loggers(&log_path, script_dir);
-                
+
                 if config.logging_enabled {
                     info!("WebFirst Language started with script: {}", &file_path);
                 }
-                
+
                 // Log execution start if execution logging is enabled
                 exec_trace!("Starting execution of script: {}", &file_path);
 
                 let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
-                
+
                 // Log program details if execution logging is enabled
                 exec_trace!("Program contains {} statements", program.statements.len());
-                
+
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
                     Ok(result) => {

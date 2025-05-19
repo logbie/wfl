@@ -9,6 +9,14 @@ use self::environment::Environment;
 use self::error::{ErrorKind, RuntimeError};
 use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
+use crate::exec_block_enter;
+use crate::exec_block_exit;
+use crate::exec_control_flow;
+use crate::exec_function_call;
+use crate::exec_function_return;
+use crate::exec_trace;
+use crate::exec_var_assign;
+use crate::exec_var_declare;
 use crate::logging::IndentGuard;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
@@ -16,14 +24,6 @@ use std::cell::RefCell;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
-use crate::exec_trace;
-use crate::exec_var_declare;
-use crate::exec_var_assign;
-use crate::exec_control_flow;
-use crate::exec_block_enter;
-use crate::exec_block_exit;
-use crate::exec_function_call;
-use crate::exec_function_return;
 
 // Helper functions for execution logging
 #[cfg(debug_assertions)]
@@ -44,38 +44,42 @@ fn stmt_type(stmt: &Statement) -> String {
         Statement::ForeverLoop { .. } => "ForeverLoop".to_string(),
         Statement::BreakStatement { .. } => "BreakStatement".to_string(),
         Statement::ContinueStatement { .. } => "ContinueStatement".to_string(),
-        Statement::OpenFileStatement { variable_name, .. } => format!("OpenFileStatement '{}'", variable_name),
-        Statement::ReadFileStatement { variable_name, .. } => format!("ReadFileStatement '{}'", variable_name),
+        Statement::OpenFileStatement { variable_name, .. } => {
+            format!("OpenFileStatement '{}'", variable_name)
+        }
+        Statement::ReadFileStatement { variable_name, .. } => {
+            format!("ReadFileStatement '{}'", variable_name)
+        }
         Statement::WriteFileStatement { .. } => "WriteFileStatement".to_string(),
         Statement::CloseFileStatement { .. } => "CloseFileStatement".to_string(),
         Statement::WaitForStatement { .. } => "WaitForStatement".to_string(),
         Statement::TryStatement { error_name, .. } => format!("TryStatement '{}'", error_name),
-        Statement::HttpGetStatement { variable_name, .. } => format!("HttpGetStatement '{}'", variable_name),
-        Statement::HttpPostStatement { variable_name, .. } => format!("HttpPostStatement '{}'", variable_name),
+        Statement::HttpGetStatement { variable_name, .. } => {
+            format!("HttpGetStatement '{}'", variable_name)
+        }
+        Statement::HttpPostStatement { variable_name, .. } => {
+            format!("HttpPostStatement '{}'", variable_name)
+        }
     }
 }
 
 #[cfg(debug_assertions)]
 fn expr_type(expr: &Expression) -> String {
     match expr {
-        Expression::Literal(lit, ..) => {
-            match lit {
-                Literal::String(s) => format!("StringLiteral \"{}\"", s),
-                Literal::Integer(i) => format!("IntegerLiteral {}", i),
-                Literal::Float(f) => format!("FloatLiteral {}", f),
-                Literal::Boolean(b) => format!("BooleanLiteral {}", b),
-                Literal::Nothing => "NullLiteral".to_string(),
-                Literal::Pattern(p) => format!("PatternLiteral \"{}\"", p),
-            }
+        Expression::Literal(lit, ..) => match lit {
+            Literal::String(s) => format!("StringLiteral \"{}\"", s),
+            Literal::Integer(i) => format!("IntegerLiteral {}", i),
+            Literal::Float(f) => format!("FloatLiteral {}", f),
+            Literal::Boolean(b) => format!("BooleanLiteral {}", b),
+            Literal::Nothing => "NullLiteral".to_string(),
+            Literal::Pattern(p) => format!("PatternLiteral \"{}\"", p),
         },
         Expression::Variable(name, ..) => format!("Variable '{}'", name),
         Expression::BinaryOperation { operator, .. } => format!("BinaryOperation '{:?}'", operator),
         Expression::UnaryOperation { operator, .. } => format!("UnaryOperation '{:?}'", operator),
-        Expression::FunctionCall { function, .. } => {
-            match function.as_ref() {
-                Expression::Variable(name, ..) => format!("FunctionCall '{}'", name),
-                _ => "FunctionCall".to_string(),
-            }
+        Expression::FunctionCall { function, .. } => match function.as_ref() {
+            Expression::Variable(name, ..) => format!("FunctionCall '{}'", name),
+            _ => "FunctionCall".to_string(),
         },
         Expression::MemberAccess { property, .. } => format!("MemberAccess '{}'", property),
         Expression::IndexAccess { .. } => "IndexAccess".to_string(),
@@ -406,7 +410,7 @@ impl Interpreter {
                     Ok(value) => {
                         exec_trace!("Main function returned: {:?}", value);
                         last_value = value
-                    },
+                    }
                     Err(err) => {
                         exec_trace!("Main function failed: {}", err);
                         errors.push(err);
@@ -1112,7 +1116,7 @@ impl Interpreter {
 
         #[cfg(debug_assertions)]
         exec_trace!("Executing block of {} statements", statements.len());
-        
+
         #[cfg(debug_assertions)]
         let _guard = IndentGuard::new();
 
@@ -1277,36 +1281,40 @@ impl Interpreter {
 
                 #[cfg(debug_assertions)]
                 let func_name = match &function_val {
-                    Value::Function(f) => f.name.clone().unwrap_or_else(|| "<anonymous>".to_string()),
+                    Value::Function(f) => {
+                        f.name.clone().unwrap_or_else(|| "<anonymous>".to_string())
+                    }
                     _ => format!("{:?}", function_val),
                 };
-                
+
                 #[cfg(debug_assertions)]
                 exec_function_call!(&func_name, &arg_values);
-                
+
                 let result = match function_val {
                     Value::Function(func) => {
                         self.call_function(&func, arg_values, *line, *column).await
                     }
-                    Value::NativeFunction(native_fn) => native_fn(arg_values.clone()).map_err(|e| {
-                        RuntimeError::new(
-                            format!("Error in native function: {}", e),
-                            *line,
-                            *column,
-                        )
-                    }),
+                    Value::NativeFunction(native_fn) => {
+                        native_fn(arg_values.clone()).map_err(|e| {
+                            RuntimeError::new(
+                                format!("Error in native function: {}", e),
+                                *line,
+                                *column,
+                            )
+                        })
+                    }
                     _ => Err(RuntimeError::new(
                         format!("Cannot call {}", function_val.type_name()),
                         *line,
                         *column,
                     )),
                 };
-                
+
                 #[cfg(debug_assertions)]
                 if let Ok(ref val) = result {
                     exec_function_return!(&func_name, val);
                 }
-                
+
                 result
             }
 
@@ -1486,7 +1494,10 @@ impl Interpreter {
         column: usize,
     ) -> Result<Value, RuntimeError> {
         #[cfg(debug_assertions)]
-        let func_name = func.name.clone().unwrap_or_else(|| "<anonymous>".to_string());
+        let func_name = func
+            .name
+            .clone()
+            .unwrap_or_else(|| "<anonymous>".to_string());
         if args.len() != func.params.len() {
             return Err(RuntimeError::new(
                 format!(
@@ -1515,7 +1526,7 @@ impl Interpreter {
 
         for (param, arg) in func.params.iter().zip(args.clone()) {
             #[cfg(debug_assertions)]
-                exec_var_declare!(param, &arg);
+            exec_var_declare!(param, &arg);
             call_env.borrow_mut().define(param, arg);
         }
 
@@ -1530,12 +1541,12 @@ impl Interpreter {
 
         #[cfg(debug_assertions)]
         exec_block_enter!(format!("function {}", func_name));
-        
+
         #[cfg(debug_assertions)]
         let _guard = IndentGuard::new();
-        
+
         let result = self.execute_block(&func.body, call_env.clone()).await;
-        
+
         #[cfg(debug_assertions)]
         exec_block_exit!(format!("function {}", func_name));
 
