@@ -47,7 +47,6 @@ fn print_help() {
     println!("If no file is specified, the REPL will be started.");
 }
 
-
 #[tokio::main]
 async fn main() -> io::Result<()> {
     // Initialize dhat profiler if enabled

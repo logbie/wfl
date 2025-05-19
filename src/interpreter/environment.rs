@@ -9,7 +9,6 @@ pub struct Environment {
     pub parent: Option<Weak<RefCell<Environment>>>,
 }
 
-
 impl Environment {
     pub fn new_global() -> Rc<RefCell<Self>> {
         #[cfg(feature = "dhat-ad-hoc")]

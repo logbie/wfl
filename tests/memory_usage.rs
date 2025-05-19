@@ -1,6 +1,6 @@
 #[cfg(feature = "dhat-heap")]
 mod tests {
-    
+
     use std::rc::Rc;
     use wfl::interpreter::Interpreter;
     use wfl::lexer::lex_wfl_with_positions;
@@ -14,7 +14,11 @@ mod tests {
 
         let stats = dhat::HeapStats::get();
 
-        assert!(stats.max_bytes < 1024, "Max bytes exceeded limit: {} >= 1024", stats.max_bytes);
+        assert!(
+            stats.max_bytes < 1024,
+            "Max bytes exceeded limit: {} >= 1024",
+            stats.max_bytes
+        );
         drop(v);
     }
 
@@ -37,8 +41,13 @@ mod tests {
 
         let stats = dhat::HeapStats::get();
 
-        assert!(stats.max_bytes < 10 * 1024, "Max bytes exceeded limit: {} >= {}", stats.max_bytes, 10 * 1024);
-        
+        assert!(
+            stats.max_bytes < 10 * 1024,
+            "Max bytes exceeded limit: {} >= {}",
+            stats.max_bytes,
+            10 * 1024
+        );
+
         drop(interpreter);
     }
 
@@ -64,8 +73,17 @@ mod tests {
 
         let stats = dhat::HeapStats::get();
 
-        assert!(stats.max_bytes < 15 * 1024, "Max bytes exceeded limit: {} >= {}", stats.max_bytes, 15 * 1024);
-        assert!(stats.total_blocks < 1000, "Total blocks exceeded limit: {} >= 1000", stats.total_blocks);
+        assert!(
+            stats.max_bytes < 15 * 1024,
+            "Max bytes exceeded limit: {} >= {}",
+            stats.max_bytes,
+            15 * 1024
+        );
+        assert!(
+            stats.total_blocks < 1000,
+            "Total blocks exceeded limit: {} >= 1000",
+            stats.total_blocks
+        );
 
         drop(interpreter);
     }
@@ -107,7 +125,12 @@ mod tests {
 
         let stats = dhat::HeapStats::get();
 
-        assert!(stats.max_bytes < 20 * 1024, "Max bytes exceeded limit: {} >= {}", stats.max_bytes, 20 * 1024);
+        assert!(
+            stats.max_bytes < 20 * 1024,
+            "Max bytes exceeded limit: {} >= {}",
+            stats.max_bytes,
+            20 * 1024
+        );
 
         let rc_count = Rc::strong_count(global_env);
         assert_eq!(
