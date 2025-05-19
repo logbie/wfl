@@ -1,0 +1,32 @@
+name: WFL Config Lint
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  config-lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+    
+    - name: Build
+      run: cargo build --verbose
+    
+    - name: Run config check
+      run: cargo run -- --configCheck
+      
+    - name: Run config fix
+      run: cargo run -- --configFix
+      
+    - name: Verify clean state after fix
+      run: cargo run -- --configCheck
