@@ -25,6 +25,7 @@ fn print_help() {
     println!();
     println!("FLAGS:");
     println!("    --help             Prints this help information");
+    println!("    --version          Prints the version information");
     println!("    --lint             Run the linter on the specified file");
     println!("    --lint --fix       Apply auto-fixes after linting");
     println!("        --in-place     Overwrite the file in place");
@@ -59,6 +60,11 @@ async fn main() -> io::Result<()> {
 
     if args.len() >= 2 && args[1] == "--help" {
         print_help();
+        return Ok(());
+    }
+
+    if args.len() >= 2 && args[1] == "--version" {
+        println!("WebFirst Language (WFL) version {}", wfl::version::VERSION);
         return Ok(());
     }
 

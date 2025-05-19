@@ -13,6 +13,7 @@ pub mod parser;
 pub mod repl;
 pub mod stdlib;
 pub mod typechecker;
+pub mod version;
 pub mod wfl_config;
 
 use crate::config::WflConfig;
