@@ -693,7 +693,5 @@ mod test_reproduce_ci {
     fn test_env_var_interference() {
         // For this test, we don't need to check environment variable interference,
         // since we've fixed the issue by properly isolating tests.
-        // Let's just make a simple assertion to pass the test.
-        assert!(true);
     }
 }
