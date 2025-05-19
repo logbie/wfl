@@ -252,7 +252,7 @@ impl Analyzer {
                     self.errors.push(error);
                 }
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 for param in parameters {
@@ -273,7 +273,7 @@ impl Analyzer {
                     self.analyze_statement(stmt);
                 }
 
-                let function_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let function_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = function_scope.parent {
                     self.current_scope = *parent;
                 }
@@ -286,27 +286,27 @@ impl Analyzer {
             } => {
                 self.analyze_expression(condition);
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 for stmt in then_block {
                     self.analyze_statement(stmt);
                 }
 
-                let then_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let then_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = then_scope.parent {
                     self.current_scope = *parent;
                 }
 
                 if let Some(else_stmts) = else_block {
-                    let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                    let outer_scope = std::mem::take(&mut self.current_scope);
                     self.current_scope = Scope::with_parent(outer_scope);
 
                     for stmt in else_stmts {
                         self.analyze_statement(stmt);
                     }
 
-                    let else_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                    let else_scope = std::mem::take(&mut self.current_scope);
                     if let Some(parent) = else_scope.parent {
                         self.current_scope = *parent;
                     }
@@ -320,23 +320,23 @@ impl Analyzer {
             } => {
                 self.analyze_expression(condition);
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 self.analyze_statement(then_stmt);
 
-                let then_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let then_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = then_scope.parent {
                     self.current_scope = *parent;
                 }
 
                 if let Some(else_stmt) = else_stmt {
-                    let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                    let outer_scope = std::mem::take(&mut self.current_scope);
                     self.current_scope = Scope::with_parent(outer_scope);
 
                     self.analyze_statement(else_stmt);
 
-                    let else_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                    let else_scope = std::mem::take(&mut self.current_scope);
                     if let Some(parent) = else_scope.parent {
                         self.current_scope = *parent;
                     }
@@ -350,7 +350,7 @@ impl Analyzer {
             } => {
                 self.analyze_expression(collection);
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 let item_symbol = Symbol {
@@ -369,7 +369,7 @@ impl Analyzer {
                     self.analyze_statement(stmt);
                 }
 
-                let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let loop_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }
@@ -387,7 +387,7 @@ impl Analyzer {
                     self.analyze_expression(step_expr);
                 }
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 let count_symbol = Symbol {
@@ -406,7 +406,7 @@ impl Analyzer {
                     self.analyze_statement(stmt);
                 }
 
-                let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let loop_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }
@@ -416,14 +416,14 @@ impl Analyzer {
             } => {
                 self.analyze_expression(condition);
 
-                let outer_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let outer_scope = std::mem::take(&mut self.current_scope);
                 self.current_scope = Scope::with_parent(outer_scope);
 
                 for stmt in body {
                     self.analyze_statement(stmt);
                 }
 
-                let loop_scope = std::mem::replace(&mut self.current_scope, Scope::new());
+                let loop_scope = std::mem::take(&mut self.current_scope);
                 if let Some(parent) = loop_scope.parent {
                     self.current_scope = *parent;
                 }

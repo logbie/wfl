@@ -173,7 +173,7 @@ impl DiagnosticReporter {
         let config = term::Config::default();
 
         term::emit(&mut writer.lock(), &config, &self.files, &diag)
-            .map_err(|_| io::Error::new(io::ErrorKind::Other, "Failed to emit diagnostic"))
+            .map_err(|_| io::Error::other("Failed to emit diagnostic"))
     }
 
     pub fn line_col_to_offset(&self, file_id: usize, line: usize, column: usize) -> Option<usize> {

@@ -20,11 +20,17 @@ static TIME_FORMAT: Lazy<Vec<FormatItem>> =
     Lazy::new(|| time::format_description::parse("[hour]:[minute]:[second].[subsecond]").unwrap());
 static INDENTATION_LEVEL: AtomicUsize = AtomicUsize::new(0);
 thread_local! {
-    static EXECUTION_LOG_FILE: RefCell<Option<PathBuf>> = RefCell::new(None);
+    static EXECUTION_LOG_FILE: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
 }
 
 // Helper for execution log indentation
 pub struct IndentGuard;
+
+impl Default for IndentGuard {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl IndentGuard {
     pub fn new() -> Self {
