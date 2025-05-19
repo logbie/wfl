@@ -151,7 +151,8 @@ jobs:
       - name: Build VS Code Extension
         working-directory: vscode-extension
         run: |
-          npm ci
+          npm install
+          npm install -g typescript
           npm run vscode:prepublish
 
       # ---------- Packaging (Windows) ----------
