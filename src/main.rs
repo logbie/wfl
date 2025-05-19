@@ -14,21 +14,29 @@ use wfl::linter::Linter;
 use wfl::parser::Parser;
 use wfl::repl;
 use wfl::typechecker::TypeChecker;
+use wfl::wfl_config;
 use wfl::{error, exec_trace, info};
 
 fn print_help() {
     println!("WebFirst Language (WFL) Compiler and Interpreter");
     println!();
     println!("USAGE:");
-    println!("    wfl [FLAGS] [file]");
+    println!("    wfl [FLAGS] [OPTIONS] [file]");
     println!();
     println!("FLAGS:");
-    println!("    --help       Prints this help information");
+    println!("    --help             Prints this help information");
     println!("    --lint             Run the linter on the specified file");
     println!("    --lint --fix       Apply auto-fixes after linting");
     println!("        --in-place     Overwrite the file in place");
     println!("        --diff         Show a diff instead of rewriting");
     println!("    --analyze          Run the static analyzer on the specified file");
+    println!();
+    println!("Configuration Maintenance:");
+    println!("    --configCheck      Check configuration files for issues");
+    println!("    --configFix        Check and fix configuration files");
+    println!();
+    println!("ENVIRONMENT VARIABLES:");
+    println!("    WFL_GLOBAL_CONFIG_PATH  Override the global configuration path");
     println!();
     println!("NOTES:");
     println!("    All runs are now type‑checked and semantically analyzed by default.");
@@ -59,14 +67,46 @@ async fn main() -> io::Result<()> {
     let mut fix_mode = false;
     let mut fix_in_place = false;
     let mut fix_diff = false;
+    let mut config_check_mode = false;
+    let mut config_fix_mode = false;
     let mut file_path = String::new();
 
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
+            "--configCheck" => {
+                if lint_mode || analyze_mode || fix_mode || config_fix_mode {
+                    eprintln!(
+                        "Error: --configCheck cannot be combined with --lint, --analyze, --fix, or --configFix"
+                    );
+                    process::exit(2);
+                }
+                config_check_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                }
+            }
+            "--configFix" => {
+                if lint_mode || analyze_mode || fix_mode || config_check_mode {
+                    eprintln!(
+                        "Error: --configFix cannot be combined with --lint, --analyze, --fix, or --configCheck"
+                    );
+                    process::exit(2);
+                }
+                config_fix_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                }
+            }
             "--lint" => {
-                if analyze_mode {
-                    eprintln!("Error: --lint and --analyze flags are mutually exclusive");
+                if analyze_mode || config_check_mode || config_fix_mode {
+                    eprintln!(
+                        "Error: --lint cannot be combined with --analyze, --configCheck, or --configFix"
+                    );
                     process::exit(2);
                 }
                 lint_mode = true;
@@ -80,8 +120,10 @@ async fn main() -> io::Result<()> {
                 }
             }
             "--analyze" => {
-                if lint_mode || analyze_mode || fix_mode {
-                    eprintln!("Error: --lint, --analyze, and --fix flags are mutually exclusive");
+                if lint_mode || analyze_mode || fix_mode || config_check_mode || config_fix_mode {
+                    eprintln!(
+                        "Error: --analyze cannot be combined with --lint, --fix, --configCheck, or --configFix"
+                    );
                     process::exit(2);
                 }
                 analyze_mode = true;
@@ -153,6 +195,59 @@ async fn main() -> io::Result<()> {
 
     if fix_mode && !lint_mode {
         eprintln!("Error: --fix must be combined with --lint");
+        process::exit(2);
+    }
+
+    if config_check_mode || config_fix_mode {
+        let dir = if !file_path.is_empty() {
+            if Path::new(&file_path).is_file() {
+                Path::new(&file_path)
+                    .parent()
+                    .unwrap_or(Path::new("."))
+                    .to_path_buf()
+            } else {
+                Path::new(&file_path).to_path_buf()
+            }
+        } else {
+            std::env::current_dir()?
+        };
+
+        if config_check_mode {
+            match wfl_config::check_config(&dir) {
+                Ok((_, success)) => {
+                    if success {
+                        println!("\n✅ Configuration check passed!");
+                        process::exit(0);
+                    } else {
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error checking configuration: {}", e);
+                    process::exit(2);
+                }
+            }
+        } else if config_fix_mode {
+            match wfl_config::fix_config(&dir) {
+                Ok((_, success)) => {
+                    if success {
+                        println!("\n✅ Configuration fixed successfully!");
+                        process::exit(0);
+                    } else {
+                        println!("\n⚠️ Some issues could not be fixed automatically.");
+                        process::exit(1);
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error fixing configuration: {}", e);
+                    process::exit(2);
+                }
+            }
+        }
+    }
+
+    if file_path.is_empty() && !config_check_mode && !config_fix_mode {
+        eprintln!("Error: No file path provided");
         process::exit(2);
     }
 

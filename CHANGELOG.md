@@ -20,6 +20,7 @@ All notable changes to the WFL project will be documented in this file.
 - Skip-if-unchanged logic to avoid unnecessary builds
 - Default configuration files included in installers
 - Documentation for building and releasing WFL
+- Configuration validation & auto-fix flags (`--configCheck` and `--configFix`) - 2025-05-19
 
 ### Changed
 - Updated build system to support cross-platform compilation

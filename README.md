@@ -268,6 +268,28 @@ trailing_whitespace = false
 consistent_keyword_case = true
 ```
 
+### Configuration Validation
+
+WFL provides tools to validate and fix configuration files:
+
+```bash
+# Check configuration files for issues
+wfl --configCheck
+
+# Check and automatically fix configuration issues
+wfl --configFix
+```
+
+These commands validate `.wflcfg` files against expected settings and types. The `--configCheck` flag reports issues without making changes, while `--configFix` attempts to automatically correct problems.
+
+Configuration files are searched in the following order:
+1. Global configuration (environment variable `WFL_GLOBAL_CONFIG_PATH` or platform default)
+   - Linux/macOS: `/etc/wfl/wfl.cfg`
+   - Windows: `C:\wfl\config`
+2. Local configuration (`.wflcfg` in the current directory)
+
+Local settings override global ones for overlapping keys.
+
 ### Logging
 
 When enabled, logs are written to both the console (info level and above) and to a `wfl.log` file (all levels).
