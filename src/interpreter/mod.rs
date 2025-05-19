@@ -1493,6 +1493,9 @@ impl Interpreter {
         line: usize,
         column: usize,
     ) -> Result<Value, RuntimeError> {
+        #[cfg(feature = "dhat-ad-hoc")]
+        dhat::ad_hoc_event(1);
+
         #[cfg(debug_assertions)]
         let func_name = func
             .name
