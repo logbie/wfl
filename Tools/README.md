@@ -4,6 +4,46 @@ This directory contains utility tools for the WFL project.
 
 ## Available Tools
 
+### MSI Build Launcher (`launch_msi_build.py`)
+
+A utility for launching MSI build sessions for the WFL project.
+
+#### Features
+- Coordinates version management using `scripts/bump_version.py`
+- Executes the MSI build process using `build_msi.ps1`
+- Creates Windows MSI installer with .wfl file associations
+- Automatically updates documentation in implementation progress files
+- Provides clear feedback on build success/failure
+
+#### Usage
+```bash
+python launch_msi_build.py [options]
+```
+
+Options:
+- `--bump-version`: Increment the build number
+- `--version-override VALUE`: Override the version number (format: YYYY.MM)
+- `--output-dir DIR`: Specify custom output directory for the MSI file
+- `--skip-tests`: Skip running tests before building
+- `--verbose`: Show detailed output during execution
+
+#### Examples
+
+Launch a build with the current version:
+```bash
+python launch_msi_build.py
+```
+
+Launch a build with an incremented version number:
+```bash
+python launch_msi_build.py --bump-version
+```
+
+Launch a build with a specific version:
+```bash
+python launch_msi_build.py --version-override 2025.6
+```
+
 ### WFL Configuration Checker (`wfl_config_checker.py`)
 
 A utility for checking and fixing WFL configuration files.

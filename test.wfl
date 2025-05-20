@@ -1,0 +1,7 @@
+open file at "nexus.log" as logHandle
+//define action called log_message needs message_text:
+//    wait for open file at "nexus.log" and read content as currentLog
+//    store updatedLog as currentLog with message_text with "\n"
+//    wait for write content updatedLog into logHandle
+//end action
+//log_message with "Starting Nexus WFL Integration Test Suite..."

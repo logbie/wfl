@@ -32,6 +32,7 @@ fn print_help() {
     println!("        --diff         Show a diff instead of rewriting");
     println!("    --analyze          Run the static analyzer on the specified file");
     println!("    --step             Run in single-step execution mode");
+    println!("    --edit             Open the specified file in the default editor");
     println!();
     println!("Configuration Maintenance:");
     println!("    --configCheck      Check configuration files for issues");
@@ -84,6 +85,7 @@ async fn main() -> io::Result<()> {
     let mut config_check_mode = false;
     let mut config_fix_mode = false;
     let mut step_mode = false;
+    let mut edit_mode = false;
     let mut file_path = String::new();
 
     let mut i = 1;
@@ -148,6 +150,23 @@ async fn main() -> io::Result<()> {
                     i += 1;
                 } else {
                     eprintln!("Error: --analyze requires a file path");
+                    process::exit(2);
+                }
+            }
+            "--edit" => {
+                if lint_mode || analyze_mode || fix_mode || config_check_mode || config_fix_mode {
+                    eprintln!(
+                        "Error: --edit cannot be combined with other operation flags"
+                    );
+                    process::exit(2);
+                }
+                edit_mode = true;
+                i += 1;
+                if i < args.len() && !args[i].starts_with("--") {
+                    file_path = args[i].clone();
+                    i += 1;
+                } else {
+                    eprintln!("Error: --edit requires a file path");
                     process::exit(2);
                 }
             }
@@ -269,6 +288,48 @@ async fn main() -> io::Result<()> {
     if file_path.is_empty() && !config_check_mode && !config_fix_mode {
         eprintln!("Error: No file path provided");
         process::exit(2);
+    }
+
+    // Handle edit mode - launch the default editor for the file
+    if edit_mode {
+        let path = Path::new(&file_path);
+        
+        // Ensure the file exists
+        if !path.exists() {
+            // Create an empty file if it doesn't exist
+            println!("File doesn't exist. Creating empty file: {}", file_path);
+            fs::write(&file_path, "")?;
+        }
+        
+        // Use the system's default program to open the file
+        println!("Opening file in default editor: {}", file_path);
+        
+        #[cfg(target_os = "windows")]
+        {
+            use std::process::Command;
+            Command::new("cmd")
+                .args(["/C", "start", "", &file_path])
+                .spawn()?;
+        }
+        
+        #[cfg(target_os = "macos")]
+        {
+            use std::process::Command;
+            Command::new("open")
+                .arg(&file_path)
+                .spawn()?;
+        }
+        
+        #[cfg(target_os = "linux")]
+        {
+            use std::process::Command;
+            Command::new("xdg-open")
+                .arg(&file_path)
+                .spawn()?;
+        }
+        
+        println!("Editor launched. Exiting WFL.");
+        return Ok(());
     }
 
     let input = fs::read_to_string(&file_path)?;

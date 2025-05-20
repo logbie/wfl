@@ -164,6 +164,10 @@ display "Type of list: " with typeof of my list
   - `error_examples/`: Sample scripts demonstrating different error types
 - `wfl-lsp/`: Language Server Protocol implementation
 - `Tools/`: Utility scripts for development
+  - `launch_msi_build.py`: MSI build launcher with version management
+  - `wfl_config_checker.py`: Configuration validation tool
+  - `rust_loc_counter.py`: Statistics for Rust code
+  - `wfl_md_combiner.py`: Markdown documentation combiner
 
 ## Error Reporting and Diagnostics
 
