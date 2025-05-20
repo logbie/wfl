@@ -24,3 +24,8 @@ All notable changes to the WFL project will be documented in this file.
 
 ### Changed
 - Updated build system to support cross-platform compilation
+
+### Fixed
+- Fixed memory leak in closures with weak references to parent environments
+- Improved file I/O with append-mode operations instead of read-modify-write
+- Optimized parser memory allocations to reduce heap churn

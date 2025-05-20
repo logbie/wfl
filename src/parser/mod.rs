@@ -1671,7 +1671,10 @@ impl<'a> Parser<'a> {
                         // Original pattern: "open file at "path" and read content as variable"
                         self.tokens.next(); // Consume "and"
                         self.expect_token(Token::KeywordRead, "Expected 'read' after 'and'")?;
-                        self.expect_token(Token::KeywordContent, "Expected 'content' after 'read'")?;
+                        self.expect_token(
+                            Token::KeywordContent,
+                            "Expected 'content' after 'read'",
+                        )?;
                         self.expect_token(Token::KeywordAs, "Expected 'as' after 'content'")?;
 
                         let variable_name = if let Some(token) = self.tokens.peek().cloned() {
@@ -1716,7 +1719,10 @@ impl<'a> Parser<'a> {
                                 id.clone()
                             } else {
                                 return Err(ParseError::new(
-                                    format!("Expected identifier after 'as', found {:?}", token.token),
+                                    format!(
+                                        "Expected identifier after 'as', found {:?}",
+                                        token.token
+                                    ),
                                     token.line,
                                     token.column,
                                 ));
@@ -1737,7 +1743,10 @@ impl<'a> Parser<'a> {
                         });
                     } else {
                         return Err(ParseError::new(
-                            format!("Expected 'and' or 'as' after file path, found {:?}", next_token.token),
+                            format!(
+                                "Expected 'and' or 'as' after file path, found {:?}",
+                                next_token.token
+                            ),
                             next_token.line,
                             next_token.column,
                         ));
@@ -1860,13 +1869,71 @@ impl<'a> Parser<'a> {
         self.tokens.next(); // Consume "wait"
         self.expect_token(Token::KeywordFor, "Expected 'for' after 'wait'")?;
 
-        let inner = Box::new(self.parse_statement()?);
+        // Check for write mode (append or write)
+        let write_mode = if let Some(token) = self.tokens.peek() {
+            match &token.token {
+                Token::KeywordAppend => {
+                    self.tokens.next(); // Consume "append"
+                    crate::parser::ast::WriteMode::Append
+                }
+                Token::KeywordWrite => {
+                    self.tokens.next(); // Consume "write"
+                    crate::parser::ast::WriteMode::Overwrite
+                }
+                Token::Identifier(id) if id == "write" => {
+                    self.tokens.next(); // Consume "write" identifier
+                    crate::parser::ast::WriteMode::Overwrite
+                }
+                _ => {
+                    let inner = Box::new(self.parse_statement()?);
+                    return Ok(Statement::WaitForStatement {
+                        inner,
+                        line: wait_token_pos.line,
+                        column: wait_token_pos.column,
+                    });
+                }
+            }
+        } else {
+            return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
+        };
 
-        Ok(Statement::WaitForStatement {
-            inner,
-            line: wait_token_pos.line,
-            column: wait_token_pos.column,
-        })
+        if let Some(token) = self.tokens.peek() {
+            // Check for "content" keyword
+            if matches!(token.token, Token::KeywordContent)
+                || matches!(token.token, Token::Identifier(ref id) if id == "content")
+            {
+                self.tokens.next(); // Consume "content"
+
+                let content = self.parse_expression()?;
+
+                self.expect_token(
+                    Token::KeywordInto,
+                    "Expected 'into' after content expression",
+                )?;
+
+                let file = self.parse_expression()?;
+
+                let write_stmt = Statement::WriteFileStatement {
+                    file,
+                    content,
+                    mode: write_mode,
+                    line: wait_token_pos.line,
+                    column: wait_token_pos.column,
+                };
+
+                return Ok(Statement::WaitForStatement {
+                    inner: Box::new(write_stmt),
+                    line: wait_token_pos.line,
+                    column: wait_token_pos.column,
+                });
+            }
+        }
+
+        Err(ParseError::new(
+            "Expected 'content' after 'write' or 'append'".to_string(),
+            wait_token_pos.line,
+            wait_token_pos.column,
+        ))
     }
 
     fn parse_expression_statement(&mut self) -> Result<Statement, ParseError> {

@@ -119,6 +119,7 @@ pub enum Statement {
     WriteFileStatement {
         file: Expression,
         content: Expression,
+        mode: WriteMode,
         line: usize,
         column: usize,
     },
@@ -317,6 +318,12 @@ impl fmt::Display for ParseError {
             self.line, self.column, self.message
         )
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum WriteMode {
+    Overwrite,
+    Append,
 }
 
 impl std::error::Error for ParseError {}
