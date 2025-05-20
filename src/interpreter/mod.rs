@@ -21,6 +21,7 @@ use crate::logging::IndentGuard;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
 use std::cell::RefCell;
+use std::io::{self, Write};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -108,6 +109,7 @@ pub struct Interpreter {
     call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
+    step_mode: bool, // Controls single-step execution mode
 }
 
 #[allow(dead_code)]
@@ -278,6 +280,7 @@ impl Interpreter {
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
+            step_mode: false, // Default to non-step mode
         }
     }
 
@@ -286,6 +289,80 @@ impl Interpreter {
         interpreter.started = Instant::now();
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
+    }
+
+    pub fn set_step_mode(&mut self, step_mode: bool) {
+        self.step_mode = step_mode;
+    }
+
+    fn dump_state(
+        &self,
+        stmt: &Statement,
+        line: usize,
+        _column: usize,
+        env_before: &HashMap<String, Value>,
+    ) {
+        println!("Line {}: {}", line, Self::get_statement_text(stmt));
+
+        let current_env = self.global_env.borrow();
+        let mut changes = Vec::new();
+
+        for (name, value) in current_env.values.iter() {
+            if let Some(old_value) = env_before.get(name) {
+                if !value.eq(old_value) {
+                    changes.push(format!("{} = {} -> {}", name, old_value, value));
+                }
+            } else {
+                changes.push(format!("{} = {}", name, value));
+            }
+        }
+
+        if !changes.is_empty() {
+            println!("Variables changed:");
+            for change in changes {
+                println!("  {}", change);
+            }
+        }
+
+        let call_stack = self.get_call_stack();
+        if !call_stack.is_empty() {
+            println!("Call stack:");
+            for frame in &call_stack {
+                println!("  {} (line {})", frame.func_name, frame.call_line);
+            }
+        }
+    }
+
+    fn get_statement_text(stmt: &Statement) -> String {
+        format!("{:?}", stmt)
+    }
+
+    pub fn prompt_continue(&self) -> bool {
+        loop {
+            print!("continue (y/n)? ");
+            if let Err(e) = io::stdout().flush() {
+                eprintln!("Error flushing stdout: {}", e);
+            }
+
+            let mut input = String::new();
+            match io::stdin().read_line(&mut input) {
+                Ok(_) => {
+                    let input = input.trim().to_lowercase();
+                    match input.as_str() {
+                        "y" => return true,
+                        "n" => return false,
+                        _ => {
+                            println!("Invalid input. Please enter 'y' or 'n'.");
+                            continue;
+                        }
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Error reading input: {}", e);
+                    return false;
+                }
+            }
+        }
     }
 
     pub fn get_call_stack(&self) -> Vec<CallFrame> {
@@ -343,29 +420,35 @@ impl Interpreter {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
 
-        println!(
-            "Starting script execution with {} statements...",
-            program.statements.len()
-        );
+        if !self.step_mode {
+            println!(
+                "Starting script execution with {} statements...",
+                program.statements.len()
+            );
+        }
         exec_trace!("=== Starting program execution ===");
 
         let mut last_value = Value::Null;
         let mut errors = Vec::new();
 
         for (i, statement) in program.statements.iter().enumerate() {
-            println!(
-                "Executing statement {}/{}...",
-                i + 1,
-                program.statements.len()
-            );
-            exec_trace!("Executing statement {}/{}", i + 1, program.statements.len());
-
-            if let Err(err) = self.check_time() {
+            if !self.step_mode {
                 println!(
-                    "Timeout reached at statement {}/{}",
+                    "Executing statement {}/{}...",
                     i + 1,
                     program.statements.len()
                 );
+            }
+            exec_trace!("Executing statement {}/{}", i + 1, program.statements.len());
+
+            if let Err(err) = self.check_time() {
+                if !self.step_mode {
+                    println!(
+                        "Timeout reached at statement {}/{}",
+                        i + 1,
+                        program.statements.len()
+                    );
+                }
                 errors.push(err);
                 return Err(errors);
             }
@@ -376,19 +459,23 @@ impl Interpreter {
             {
                 Ok(value) => {
                     last_value = value;
-                    println!(
-                        "Statement {}/{} completed successfully",
-                        i + 1,
-                        program.statements.len()
-                    );
+                    if !self.step_mode {
+                        println!(
+                            "Statement {}/{} completed successfully",
+                            i + 1,
+                            program.statements.len()
+                        );
+                    }
                 }
                 Err(err) => {
-                    println!(
-                        "Error at statement {}/{}: {:?}",
-                        i + 1,
-                        program.statements.len(),
-                        err
-                    );
+                    if !self.step_mode {
+                        println!(
+                            "Error at statement {}/{}: {:?}",
+                            i + 1,
+                            program.statements.len(),
+                            err
+                        );
+                    }
                     errors.push(err);
                     break; // Stop on first runtime error
                 }
@@ -443,7 +530,39 @@ impl Interpreter {
     ) -> Result<Value, RuntimeError> {
         self.check_time()?;
 
-        match stmt {
+        let env_before = if self.step_mode {
+            self.global_env.borrow().values.clone()
+        } else {
+            HashMap::new()
+        };
+
+        let (line, column) = match stmt {
+            Statement::VariableDeclaration { line, column, .. } => (*line, *column),
+            Statement::Assignment { line, column, .. } => (*line, *column),
+            Statement::IfStatement { line, column, .. } => (*line, *column),
+            Statement::SingleLineIf { line, column, .. } => (*line, *column),
+            Statement::DisplayStatement { line, column, .. } => (*line, *column),
+            Statement::ActionDefinition { line, column, .. } => (*line, *column),
+            Statement::ReturnStatement { line, column, .. } => (*line, *column),
+            Statement::ExpressionStatement { line, column, .. } => (*line, *column),
+            Statement::CountLoop { line, column, .. } => (*line, *column),
+            Statement::ForEachLoop { line, column, .. } => (*line, *column),
+            Statement::WhileLoop { line, column, .. } => (*line, *column),
+            Statement::RepeatUntilLoop { line, column, .. } => (*line, *column),
+            Statement::ForeverLoop { line, column, .. } => (*line, *column),
+            Statement::BreakStatement { line, column, .. } => (*line, *column),
+            Statement::ContinueStatement { line, column, .. } => (*line, *column),
+            Statement::OpenFileStatement { line, column, .. } => (*line, *column),
+            Statement::ReadFileStatement { line, column, .. } => (*line, *column),
+            Statement::WriteFileStatement { line, column, .. } => (*line, *column),
+            Statement::CloseFileStatement { line, column, .. } => (*line, *column),
+            Statement::WaitForStatement { line, column, .. } => (*line, *column),
+            Statement::TryStatement { line, column, .. } => (*line, *column),
+            Statement::HttpGetStatement { line, column, .. } => (*line, *column),
+            Statement::HttpPostStatement { line, column, .. } => (*line, *column),
+        };
+
+        let result = match stmt {
             Statement::VariableDeclaration {
                 name,
                 value,
@@ -1095,7 +1214,16 @@ impl Interpreter {
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
+        };
+
+        if self.step_mode {
+            self.dump_state(stmt, line, column, &env_before);
+            if !self.prompt_continue() {
+                std::process::exit(0);
+            }
         }
+
+        result
     }
 
     async fn execute_block(

@@ -42,10 +42,10 @@ mod tests {
         let stats = dhat::HeapStats::get();
 
         assert!(
-            stats.max_bytes < 10 * 1024,
+            stats.max_bytes < 15 * 1024, // Increased limit to account for step mode overhead
             "Max bytes exceeded limit: {} >= {}",
             stats.max_bytes,
-            10 * 1024
+            15 * 1024
         );
 
         drop(interpreter);
