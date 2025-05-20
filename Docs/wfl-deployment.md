@@ -91,6 +91,32 @@ if (-not (Test-Path "wix")) {
 }
 ```
 
+### 5. File Association Configuration
+
+**Issue**: Custom file associations may not be correctly registered or may conflict with existing applications.
+**Solution**: The WiX configuration in `wix/main.wxs` handles file associations through ProgId elements.
+
+```xml
+<!-- Example file association configuration -->
+<Component Id='binary0' Guid='*'>
+    <File Id='exe0' Name='wfl.exe' KeyPath='yes'/>
+    
+    <!-- File association is defined at the Component level, not inside the File element -->
+    <ProgId Id='wfl.wflfile' Description='WFL Script File'>
+        <Extension Id='wfl' ContentType='application/x-wfl'>
+            <Verb Id='open' Command='Open' TargetFile='exe0' Argument='"%1"' />
+            <Verb Id='edit' Command='Edit' TargetFile='exe0' Argument='--edit "%1"' />
+        </Extension>
+    </ProgId>
+</Component>
+```
+
+Key components:
+- `ProgId`: Defines the program identifier for the file type
+- `Extension`: Specifies the file extension to associate (.wfl)
+- `Verb`: Defines actions that can be performed (Open, Edit)
+- `Icon` attribute on ProgId: References the executable file (with IconIndex) to use as the file type icon
+
 ## Versioning
 
 The WFL project uses a comprehensive versioning system that manages version consistency across multiple files:
@@ -171,6 +197,9 @@ The WFL MSI installer includes the following features:
 - WFL compiler and runtime
 - Default configuration file
 - VS Code extension (optional)
+- .wfl file association with application icon
+- Double-click to execute .wfl files directly
+- Right-click options for opening or editing .wfl files
 - PATH environment variable integration
 - Customizable installation directory
 - Support for 64-bit Windows systems

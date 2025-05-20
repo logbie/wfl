@@ -1,0 +1,7 @@
+06:57:42.4473022 [INFO] WFL execution logging initialized at 2025-05-20 01:57:42 - wfl_exec.log
+06:57:42.447418 [DEBUG] (1) wfl: [src\main.rs:524] EXEC: Starting execution of script: test.wfl
+06:57:42.4476809 [DEBUG] (1) wfl: [src\main.rs:529] EXEC: Program contains 1 statements
+06:57:42.4477926 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:350] EXEC: === Starting program execution ===
+06:57:42.4479065 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:361] EXEC: Executing statement 1/1
+06:57:42.4479627 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:435] EXEC: Executing statement: OpenFileStatement 'logHandle'
+06:57:42.4480246 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1137] EXEC: Evaluating expression: StringLiteral "nexus.log"

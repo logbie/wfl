@@ -1665,39 +1665,90 @@ impl<'a> Parser<'a> {
                     return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
                 };
 
-                self.expect_token(Token::KeywordAnd, "Expected 'and' after file path")?;
-                self.expect_token(Token::KeywordRead, "Expected 'read' after 'and'")?;
-                self.expect_token(Token::KeywordContent, "Expected 'content' after 'read'")?;
-                self.expect_token(Token::KeywordAs, "Expected 'as' after 'content'")?;
+                // Check for both "and read content as" pattern AND direct "as" pattern
+                if let Some(next_token) = self.tokens.peek().cloned() {
+                    if next_token.token == Token::KeywordAnd {
+                        // Original pattern: "open file at "path" and read content as variable"
+                        self.tokens.next(); // Consume "and"
+                        self.expect_token(Token::KeywordRead, "Expected 'read' after 'and'")?;
+                        self.expect_token(Token::KeywordContent, "Expected 'content' after 'read'")?;
+                        self.expect_token(Token::KeywordAs, "Expected 'as' after 'content'")?;
 
-                let variable_name = if let Some(token) = self.tokens.peek().cloned() {
-                    if let Token::Identifier(name) = &token.token {
-                        self.tokens.next(); // Consume the identifier
-                        name.clone()
-                    } else if let Token::KeywordContent = &token.token {
-                        // Special case for "content" as an identifier
-                        self.tokens.next(); // Consume the "content" keyword
-                        "content".to_string()
+                        let variable_name = if let Some(token) = self.tokens.peek().cloned() {
+                            if let Token::Identifier(name) = &token.token {
+                                self.tokens.next(); // Consume the identifier
+                                name.clone()
+                            } else if let Token::KeywordContent = &token.token {
+                                // Special case for "content" as an identifier
+                                self.tokens.next(); // Consume the "content" keyword
+                                "content".to_string()
+                            } else {
+                                return Err(ParseError::new(
+                                    format!(
+                                        "Expected identifier for variable name, found {:?}",
+                                        token.token
+                                    ),
+                                    token.line,
+                                    token.column,
+                                ));
+                            }
+                        } else {
+                            return Err(ParseError::new(
+                                "Unexpected end of input".to_string(),
+                                0,
+                                0,
+                            ));
+                        };
+
+                        return Ok(Statement::ReadFileStatement {
+                            path: path_expr,
+                            variable_name,
+                            line: open_token.line,
+                            column: open_token.column,
+                        });
+                    } else if next_token.token == Token::KeywordAs {
+                        // NEW pattern: "open file at "path" as variable"
+                        self.tokens.next(); // Consume "as"
+
+                        let variable_name = if let Some(token) = self.tokens.peek().cloned() {
+                            if let Token::Identifier(id) = &token.token {
+                                self.tokens.next();
+                                id.clone()
+                            } else {
+                                return Err(ParseError::new(
+                                    format!("Expected identifier after 'as', found {:?}", token.token),
+                                    token.line,
+                                    token.column,
+                                ));
+                            }
+                        } else {
+                            return Err(ParseError::new(
+                                "Unexpected end of input after 'as'".to_string(),
+                                0,
+                                0,
+                            ));
+                        };
+
+                        return Ok(Statement::OpenFileStatement {
+                            path: path_expr,
+                            variable_name,
+                            line: open_token.line,
+                            column: open_token.column,
+                        });
                     } else {
                         return Err(ParseError::new(
-                            format!(
-                                "Expected identifier for variable name, found {:?}",
-                                token.token
-                            ),
-                            token.line,
-                            token.column,
+                            format!("Expected 'and' or 'as' after file path, found {:?}", next_token.token),
+                            next_token.line,
+                            next_token.column,
                         ));
                     }
                 } else {
-                    return Err(ParseError::new("Unexpected end of input".to_string(), 0, 0));
-                };
-
-                return Ok(Statement::ReadFileStatement {
-                    path: path_expr,
-                    variable_name,
-                    line: open_token.line,
-                    column: open_token.column,
-                });
+                    return Err(ParseError::new(
+                        "Unexpected end of input after file path".to_string(),
+                        0,
+                        0,
+                    ));
+                }
             }
         }
 
