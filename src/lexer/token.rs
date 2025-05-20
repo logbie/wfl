@@ -91,6 +91,8 @@ pub enum Token {
     KeywordRead,
     #[token("write")]
     KeywordWrite,
+    #[token("append")]
+    KeywordAppend,
     #[token("content")]
     KeywordContent,
     #[token("into")]

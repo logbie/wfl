@@ -587,6 +587,7 @@ impl TypeChecker {
             Statement::WriteFileStatement {
                 file,
                 content,
+                mode: _,
                 line,
                 column,
             } => {

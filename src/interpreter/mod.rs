@@ -253,6 +253,24 @@ impl IoClient {
         file_handles.remove(handle_id);
         Ok(())
     }
+
+    #[allow(dead_code)]
+    async fn append_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
+        let mut file_handles = self.file_handles.lock().await;
+
+        let (_, file) = match file_handles.get_mut(handle_id) {
+            Some(entry) => entry,
+            None => return Err(format!("Invalid file handle: {}", handle_id)),
+        };
+
+        match AsyncSeekExt::seek(file, std::io::SeekFrom::End(0)).await {
+            Ok(_) => match AsyncWriteExt::write_all(file, content.as_bytes()).await {
+                Ok(_) => Ok(()),
+                Err(e) => Err(format!("Failed to append to file: {}", e)),
+            },
+            Err(e) => Err(format!("Failed to seek to end of file: {}", e)),
+        }
+    }
 }
 
 impl Default for Interpreter {
@@ -982,6 +1000,7 @@ impl Interpreter {
             Statement::WriteFileStatement {
                 file,
                 content,
+                mode,
                 line,
                 column,
             } => {
@@ -1010,9 +1029,19 @@ impl Interpreter {
                     }
                 };
 
-                match self.io_client.write_file(&file_str, &content_str).await {
-                    Ok(_) => Ok(Value::Null),
-                    Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                match mode {
+                    crate::parser::ast::WriteMode::Append => {
+                        match self.io_client.append_file(&file_str, &content_str).await {
+                            Ok(_) => Ok(Value::Null),
+                            Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                        }
+                    }
+                    crate::parser::ast::WriteMode::Overwrite => {
+                        match self.io_client.write_file(&file_str, &content_str).await {
+                            Ok(_) => Ok(Value::Null),
+                            Err(e) => Err(RuntimeError::new(e, *line, *column)),
+                        }
+                    }
                 }
             }
             Statement::CloseFileStatement { file, line, column } => {
