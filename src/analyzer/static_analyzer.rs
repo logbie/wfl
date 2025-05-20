@@ -139,6 +139,15 @@ impl StaticAnalyzer for Analyzer {
             self.collect_variable_declarations(statement, &mut variable_usages);
         }
 
+        // In the first pass, collect all declarations
+        for statement in &program.statements {
+            if let Statement::VariableDeclaration { value, .. } = statement {
+                // Mark variables used in variable declarations
+                self.mark_used_in_expression(value, &mut variable_usages);
+            }
+        }
+
+        // In the second pass, mark all used variables in other statements
         for statement in &program.statements {
             self.mark_used_variables(statement, &mut variable_usages);
         }

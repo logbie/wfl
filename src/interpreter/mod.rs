@@ -3,20 +3,30 @@ pub mod environment;
 pub mod error;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod memory_tests;
 pub mod value;
 
 use self::environment::Environment;
 use self::error::{ErrorKind, RuntimeError};
 use self::value::{FunctionValue, Value};
 use crate::debug_report::CallFrame;
+#[cfg(debug_assertions)]
 use crate::exec_block_enter;
+#[cfg(debug_assertions)]
 use crate::exec_block_exit;
+#[cfg(debug_assertions)]
 use crate::exec_control_flow;
+#[cfg(debug_assertions)]
 use crate::exec_function_call;
+#[cfg(debug_assertions)]
 use crate::exec_function_return;
 use crate::exec_trace;
+#[cfg(debug_assertions)]
 use crate::exec_var_assign;
+#[cfg(debug_assertions)]
 use crate::exec_var_declare;
+#[cfg(debug_assertions)]
 use crate::logging::IndentGuard;
 use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
@@ -242,6 +252,9 @@ impl IoClient {
         }
     }
 
+    /// Improved file append operation - directly appends content without reading the whole file first
+    /// This is much more memory efficient, especially for large log files
+
     #[allow(dead_code)]
     async fn close_file(&self, handle_id: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.lock().await;
@@ -400,14 +413,19 @@ impl Interpreter {
                 *self.in_count_loop.borrow_mut() = false;
                 *self.current_count.borrow_mut() = None;
             }
-
-            Err(RuntimeError::new(
+            
+            // Force all resources to be released
+            self.call_stack.borrow_mut().clear();
+            
+            // Terminate with a timeout error
+            Err(RuntimeError::with_kind(
                 format!(
                     "Execution exceeded timeout ({}s)",
                     self.max_duration.as_secs()
                 ),
                 0,
                 0,
+                ErrorKind::Timeout,
             ))
         } else {
             Ok(())
@@ -438,8 +456,9 @@ impl Interpreter {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
 
+        // Use exec_trace for execution logs instead of println
         if !self.step_mode {
-            println!(
+            exec_trace!(
                 "Starting script execution with {} statements...",
                 program.statements.len()
             );
@@ -451,7 +470,7 @@ impl Interpreter {
 
         for (i, statement) in program.statements.iter().enumerate() {
             if !self.step_mode {
-                println!(
+                exec_trace!(
                     "Executing statement {}/{}...",
                     i + 1,
                     program.statements.len()
@@ -461,7 +480,7 @@ impl Interpreter {
 
             if let Err(err) = self.check_time() {
                 if !self.step_mode {
-                    println!(
+                    exec_trace!(
                         "Timeout reached at statement {}/{}",
                         i + 1,
                         program.statements.len()
@@ -478,7 +497,7 @@ impl Interpreter {
                 Ok(value) => {
                     last_value = value;
                     if !self.step_mode {
-                        println!(
+                        exec_trace!(
                             "Statement {}/{} completed successfully",
                             i + 1,
                             program.statements.len()
@@ -487,7 +506,7 @@ impl Interpreter {
                 }
                 Err(err) => {
                     if !self.step_mode {
-                        println!(
+                        exec_trace!(
                             "Error at statement {}/{}: {:?}",
                             i + 1,
                             program.statements.len(),

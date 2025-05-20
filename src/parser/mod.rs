@@ -352,7 +352,7 @@ impl<'a> Parser<'a> {
                 Token::KeywordIs => {
                     self.tokens.next(); // Consume "is"
 
-                    if let Some(next_token) = self.tokens.peek().cloned() {
+            if let Some(next_token) = self.tokens.peek().cloned() {
                         match &next_token.token {
                             Token::KeywordEqual => {
                                 self.tokens.next(); // Consume "equal"

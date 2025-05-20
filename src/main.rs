@@ -510,12 +510,21 @@ async fn main() -> io::Result<()> {
     } else {
         let tokens_with_pos = lex_wfl_with_positions(&input);
 
-        println!("Parsing and executing script...");
+        // Initialize both regular and execution logging first so debug output goes to log
+        let log_path = script_dir.join("wfl.log");
+        wfl::init_loggers(&log_path, script_dir);
+
+        if config.logging_enabled {
+            info!("WebFirst Language started with script: {}", &file_path);
+        }
+
+        // Use exec_trace for compilation debug output
+        exec_trace!("Parsing and executing script...");
         let mut parser = Parser::new(&tokens_with_pos);
         match parser.parse() {
             Ok(program) => {
-                println!("AST: [large output suppressed]");
-                println!("Program has {} statements", program.statements.len());
+                exec_trace!("AST: [large output suppressed]");
+                exec_trace!("Program has {} statements", program.statements.len());
 
                 let mut analyzer = Analyzer::new();
                 let mut reporter = DiagnosticReporter::new();
@@ -527,7 +536,7 @@ async fn main() -> io::Result<()> {
                     }
                     process::exit(2);
                 }
-                println!("Semantic analysis passed.");
+                exec_trace!("Semantic analysis passed.");
 
                 let mut tc = TypeChecker::new();
                 if let Err(errors) = tc.check_types(&program) {
@@ -536,18 +545,10 @@ async fn main() -> io::Result<()> {
                     }
                     process::exit(2);
                 }
-                println!("Type checking passed.");
+                exec_trace!("Type checking passed.");
 
-                println!("Script directory: {:?}", script_dir);
-                println!("Timeout seconds: {}", config.timeout_seconds);
-
-                // Initialize both regular and execution logging
-                let log_path = script_dir.join("wfl.log");
-                wfl::init_loggers(&log_path, script_dir);
-
-                if config.logging_enabled {
-                    info!("WebFirst Language started with script: {}", &file_path);
-                }
+                exec_trace!("Script directory: {:?}", script_dir);
+                exec_trace!("Timeout seconds: {}", config.timeout_seconds);
 
                 // Log execution start if execution logging is enabled
                 exec_trace!("Starting execution of script: {}", &file_path);
@@ -571,7 +572,7 @@ async fn main() -> io::Result<()> {
                         if config.logging_enabled {
                             info!("Program executed successfully");
                         }
-                        println!("Execution completed successfully. Result: {:?}", result)
+                        exec_trace!("Execution completed successfully. Result: {:?}", result)
                     }
                     Err(errors) => {
                         if config.logging_enabled {

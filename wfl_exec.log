@@ -1,7 +1,46 @@
-08:49:19.0704746 [INFO] WFL execution logging initialized at 2025-05-20 03:49:19 - wfl_exec.log
-08:49:19.0706202 [DEBUG] (1) wfl: [src\main.rs:559] EXEC: Starting execution of script: test.wfl
-08:49:19.0710602 [DEBUG] (1) wfl: [src\main.rs:572] EXEC: Program contains 1 statements
-08:49:19.0712289 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:429] EXEC: === Starting program execution ===
-08:49:19.0714272 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:442] EXEC: Executing statement 1/1
-08:49:19.0714979 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:522] EXEC: Executing statement: OpenFileStatement 'logHandle'
-08:49:19.0715699 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1265] EXEC: Evaluating expression: StringLiteral "nexus.log"
+12:45:47.5314345 [INFO] WFL execution logging initialized at 2025-05-20 07:45:47 - wfl_exec.log
+12:45:47.531596 [DEBUG] (1) wfl: [src\main.rs:522] EXEC: Parsing and executing script...
+12:45:47.531747 [DEBUG] (1) wfl: [src\main.rs:526] EXEC: AST: [large output suppressed]
+12:45:47.5317886 [DEBUG] (1) wfl: [src\main.rs:527] EXEC: Program has 4 statements
+12:45:47.5319793 [DEBUG] (1) wfl: [src\main.rs:539] EXEC: Semantic analysis passed.
+12:45:47.532122 [DEBUG] (1) wfl: [src\main.rs:548] EXEC: Type checking passed.
+12:45:47.5321637 [DEBUG] (1) wfl: [src\main.rs:550] EXEC: Script directory: ""
+12:45:47.532202 [DEBUG] (1) wfl: [src\main.rs:551] EXEC: Timeout seconds: 60
+12:45:47.5322403 [DEBUG] (1) wfl: [src\main.rs:554] EXEC: Starting execution of script: test.wfl
+12:45:47.5326486 [DEBUG] (1) wfl: [src\main.rs:567] EXEC: Program contains 4 statements
+12:45:47.532704 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:461] EXEC: Starting script execution with 4 statements...
+12:45:47.5327425 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:466] EXEC: === Starting program execution ===
+12:45:47.532782 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:473] EXEC: Executing statement 1/4...
+12:45:47.5328195 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:479] EXEC: Executing statement 1/4
+12:45:47.5328664 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:559] EXEC: Executing statement: VariableDeclaration 'a'
+12:45:47.5329309 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: IntegerLiteral 6
+12:45:47.5329958 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:611] EXEC: Declaration: 'a' = 6
+12:45:47.5330602 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:500] EXEC: Statement 1/4 completed successfully
+12:45:47.5330984 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:473] EXEC: Executing statement 2/4...
+12:45:47.5331357 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:479] EXEC: Executing statement 2/4
+12:45:47.5331734 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:559] EXEC: Executing statement: VariableDeclaration 'b'
+12:45:47.5332116 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: IntegerLiteral 2
+12:45:47.5332492 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:611] EXEC: Declaration: 'b' = 2
+12:45:47.5332976 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:500] EXEC: Statement 2/4 completed successfully
+12:45:47.5333351 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:473] EXEC: Executing statement 3/4...
+12:45:47.5333723 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:479] EXEC: Executing statement 3/4
+12:45:47.5334097 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:559] EXEC: Executing statement: VariableDeclaration 'add_result'
+12:45:47.5334498 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: BinaryOperation 'Plus'
+12:45:47.5334942 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: Variable 'a'
+12:45:47.5335415 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: Variable 'b'
+12:45:47.533584 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:611] EXEC: Declaration: 'add_result' = 8
+12:45:47.5336268 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:500] EXEC: Statement 3/4 completed successfully
+12:45:47.5336644 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:473] EXEC: Executing statement 4/4...
+12:45:47.5337018 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:479] EXEC: Executing statement 4/4
+12:45:47.5337396 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:559] EXEC: Executing statement: IfStatement
+12:45:47.5337956 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: BinaryOperation 'Equals'
+12:45:47.5338346 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: Variable 'add_result'
+12:45:47.5338734 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC: Evaluating expression: IntegerLiteral 10
+12:45:47.533917 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:640] EXEC: Control flow: if condition = false
+12:45:47.5339599 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:655] EXEC:   ┌─ Block entry: else branch
+12:45:47.5340018 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1294] EXEC:   Executing block of 1 statements
+12:45:47.5340412 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:559] EXEC:     Executing statement: DisplayStatement
+12:45:47.5340894 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1313] EXEC:     Evaluating expression: StringLiteral "no"
+12:45:47.5342574 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:   └─ Block exit: else branch
+12:45:47.5343264 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:500] EXEC: Statement 4/4 completed successfully
+12:45:47.5343855 [DEBUG] (1) wfl: [src\main.rs:575] EXEC: Execution completed successfully. Result: null
