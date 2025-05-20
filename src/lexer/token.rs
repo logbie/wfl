@@ -115,6 +115,8 @@ pub enum Token {
     KeywordMinus,
     #[token("times")]
     KeywordTimes,
+#[token("divided by")]
+    KeywordDividedBy,
     #[token("divided")]
     KeywordDivided, // e.g., "divided by"
     #[token("by")]

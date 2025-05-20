@@ -25,7 +25,7 @@ otherwise:
     display "no"
 end check
 
-// Test Multiplication
+// Test Division
 store div_result as a divided by b        // 6 / 2 = 3
 check if div_result is equal to 3:
     display "yes"
@@ -33,14 +33,15 @@ otherwise:
     display "no"
 end check
 
-
 // Test floating-point division accuracy (5/2 = 2.5)
 store x as 5
 store y as 2
 store frac_result as x divided by y    // 5 / 2 = 2.5
-// Check by multiplying result by 2 to see if we get back 5
-check if frac_result times 2 is equal to x:
-   display "Fractional division test: PASS"
+store doubled as frac_result times 2
+
+// Check if doubled equals x
+check if doubled is equal to x:
+    display "Fractional division test: PASS"
 otherwise:
     display "Fractional division test: FAIL (expected 2.5, got " with frac_result with ")"
 end check

@@ -1,5 +1,24 @@
 # Implementation Progress - May 20, 2025
 
+## Parser Bugfixes
+
+- Fixed infinite loop in the parser when encountering "divided by" operator
+  - Added a new `KeywordDividedBy` token to handle "divided by" as a single token
+  - Modified the parser to properly consume both tokens when "divided" and "by" appear separately
+  - Added progress assertion to catch any infinite loops early during parsing
+  - Added special case handling for end-of-file tokens to prevent loops at the end of files
+  
+- Improved if-statement parsing and error handling
+  - Enhanced code in the `parse_if_statement` method to handle tokens more robustly
+  - Fixed borrow checker issues in the end-check token handling
+  - Added more descriptive error messages for missing or unexpected tokens
+  
+- Added debug output for parser progress
+  - Added token processing logs to help identify issues during parsing
+  - Implemented special case for end-of-file tokens to avoid infinite loops
+
+These changes make the parser more robust against infinite loops, improve error reporting, and enhance the overall reliability of the parsing process.
+
 ## Lexer Position Calculation Fix
 
 - Fixed issue with token column position reporting in the lexer output

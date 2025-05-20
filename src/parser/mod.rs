@@ -25,6 +25,10 @@ impl<'a> Parser<'a> {
         program.statements.reserve(self.tokens.clone().count() / 5);
 
         while self.tokens.peek().is_some() {
+            let start_len = self.tokens.clone().count();
+            
+            // Debug output removed - no longer needed once parser is fixed
+            
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(statement),
                 Err(error) => {
@@ -32,6 +36,24 @@ impl<'a> Parser<'a> {
                     self.synchronize(); // Skip to next statement on error
                 }
             }
+            
+            let end_len = self.tokens.clone().count();
+            
+            // Special case for end of file - if we have processed all meaningful tokens,
+            // and only trailing tokens remain (if any), just break
+            if let Some(token) = self.tokens.peek() {
+                if token.token == Token::KeywordEnd && start_len <= 2 {
+                    // If we're at the end with just 1-2 tokens left, consume them and break
+                    while self.tokens.next().is_some() {}
+                    break;
+                }
+            }
+            
+            assert!(
+                end_len < start_len,
+                "Parser made no progress - token {:?} caused infinite loop",
+                self.tokens.peek()
+            );
         }
 
         if self.errors.is_empty() {
@@ -325,29 +347,17 @@ impl<'a> Parser<'a> {
                     self.tokens.next(); // Consume "times"
                     Some((Operator::Multiply, 2))
                 }
+                Token::KeywordDividedBy => {
+                    self.tokens.next(); // Consume "divided by"
+                    Some((Operator::Divide, 2))
+                }
                 Token::KeywordDivided => {
-                    self.tokens.next();
-                    if let Some(by_token) = self.tokens.peek().cloned() {
-                        if matches!(by_token.token, Token::KeywordBy) {
-                            self.tokens.next(); // Consume "by"
-                            Some((Operator::Divide, 2))
-                        } else {
-                            return Err(ParseError::new(
-                                format!(
-                                    "Expected 'by' after 'divided', found {:?}",
-                                    by_token.token
-                                ),
-                                by_token.line,
-                                by_token.column,
-                            ));
-                        }
-                    } else {
-                        return Err(ParseError::new(
-                            "Unexpected end of input after 'divided'".into(),
-                            line,
-                            column,
-                        ));
-                    }
+                    self.tokens.next(); // Consume "divided"
+                    
+                    // Still handle the legacy case where "divided" and "by" are separate tokens
+                    self.expect_token(Token::KeywordBy, "Expected 'by' after 'divided'")?;
+                    self.tokens.next(); // Consume "by"
+                    Some((Operator::Divide, 2))
                 }
                 Token::KeywordIs => {
                     self.tokens.next(); // Consume "is"
@@ -1064,7 +1074,7 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_if_statement(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.next(); // Consume "check"
+        let check_token = self.tokens.next().unwrap(); // Consume "check" and store for line/column info
 
         self.expect_token(Token::KeywordIf, "Expected 'if' after 'check'")?;
 
@@ -1086,6 +1096,7 @@ impl<'a> Parser<'a> {
             }
         }
 
+        // Handle the "otherwise" clause (else block)
         let else_block = if let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::KeywordOtherwise) {
                 self.tokens.next(); // Consume "otherwise"
@@ -1113,22 +1124,51 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.expect_token(Token::KeywordEnd, "Expected 'end' after if block")?;
-        self.expect_token(Token::KeywordCheck, "Expected 'check' after 'end'")?;
+        // Handle the "end check" part
+        if let Some(&token) = self.tokens.peek() {
+            
+            if matches!(token.token, Token::KeywordEnd) {
+                self.tokens.next(); // Consume "end"
+                
+                // Look for the "check" after "end"
+                if let Some(&next_token) = self.tokens.peek() {
+                    
+                    if matches!(next_token.token, Token::KeywordCheck) {
+                        self.tokens.next(); // Consume "check"
+                    } else {
+                        return Err(ParseError::new(
+                            format!("Expected 'check' after 'end', found {:?}", next_token.token),
+                            next_token.line, 
+                            next_token.column
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new(
+                        "Expected 'check' after 'end', found end of input".to_string(),
+                        token.line,
+                        token.column
+                    ));
+                }
+            } else {
+                return Err(ParseError::new(
+                    format!("Expected 'end' after if block, found {:?}", token.token),
+                    token.line,
+                    token.column
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected 'end' after if block, found end of input".to_string(),
+                0, 0
+            ));
+        }
 
-        let default_token = TokenWithPosition {
-            token: Token::KeywordCheck,
-            line: 0,
-            column: 0,
-            length: 0,
-        };
-        let token_pos = self.tokens.peek().map_or(&default_token, |v| v);
         Ok(Statement::IfStatement {
             condition,
             then_block,
             else_block,
-            line: token_pos.line,
-            column: token_pos.column,
+            line: check_token.line,
+            column: check_token.column,
         })
     }
 

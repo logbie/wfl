@@ -1,0 +1,315 @@
+AST output for: test.wfl
+==============================================
+
+Program with 10 statements:
+
+Statement #1: VariableDeclaration {
+    name: "a",
+    value: Literal(
+        Float(
+            6.5,
+        ),
+        1,
+        12,
+    ),
+    line: 1,
+    column: 1,
+}
+
+Statement #2: VariableDeclaration {
+    name: "b",
+    value: Literal(
+        Integer(
+            2,
+        ),
+        2,
+        12,
+    ),
+    line: 2,
+    column: 1,
+}
+
+Statement #3: VariableDeclaration {
+    name: "add_result",
+    value: BinaryOperation {
+        left: Variable(
+            "a",
+            5,
+            21,
+        ),
+        operator: Plus,
+        right: Variable(
+            "b",
+            5,
+            28,
+        ),
+        line: 5,
+        column: 23,
+    },
+    line: 5,
+    column: 1,
+}
+
+Statement #4: IfStatement {
+    condition: BinaryOperation {
+        left: Variable(
+            "add_result",
+            6,
+            10,
+        ),
+        operator: Equals,
+        right: Literal(
+            Integer(
+                8,
+            ),
+            6,
+            33,
+        ),
+        line: 6,
+        column: 21,
+    },
+    then_block: [
+        DisplayStatement {
+            value: Literal(
+                String(
+                    "yes",
+                ),
+                7,
+                13,
+            ),
+            line: 8,
+            column: 1,
+        },
+    ],
+    else_block: Some(
+        [
+            DisplayStatement {
+                value: Literal(
+                    String(
+                        "no",
+                    ),
+                    9,
+                    13,
+                ),
+                line: 10,
+                column: 1,
+            },
+        ],
+    ),
+    line: 13,
+    column: 1,
+}
+
+Statement #5: VariableDeclaration {
+    name: "sub_result",
+    value: BinaryOperation {
+        left: Variable(
+            "a",
+            13,
+            21,
+        ),
+        operator: Minus,
+        right: Variable(
+            "b",
+            13,
+            29,
+        ),
+        line: 13,
+        column: 23,
+    },
+    line: 13,
+    column: 1,
+}
+
+Statement #6: IfStatement {
+    condition: BinaryOperation {
+        left: Variable(
+            "sub_result",
+            14,
+            10,
+        ),
+        operator: Equals,
+        right: Literal(
+            Integer(
+                4,
+            ),
+            14,
+            33,
+        ),
+        line: 14,
+        column: 21,
+    },
+    then_block: [
+        DisplayStatement {
+            value: Literal(
+                String(
+                    "yes",
+                ),
+                15,
+                13,
+            ),
+            line: 16,
+            column: 1,
+        },
+    ],
+    else_block: Some(
+        [
+            DisplayStatement {
+                value: Literal(
+                    String(
+                        "no",
+                    ),
+                    17,
+                    13,
+                ),
+                line: 18,
+                column: 1,
+            },
+        ],
+    ),
+    line: 21,
+    column: 1,
+}
+
+Statement #7: VariableDeclaration {
+    name: "multi_result",
+    value: BinaryOperation {
+        left: Variable(
+            "a",
+            21,
+            23,
+        ),
+        operator: Multiply,
+        right: Variable(
+            "b",
+            21,
+            31,
+        ),
+        line: 21,
+        column: 25,
+    },
+    line: 21,
+    column: 1,
+}
+
+Statement #8: IfStatement {
+    condition: BinaryOperation {
+        left: Variable(
+            "multi_result",
+            22,
+            10,
+        ),
+        operator: Equals,
+        right: Literal(
+            Integer(
+                12,
+            ),
+            22,
+            35,
+        ),
+        line: 22,
+        column: 23,
+    },
+    then_block: [
+        DisplayStatement {
+            value: Literal(
+                String(
+                    "yes",
+                ),
+                23,
+                13,
+            ),
+            line: 24,
+            column: 1,
+        },
+    ],
+    else_block: Some(
+        [
+            DisplayStatement {
+                value: Literal(
+                    String(
+                        "no",
+                    ),
+                    25,
+                    13,
+                ),
+                line: 26,
+                column: 1,
+            },
+        ],
+    ),
+    line: 29,
+    column: 1,
+}
+
+Statement #9: VariableDeclaration {
+    name: "div_result",
+    value: BinaryOperation {
+        left: Variable(
+            "a",
+            29,
+            21,
+        ),
+        operator: Divide,
+        right: Variable(
+            "b",
+            29,
+            34,
+        ),
+        line: 29,
+        column: 23,
+    },
+    line: 29,
+    column: 1,
+}
+
+Statement #10: IfStatement {
+    condition: BinaryOperation {
+        left: Variable(
+            "div_result",
+            30,
+            10,
+        ),
+        operator: Equals,
+        right: Literal(
+            Integer(
+                3,
+            ),
+            30,
+            33,
+        ),
+        line: 30,
+        column: 21,
+    },
+    then_block: [
+        DisplayStatement {
+            value: Literal(
+                String(
+                    "yes",
+                ),
+                31,
+                13,
+            ),
+            line: 32,
+            column: 1,
+        },
+    ],
+    else_block: Some(
+        [
+            DisplayStatement {
+                value: Literal(
+                    String(
+                        "no",
+                    ),
+                    33,
+                    13,
+                ),
+                line: 34,
+                column: 1,
+            },
+        ],
+    ),
+    line: 0,
+    column: 0,
+}
+
