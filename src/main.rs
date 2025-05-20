@@ -155,9 +155,7 @@ async fn main() -> io::Result<()> {
             }
             "--edit" => {
                 if lint_mode || analyze_mode || fix_mode || config_check_mode || config_fix_mode {
-                    eprintln!(
-                        "Error: --edit cannot be combined with other operation flags"
-                    );
+                    eprintln!("Error: --edit cannot be combined with other operation flags");
                     process::exit(2);
                 }
                 edit_mode = true;
@@ -293,17 +291,17 @@ async fn main() -> io::Result<()> {
     // Handle edit mode - launch the default editor for the file
     if edit_mode {
         let path = Path::new(&file_path);
-        
+
         // Ensure the file exists
         if !path.exists() {
             // Create an empty file if it doesn't exist
             println!("File doesn't exist. Creating empty file: {}", file_path);
             fs::write(&file_path, "")?;
         }
-        
+
         // Use the system's default program to open the file
         println!("Opening file in default editor: {}", file_path);
-        
+
         #[cfg(target_os = "windows")]
         {
             use std::process::Command;
@@ -311,23 +309,19 @@ async fn main() -> io::Result<()> {
                 .args(["/C", "start", "", &file_path])
                 .spawn()?;
         }
-        
+
         #[cfg(target_os = "macos")]
         {
             use std::process::Command;
-            Command::new("open")
-                .arg(&file_path)
-                .spawn()?;
+            Command::new("open").arg(&file_path).spawn()?;
         }
-        
+
         #[cfg(target_os = "linux")]
         {
             use std::process::Command;
-            Command::new("xdg-open")
-                .arg(&file_path)
-                .spawn()?;
+            Command::new("xdg-open").arg(&file_path).spawn()?;
         }
-        
+
         println!("Editor launched. Exiting WFL.");
         return Ok(());
     }

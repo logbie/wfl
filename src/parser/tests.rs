@@ -162,7 +162,7 @@ fn test_parse_wait_for_open_file() {
         }
         assert!(result.is_ok());
     }
-    
+
     // Test the new syntax: "open file at "path" as variable"
     {
         let input = r#"open file at "nexus.log" as logHandle"#;
@@ -182,7 +182,12 @@ fn test_parse_wait_for_open_file() {
         }
         assert!(result.is_ok());
 
-        if let Ok(Statement::OpenFileStatement { path, variable_name, .. }) = result {
+        if let Ok(Statement::OpenFileStatement {
+            path,
+            variable_name,
+            ..
+        }) = result
+        {
             if let Expression::Literal(Literal::String(s), ..) = path {
                 assert_eq!(s, "nexus.log");
             } else {
