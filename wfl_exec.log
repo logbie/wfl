@@ -1,7 +1,7 @@
-06:57:42.4473022 [INFO] WFL execution logging initialized at 2025-05-20 01:57:42 - wfl_exec.log
-06:57:42.447418 [DEBUG] (1) wfl: [src\main.rs:524] EXEC: Starting execution of script: test.wfl
-06:57:42.4476809 [DEBUG] (1) wfl: [src\main.rs:529] EXEC: Program contains 1 statements
-06:57:42.4477926 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:350] EXEC: === Starting program execution ===
-06:57:42.4479065 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:361] EXEC: Executing statement 1/1
-06:57:42.4479627 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:435] EXEC: Executing statement: OpenFileStatement 'logHandle'
-06:57:42.4480246 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1137] EXEC: Evaluating expression: StringLiteral "nexus.log"
+08:49:19.0704746 [INFO] WFL execution logging initialized at 2025-05-20 03:49:19 - wfl_exec.log
+08:49:19.0706202 [DEBUG] (1) wfl: [src\main.rs:559] EXEC: Starting execution of script: test.wfl
+08:49:19.0710602 [DEBUG] (1) wfl: [src\main.rs:572] EXEC: Program contains 1 statements
+08:49:19.0712289 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:429] EXEC: === Starting program execution ===
+08:49:19.0714272 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:442] EXEC: Executing statement 1/1
+08:49:19.0714979 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:522] EXEC: Executing statement: OpenFileStatement 'logHandle'
+08:49:19.0715699 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1265] EXEC: Evaluating expression: StringLiteral "nexus.log"

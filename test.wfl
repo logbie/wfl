@@ -1,7 +1,14 @@
 open file at "nexus.log" as logHandle
 
-define action called log_message needs message_text:
-    wait for append message_text with "\n" into logHandle
-end action
+//define action called test
+//    store a as 6
+//    store b as 2
+//end action
 
-log_message with "Starting Nexus WFL Integration Test Suite..."
+
+//define action called log_message needs message_text:
+//    wait for open file at "nexus.log" and read content as currentLog
+//    store updatedLog as currentLog with message_text with "\n"
+//    wait for write content updatedLog into logHandle
+//end action
+//log_message with "Starting Nexus WFL Integration Test Suite..."
