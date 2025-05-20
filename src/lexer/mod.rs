@@ -120,11 +120,12 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                 if let Some(ref mut id) = current_id {
                     id.push(' ');
                     id.push_str(&word);
-                    current_id_length = span.end - current_id_start_column;
+                    // For multi-word identifiers, we need to account for the space and additional word
+                    current_id_length += 1 + token_length; // +1 for the space
                 } else {
                     current_id = Some(intern_string(word));
                     current_id_start_line = token_line;
-                    current_id_start_column = span.start;
+                    current_id_start_column = token_column;
                     current_id_length = token_length;
                 }
             }

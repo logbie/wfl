@@ -1,5 +1,23 @@
 # Implementation Progress - May 20, 2025
 
+## Lexer Position Calculation Fix
+
+- Fixed issue with token column position reporting in the lexer output
+- The lexer was incorrectly using absolute file offsets as column positions instead of relative positions within each line
+- This caused column numbers to be much larger than the actual line length for tokens later in the file
+- Modified the `lex_wfl_with_positions` function in `src/lexer/mod.rs` to correctly calculate column positions relative to the current line
+- Ensured column values represent positions within a line (starting from 1) rather than offsets from the start of the file
+
+## Diagnostic CLI Flags Addition
+
+- Added two new command-line flags to assist in debugging and development:
+  - `--lex`: Dumps the lexer output into a text file and exits
+  - `--ast`: Dumps the abstract syntax tree into a text file and exits
+- Both flags can be used individually or together
+- When either flag is used, the interpreter will not proceed with program execution
+- Output files are created with the same name as the input file plus `.lex.txt` or `.ast.txt` extensions
+- Added detailed formatting for both lexer and AST output to enhance readability
+
 ## Interpreter Debug Output Redirection
 
 - Fixed issue where interpreter debug output was being displayed alongside program output
@@ -54,6 +72,13 @@ end check
    - Added comments to clarify the separation of debug output vs program output
    - Maintained all the same information in the logs for debugging purposes
 
+5. For the new diagnostic flags:
+   - Added `lex_dump` and `ast_dump` boolean flags to track when these options are used
+   - Modified command-line argument parsing to recognize `--lex` and `--ast`
+   - Added detailed formatting code for both outputs
+   - Created helper function for writing to output files
+   - Implemented proper error handling for file writing operations
+
 ## Next Steps
 
 1. Add unit tests specifically for variable usage analysis in binary operations
@@ -61,3 +86,6 @@ end check
    - Variables that are written but never read
    - Redundant variable assignments
 3. Consider adding debug/trace level configuration to allow more granular control over logging verbosity
+4. Consider enhancing the lexer and AST dumps:
+   - Add optional JSON output format for programmatic processing
+   - Add visualization options for the AST (e.g., tree view)

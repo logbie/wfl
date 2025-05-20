@@ -33,6 +33,8 @@ fn print_help() {
     println!("    --analyze          Run the static analyzer on the specified file");
     println!("    --step             Run in single-step execution mode");
     println!("    --edit             Open the specified file in the default editor");
+    println!("    --lex              Dump lexer output to a text file and exit");
+    println!("    --ast              Dump abstract syntax tree to a text file and exit");
     println!();
     println!("Configuration Maintenance:");
     println!("    --configCheck      Check configuration files for issues");
@@ -86,11 +88,21 @@ async fn main() -> io::Result<()> {
     let mut config_fix_mode = false;
     let mut step_mode = false;
     let mut edit_mode = false;
+    let mut lex_dump = false;
+    let mut ast_dump = false;
     let mut file_path = String::new();
 
     let mut i = 1;
     while i < args.len() {
         match args[i].as_str() {
+            "--lex" => {
+                lex_dump = true;
+                i += 1;
+            }
+            "--ast" => {
+                ast_dump = true;
+                i += 1;
+            }
             "--configCheck" => {
                 if lint_mode || analyze_mode || fix_mode || config_fix_mode {
                     eprintln!(
@@ -329,6 +341,91 @@ async fn main() -> io::Result<()> {
     let input = fs::read_to_string(&file_path)?;
     let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
     let config = config::load_config(script_dir);
+
+    // Handle lexer and AST dump flags
+    if lex_dump || ast_dump {
+        let tokens_with_pos = lex_wfl_with_positions(&input);
+        
+        // Function to write data to a file with appropriate error handling
+        fn write_to_file(path: &str, content: &str) -> io::Result<()> {
+            let mut file = fs::File::create(path)?;
+            file.write_all(content.as_bytes())?;
+            Ok(())
+        }
+
+        // Handle lexer dump
+        if lex_dump {
+            let lex_output_path = format!("{}.lex.txt", file_path);
+            
+            // Format lexer output
+            let mut lex_output = String::new();
+            lex_output.push_str(&format!("Lexer output for: {}\n", file_path));
+            lex_output.push_str("==============================================\n\n");
+            
+            for (i, token) in tokens_with_pos.iter().enumerate() {
+                lex_output.push_str(&format!(
+                    "{:4}: {:?} at line {}, column {} (length: {})\n",
+                    i, token.token, token.line, token.column, token.length
+                ));
+            }
+            
+            // Write to file
+            if let Err(e) = write_to_file(&lex_output_path, &lex_output) {
+                eprintln!("Error writing lexer output to {}: {}", lex_output_path, e);
+                process::exit(1);
+            }
+            
+            println!("Lexer output written to: {}", lex_output_path);
+        }
+
+        // Handle AST dump
+        if ast_dump {
+            let ast_output_path = format!("{}.ast.txt", file_path);
+            
+            // Parse tokens into AST
+            match Parser::new(&tokens_with_pos).parse() {
+                Ok(program) => {
+                    // Format AST output
+                    let mut ast_output = String::new();
+                    ast_output.push_str(&format!("AST output for: {}\n", file_path));
+                    ast_output.push_str("==============================================\n\n");
+                    ast_output.push_str(&format!("Program with {} statements:\n\n", program.statements.len()));
+                    
+                    // Format each statement
+                    for (i, stmt) in program.statements.iter().enumerate() {
+                        ast_output.push_str(&format!("Statement #{}: {:#?}\n\n", i + 1, stmt));
+                    }
+                    
+                    // Write to file
+                    if let Err(e) = write_to_file(&ast_output_path, &ast_output) {
+                        eprintln!("Error writing AST output to {}: {}", ast_output_path, e);
+                        process::exit(1);
+                    }
+                    
+                    println!("AST output written to: {}", ast_output_path);
+                },
+                Err(errors) => {
+                    eprintln!("Cannot generate AST dump due to parse errors:");
+                    
+                    let mut reporter = DiagnosticReporter::new();
+                    let file_id = reporter.add_file(&file_path, &input);
+                    
+                    for error in errors {
+                        let diagnostic = reporter.convert_parse_error(file_id, &error);
+                        if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
+                            eprintln!("Error displaying diagnostic: {}", e);
+                            eprintln!("Error: {}", error);
+                        }
+                    }
+                    
+                    process::exit(2);
+                }
+            }
+        }
+        
+        // Exit after dump operations are complete
+        process::exit(0);
+    }
 
     if step_mode {
         println!("Boot phase: Configuration loaded");

@@ -1818,6 +1818,9 @@ impl Interpreter {
         line: usize,
         column: usize,
     ) -> Result<Value, RuntimeError> {
+        #[cfg(feature = "dhat-ad-hoc")]
+        dhat::ad_hoc_event(1); // Track division operations for memory profiling
+        
         match (left, right) {
             (Value::Number(a), Value::Number(b)) => {
                 if b == 0.0 {
@@ -1827,7 +1830,20 @@ impl Interpreter {
                         column,
                     ))
                 } else {
-                    Ok(Value::Number(a / b))
+                    // Calculate the result of the division operation
+                    let result = a / b;
+                    
+                    // Check if the result is valid (not NaN or infinite)
+                    if !result.is_finite() {
+                        return Err(RuntimeError::new(
+                            format!("Division resulted in invalid number: {}", result),
+                            line,
+                            column,
+                        ));
+                    }
+                    
+                    // Return the valid result as a Value::Number
+                    Ok(Value::Number(result))
                 }
             }
             (a, b) => Err(RuntimeError::new(
