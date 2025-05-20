@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::io;
+use std::io::{self, Write};
 use std::path::Path;
 use std::process;
 use wfl::Interpreter;
@@ -31,6 +31,7 @@ fn print_help() {
     println!("        --in-place     Overwrite the file in place");
     println!("        --diff         Show a diff instead of rewriting");
     println!("    --analyze          Run the static analyzer on the specified file");
+    println!("    --step             Run in single-step execution mode");
     println!();
     println!("Configuration Maintenance:");
     println!("    --configCheck      Check configuration files for issues");
@@ -82,6 +83,7 @@ async fn main() -> io::Result<()> {
     let mut fix_diff = false;
     let mut config_check_mode = false;
     let mut config_fix_mode = false;
+    let mut step_mode = false;
     let mut file_path = String::new();
 
     let mut i = 1;
@@ -192,6 +194,16 @@ async fn main() -> io::Result<()> {
                     }
                 }
             }
+            "--step" => {
+                if lint_mode || analyze_mode || fix_mode || config_check_mode || config_fix_mode {
+                    eprintln!(
+                        "Error: --step cannot be combined with --lint, --analyze, --fix, --configCheck, or --configFix"
+                    );
+                    process::exit(2);
+                }
+                step_mode = true;
+                i += 1;
+            }
             _ => {
                 if file_path.is_empty() {
                     file_path = args[i].clone();
@@ -262,6 +274,29 @@ async fn main() -> io::Result<()> {
     let input = fs::read_to_string(&file_path)?;
     let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
     let config = config::load_config(script_dir);
+    
+    if step_mode {
+        println!("Boot phase: Configuration loaded");
+        
+        print!("continue (y/n)? ");
+        if let Err(e) = io::stdout().flush() {
+            eprintln!("Error flushing stdout: {}", e);
+        }
+        
+        let mut input_line = String::new();
+        match io::stdin().read_line(&mut input_line) {
+            Ok(_) => {
+                let input_line = input_line.trim().to_lowercase();
+                if input_line != "y" {
+                    process::exit(0);
+                }
+            }
+            Err(e) => {
+                eprintln!("Error reading input: {}", e);
+                process::exit(1);
+            }
+        }
+    }
 
     if lint_mode {
         let tokens_with_pos = lex_wfl_with_positions(&input);
@@ -463,6 +498,14 @@ async fn main() -> io::Result<()> {
                 exec_trace!("Starting execution of script: {}", &file_path);
 
                 let mut interpreter = Interpreter::with_timeout(config.timeout_seconds);
+                interpreter.set_step_mode(step_mode); // Set step mode from CLI flag
+
+                if step_mode {
+                    println!("Boot phase: Interpreter initialized");
+                    if !interpreter.prompt_continue() {
+                        process::exit(0);
+                    }
+                }
 
                 // Log program details if execution logging is enabled
                 exec_trace!("Program contains {} statements", program.statements.len());
