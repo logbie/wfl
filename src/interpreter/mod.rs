@@ -109,7 +109,7 @@ pub struct Interpreter {
     call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
-    step_mode: bool,  // Controls single-step execution mode
+    step_mode: bool, // Controls single-step execution mode
 }
 
 #[allow(dead_code)]
@@ -280,7 +280,7 @@ impl Interpreter {
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
-            step_mode: false,  // Default to non-step mode
+            step_mode: false, // Default to non-step mode
         }
     }
 
@@ -290,17 +290,23 @@ impl Interpreter {
         interpreter.max_duration = Duration::from_secs(seconds);
         interpreter
     }
-    
+
     pub fn set_step_mode(&mut self, step_mode: bool) {
         self.step_mode = step_mode;
     }
-    
-    fn dump_state(&self, stmt: &Statement, line: usize, _column: usize, env_before: &HashMap<String, Value>) {
+
+    fn dump_state(
+        &self,
+        stmt: &Statement,
+        line: usize,
+        _column: usize,
+        env_before: &HashMap<String, Value>,
+    ) {
         println!("Line {}: {}", line, Self::get_statement_text(stmt));
-        
+
         let current_env = self.global_env.borrow();
         let mut changes = Vec::new();
-        
+
         for (name, value) in current_env.values.iter() {
             if let Some(old_value) = env_before.get(name) {
                 if !value.eq(old_value) {
@@ -310,14 +316,14 @@ impl Interpreter {
                 changes.push(format!("{} = {}", name, value));
             }
         }
-        
+
         if !changes.is_empty() {
             println!("Variables changed:");
             for change in changes {
                 println!("  {}", change);
             }
         }
-        
+
         let call_stack = self.get_call_stack();
         if !call_stack.is_empty() {
             println!("Call stack:");
@@ -326,18 +332,18 @@ impl Interpreter {
             }
         }
     }
-    
+
     fn get_statement_text(stmt: &Statement) -> String {
         format!("{:?}", stmt)
     }
-    
+
     pub fn prompt_continue(&self) -> bool {
         loop {
             print!("continue (y/n)? ");
             if let Err(e) = io::stdout().flush() {
                 eprintln!("Error flushing stdout: {}", e);
             }
-            
+
             let mut input = String::new();
             match io::stdin().read_line(&mut input) {
                 Ok(_) => {
@@ -523,13 +529,13 @@ impl Interpreter {
         env: Rc<RefCell<Environment>>,
     ) -> Result<Value, RuntimeError> {
         self.check_time()?;
-        
+
         let env_before = if self.step_mode {
             self.global_env.borrow().values.clone()
         } else {
             HashMap::new()
         };
-        
+
         let (line, column) = match stmt {
             Statement::VariableDeclaration { line, column, .. } => (*line, *column),
             Statement::Assignment { line, column, .. } => (*line, *column),
@@ -1209,14 +1215,14 @@ impl Interpreter {
                 }
             }
         };
-        
+
         if self.step_mode {
             self.dump_state(stmt, line, column, &env_before);
             if !self.prompt_continue() {
                 std::process::exit(0);
             }
         }
-        
+
         result
     }
 

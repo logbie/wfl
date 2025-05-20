@@ -19,11 +19,17 @@ display x
         .output()
         .expect("Failed to execute command");
 
-    assert!(output_no_step.status.success(), "Command failed without --step flag");
-    
+    assert!(
+        output_no_step.status.success(),
+        "Command failed without --step flag"
+    );
+
     let output_str = String::from_utf8_lossy(&output_no_step.stdout);
-    assert!(!output_str.contains("continue (y/n)?"), 
-            "Output shouldn't contain step mode prompts: {}", output_str);
+    assert!(
+        !output_str.contains("continue (y/n)?"),
+        "Output shouldn't contain step mode prompts: {}",
+        output_str
+    );
 }
 
 #[test]
@@ -47,17 +53,28 @@ store y as 100
 
     {
         let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        stdin.write_all(b"y\ny\ny\ny\ny\n").expect("Failed to write to stdin");
+        stdin
+            .write_all(b"y\ny\ny\ny\ny\n")
+            .expect("Failed to write to stdin");
     }
 
-    let output = child.wait_with_output().expect("Failed to wait for command");
-    
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for command");
+
     let output_str = String::from_utf8_lossy(&output.stdout);
-    assert!(output_str.contains("continue (y/n)?"), 
-            "Output should contain step mode prompts: {}", output_str);
-    
+    assert!(
+        output_str.contains("continue (y/n)?"),
+        "Output should contain step mode prompts: {}",
+        output_str
+    );
+
     let prompt_count = output_str.matches("continue (y/n)?").count();
-    assert!(prompt_count >= 1, "Expected at least 1 prompt, got {}", prompt_count);
+    assert!(
+        prompt_count >= 1,
+        "Expected at least 1 prompt, got {}",
+        prompt_count
+    );
 }
 
 #[test]
@@ -98,15 +115,26 @@ main
         }
     }
 
-    let output = child.wait_with_output().expect("Failed to wait for command");
-    
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for command");
+
     let output_str = String::from_utf8_lossy(&output.stdout);
-    assert!(output_str.contains("Boot phase: Configuration loaded"), 
-            "Output should show boot phase: {}", output_str);
-    assert!(output_str.contains("continue (y/n)?"), 
-            "Output should contain prompts: {}", output_str);
-    assert!(output_str.contains("Program has 4 statements"), 
-            "Output should show program statement count: {}", output_str);
+    assert!(
+        output_str.contains("Boot phase: Configuration loaded"),
+        "Output should show boot phase: {}",
+        output_str
+    );
+    assert!(
+        output_str.contains("continue (y/n)?"),
+        "Output should contain prompts: {}",
+        output_str
+    );
+    assert!(
+        output_str.contains("Program has 4 statements"),
+        "Output should show program statement count: {}",
+        output_str
+    );
 }
 
 #[test]
@@ -136,13 +164,21 @@ end count
         }
     }
 
-    let output = child.wait_with_output().expect("Failed to wait for command");
-    
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for command");
+
     let output_str = String::from_utf8_lossy(&output.stdout);
-    assert!(output_str.contains("loopcounter"), 
-            "Output should show loopcounter variable: {}", output_str);
-    assert!(output_str.contains("Count: 1"), 
-            "Output should show Count: 1: {}", output_str);
+    assert!(
+        output_str.contains("loopcounter"),
+        "Output should show loopcounter variable: {}",
+        output_str
+    );
+    assert!(
+        output_str.contains("Count: 1"),
+        "Output should show Count: 1: {}",
+        output_str
+    );
 }
 
 #[test]
@@ -165,12 +201,20 @@ display x
 
     {
         let stdin = child.stdin.as_mut().expect("Failed to open stdin");
-        stdin.write_all(b"foo\nbar\ny\nn\n").expect("Failed to write to stdin");
+        stdin
+            .write_all(b"foo\nbar\ny\nn\n")
+            .expect("Failed to write to stdin");
     }
 
-    let output = child.wait_with_output().expect("Failed to wait for command");
-    
+    let output = child
+        .wait_with_output()
+        .expect("Failed to wait for command");
+
     let output_str = String::from_utf8_lossy(&output.stdout);
     let prompt_count = output_str.matches("continue (y/n)?").count();
-    assert!(prompt_count >= 1, "Expected at least one prompt, got {}", prompt_count);
+    assert!(
+        prompt_count >= 1,
+        "Expected at least one prompt, got {}",
+        prompt_count
+    );
 }

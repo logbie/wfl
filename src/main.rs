@@ -274,15 +274,15 @@ async fn main() -> io::Result<()> {
     let input = fs::read_to_string(&file_path)?;
     let script_dir = Path::new(&file_path).parent().unwrap_or(Path::new("."));
     let config = config::load_config(script_dir);
-    
+
     if step_mode {
         println!("Boot phase: Configuration loaded");
-        
+
         print!("continue (y/n)? ");
         if let Err(e) = io::stdout().flush() {
             eprintln!("Error flushing stdout: {}", e);
         }
-        
+
         let mut input_line = String::new();
         match io::stdin().read_line(&mut input_line) {
             Ok(_) => {
