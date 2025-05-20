@@ -158,3 +158,12 @@
 - Status: SUCCESS
 - Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.6.msi`
 
+## Parser Enhancement - 2025-05-20
+
+- Added support for the `open file at "path" as variable` syntax in the parser
+- This enhances the file handling capabilities to support both:
+  - `open file at "path" and read content as variable` (for reading)
+  - `open file at "path" as variable` (for obtaining a file handle)
+- Updated error messages to be more descriptive when parsing file operations
+- Added comprehensive tests to verify both syntaxes work properly
+- Fixed compatibility with Nexus.wfl integration test script
