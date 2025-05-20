@@ -254,7 +254,6 @@ impl IoClient {
 
     /// Improved file append operation - directly appends content without reading the whole file first
     /// This is much more memory efficient, especially for large log files
-
     #[allow(dead_code)]
     async fn close_file(&self, handle_id: &str) -> Result<(), String> {
         let mut file_handles = self.file_handles.lock().await;
@@ -468,6 +467,7 @@ impl Interpreter {
         let mut last_value = Value::Null;
         let mut errors = Vec::new();
 
+        #[allow(unused_variables)]
         for (i, statement) in program.statements.iter().enumerate() {
             if !self.step_mode {
                 exec_trace!(

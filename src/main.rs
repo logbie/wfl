@@ -568,11 +568,11 @@ async fn main() -> io::Result<()> {
 
                 let interpret_result = interpreter.interpret(&program).await;
                 match interpret_result {
-                    Ok(result) => {
+                    Ok(_result) => {
                         if config.logging_enabled {
                             info!("Program executed successfully");
                         }
-                        exec_trace!("Execution completed successfully. Result: {:?}", result)
+                        exec_trace!("Execution completed successfully. Result: {:?}", _result);
                     }
                     Err(errors) => {
                         if config.logging_enabled {

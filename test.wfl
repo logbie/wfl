@@ -3,8 +3,44 @@ store b as 2
 
 // Test addition
 store add_result as a plus b        // 6 + 2 = 8
-check if add_result is equal to 10:
+check if add_result is equal to 8:
     display "yes"
 otherwise:
     display "no"
+end check
+
+// Test subtraction
+store sub_result as a minus b        // 6 - 2 = 4
+check if sub_result is equal to 4:
+    display "yes"
+otherwise:
+    display "no"
+end check
+
+// Test Multiplication
+store multi_result as a times b        // 6 * 2 = 12
+check if multi_result is equal to 12:
+    display "yes"
+otherwise:
+    display "no"
+end check
+
+// Test Multiplication
+store div_result as a divided by b        // 6 / 2 = 3
+check if div_result is equal to 3:
+    display "yes"
+otherwise:
+    display "no"
+end check
+
+
+// Test floating-point division accuracy (5/2 = 2.5)
+store x as 5
+store y as 2
+store frac_result as x divided by y    // 5 / 2 = 2.5
+// Check by multiplying result by 2 to see if we get back 5
+check if frac_result times 2 is equal to x:
+   display "Fractional division test: PASS"
+otherwise:
+    display "Fractional division test: FAIL (expected 2.5, got " with frac_result with ")"
 end check
