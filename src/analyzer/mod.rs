@@ -622,7 +622,7 @@ impl Analyzer {
                         *column,
                     ));
                 }
-                
+
                 for arg in arguments {
                     self.analyze_expression(&arg.value);
                 }

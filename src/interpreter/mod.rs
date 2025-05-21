@@ -2,9 +2,9 @@
 pub mod environment;
 pub mod error;
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
 mod memory_tests;
+#[cfg(test)]
+mod tests;
 pub mod value;
 
 use self::environment::Environment;
@@ -413,10 +413,10 @@ impl Interpreter {
                 *self.in_count_loop.borrow_mut() = false;
                 *self.current_count.borrow_mut() = None;
             }
-            
+
             // Force all resources to be released
             self.call_stack.borrow_mut().clear();
-            
+
             // Terminate with a timeout error
             Err(RuntimeError::with_kind(
                 format!(
@@ -1121,13 +1121,17 @@ impl Interpreter {
                         column,
                     } => {
                         let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
-                        let content_value = self.evaluate_expression(content, Rc::clone(&env)).await?;
+                        let content_value =
+                            self.evaluate_expression(content, Rc::clone(&env)).await?;
 
                         let file_str = match &file_value {
                             Value::Text(s) => s.clone(),
                             _ => {
                                 return Err(RuntimeError::new(
-                                    format!("Expected string for file handle, got {:?}", file_value),
+                                    format!(
+                                        "Expected string for file handle, got {:?}",
+                                        file_value
+                                    ),
                                     *line,
                                     *column,
                                 ));
@@ -1138,25 +1142,31 @@ impl Interpreter {
                             Value::Text(s) => s.clone(),
                             _ => {
                                 return Err(RuntimeError::new(
-                                    format!("Expected string for file content, got {:?}", content_value),
+                                    format!(
+                                        "Expected string for file content, got {:?}",
+                                        content_value
+                                    ),
                                     *line,
                                     *column,
                                 ));
                             }
                         };
 
-                        println!("DEBUG: Writing to file: {}, content: {}", file_str, content_str);
+                        println!(
+                            "DEBUG: Writing to file: {}, content: {}",
+                            file_str, content_str
+                        );
                         match mode {
                             crate::parser::ast::WriteMode::Append => {
                                 match self.io_client.append_file(&file_str, &content_str).await {
                                     Ok(_) => {
                                         println!("DEBUG: Successfully appended to file");
                                         Ok(Value::Null)
-                                    },
+                                    }
                                     Err(e) => {
                                         println!("DEBUG: Error appending to file: {}", e);
                                         Err(RuntimeError::new(e, *line, *column))
-                                    },
+                                    }
                                 }
                             }
                             crate::parser::ast::WriteMode::Overwrite => {
@@ -1164,11 +1174,11 @@ impl Interpreter {
                                     Ok(_) => {
                                         println!("DEBUG: Successfully wrote to file");
                                         Ok(Value::Null)
-                                    },
+                                    }
                                     Err(e) => {
                                         println!("DEBUG: Error writing to file: {}", e);
                                         Err(RuntimeError::new(e, *line, *column))
-                                    },
+                                    }
                                 }
                             }
                         }
@@ -1791,7 +1801,7 @@ impl Interpreter {
             .name
             .clone()
             .unwrap_or_else(|| "<anonymous>".to_string());
-            
+
         if args.len() != func.params.len() {
             return Err(RuntimeError::new(
                 format!(
@@ -1808,7 +1818,7 @@ impl Interpreter {
             Some(env) => {
                 println!("DEBUG: call_function - Successfully upgraded function environment");
                 env
-            },
+            }
             None => {
                 println!("DEBUG: call_function - Failed to upgrade function environment");
                 return Err(RuntimeError::with_kind(
@@ -1824,7 +1834,10 @@ impl Interpreter {
         println!("DEBUG: call_function - Created child environment for function call");
 
         for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
-            println!("DEBUG: call_function - Binding parameter {} '{}' to argument {:?}", i, param, arg);
+            println!(
+                "DEBUG: call_function - Binding parameter {} '{}' to argument {:?}",
+                i, param, arg
+            );
             #[cfg(debug_assertions)]
             exec_var_declare!(param, &arg);
             call_env.borrow_mut().define(param, arg);
@@ -1848,7 +1861,10 @@ impl Interpreter {
 
         println!("DEBUG: call_function - Executing function body");
         let result = self.execute_block(&func.body, call_env.clone()).await;
-        println!("DEBUG: call_function - Function execution result: {:?}", result);
+        println!(
+            "DEBUG: call_function - Function execution result: {:?}",
+            result
+        );
 
         #[cfg(debug_assertions)]
         exec_block_exit!(format!("function {}", func_name));
@@ -1856,11 +1872,17 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 self.call_stack.borrow_mut().pop();
-                println!("DEBUG: call_function - Function returned successfully with value: {:?}", value);
+                println!(
+                    "DEBUG: call_function - Function returned successfully with value: {:?}",
+                    value
+                );
                 Ok(value)
             }
             Err(err) => {
-                println!("DEBUG: call_function - Function execution failed with error: {:?}", err);
+                println!(
+                    "DEBUG: call_function - Function execution failed with error: {:?}",
+                    err
+                );
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
                     last_frame.capture_locals(&call_env);
                 }
@@ -1946,7 +1968,7 @@ impl Interpreter {
     ) -> Result<Value, RuntimeError> {
         #[cfg(feature = "dhat-ad-hoc")]
         dhat::ad_hoc_event(1); // Track division operations for memory profiling
-        
+
         match (left, right) {
             (Value::Number(a), Value::Number(b)) => {
                 if b == 0.0 {
@@ -1958,7 +1980,7 @@ impl Interpreter {
                 } else {
                     // Calculate the result of the division operation
                     let result = a / b;
-                    
+
                     // Check if the result is valid (not NaN or infinite)
                     if !result.is_finite() {
                         return Err(RuntimeError::new(
@@ -1967,7 +1989,7 @@ impl Interpreter {
                             column,
                         ));
                     }
-                    
+
                     // Return the valid result as a Value::Number
                     Ok(Value::Number(result))
                 }

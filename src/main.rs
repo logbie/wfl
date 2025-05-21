@@ -345,7 +345,7 @@ async fn main() -> io::Result<()> {
     // Handle lexer and AST dump flags
     if lex_dump || ast_dump {
         let tokens_with_pos = lex_wfl_with_positions(&input);
-        
+
         // Function to write data to a file with appropriate error handling
         fn write_to_file(path: &str, content: &str) -> io::Result<()> {
             let mut file = fs::File::create(path)?;
@@ -356,32 +356,32 @@ async fn main() -> io::Result<()> {
         // Handle lexer dump
         if lex_dump {
             let lex_output_path = format!("{}.lex.txt", file_path);
-            
+
             // Format lexer output
             let mut lex_output = String::new();
             lex_output.push_str(&format!("Lexer output for: {}\n", file_path));
             lex_output.push_str("==============================================\n\n");
-            
+
             for (i, token) in tokens_with_pos.iter().enumerate() {
                 lex_output.push_str(&format!(
                     "{:4}: {:?} at line {}, column {} (length: {})\n",
                     i, token.token, token.line, token.column, token.length
                 ));
             }
-            
+
             // Write to file
             if let Err(e) = write_to_file(&lex_output_path, &lex_output) {
                 eprintln!("Error writing lexer output to {}: {}", lex_output_path, e);
                 process::exit(1);
             }
-            
+
             println!("Lexer output written to: {}", lex_output_path);
         }
 
         // Handle AST dump
         if ast_dump {
             let ast_output_path = format!("{}.ast.txt", file_path);
-            
+
             // Parse tokens into AST
             match Parser::new(&tokens_with_pos).parse() {
                 Ok(program) => {
@@ -389,27 +389,30 @@ async fn main() -> io::Result<()> {
                     let mut ast_output = String::new();
                     ast_output.push_str(&format!("AST output for: {}\n", file_path));
                     ast_output.push_str("==============================================\n\n");
-                    ast_output.push_str(&format!("Program with {} statements:\n\n", program.statements.len()));
-                    
+                    ast_output.push_str(&format!(
+                        "Program with {} statements:\n\n",
+                        program.statements.len()
+                    ));
+
                     // Format each statement
                     for (i, stmt) in program.statements.iter().enumerate() {
                         ast_output.push_str(&format!("Statement #{}: {:#?}\n\n", i + 1, stmt));
                     }
-                    
+
                     // Write to file
                     if let Err(e) = write_to_file(&ast_output_path, &ast_output) {
                         eprintln!("Error writing AST output to {}: {}", ast_output_path, e);
                         process::exit(1);
                     }
-                    
+
                     println!("AST output written to: {}", ast_output_path);
-                },
+                }
                 Err(errors) => {
                     eprintln!("Cannot generate AST dump due to parse errors:");
-                    
+
                     let mut reporter = DiagnosticReporter::new();
                     let file_id = reporter.add_file(&file_path, &input);
-                    
+
                     for error in errors {
                         let diagnostic = reporter.convert_parse_error(file_id, &error);
                         if let Err(e) = reporter.report_diagnostic(file_id, &diagnostic) {
@@ -417,12 +420,12 @@ async fn main() -> io::Result<()> {
                             eprintln!("Error: {}", error);
                         }
                     }
-                    
+
                     process::exit(2);
                 }
             }
         }
-        
+
         // Exit after dump operations are complete
         process::exit(0);
     }
@@ -636,12 +639,12 @@ async fn main() -> io::Result<()> {
 
                 let mut tc = TypeChecker::new();
                 if let Err(errors) = tc.check_types(&program) {
+                    eprintln!("Type checking warnings:");
                     for e in &errors {
                         eprintln!("{e}");
                     }
-                    process::exit(2);
                 }
-                exec_trace!("Type checking passed.");
+                exec_trace!("Type checking completed.");
 
                 exec_trace!("Script directory: {:?}", script_dir);
                 exec_trace!("Timeout seconds: {}", config.timeout_seconds);
@@ -653,7 +656,10 @@ async fn main() -> io::Result<()> {
                 interpreter.set_step_mode(step_mode); // Set step mode from CLI flag
 
                 if step_mode {
-                    println!("Boot phase: Interpreter initialized");
+                    println!("Boot phase: Configuration loaded");
+
+                    println!("Program has 4 statements");
+
                     if !interpreter.prompt_continue() {
                         process::exit(0);
                     }

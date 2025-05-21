@@ -88,8 +88,8 @@ define action called main:
     helper_function with x
 end action
 
-define action called helper_function with value:
-    display "In helper with value: " with value
+define action called helper_function needs v:
+    display "In helper with value: " with v
     nested_function
 end action
 
