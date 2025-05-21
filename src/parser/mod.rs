@@ -474,7 +474,7 @@ impl<'a> Parser<'a> {
                             // This is a known action, treat it as an action call
                             self.tokens.next(); // Consume "with"
                             let arguments = self.parse_argument_list()?;
-                            
+
                             left = Expression::ActionCall {
                                 name: name.clone(),
                                 arguments,
@@ -484,7 +484,7 @@ impl<'a> Parser<'a> {
                             continue; // Skip the rest of the loop since we've already updated left
                         }
                     }
-                    
+
                     // Default case - treat as concatenation
                     self.tokens.next(); // Consume "with"
                     let right = self.parse_expression()?;
@@ -1407,15 +1407,15 @@ impl<'a> Parser<'a> {
 
         exec_trace!("Expecting identifier after 'called'");
         let name = if let Some(token) = self.tokens.peek() {
-                if let Token::Identifier(id) = &token.token {
-                    exec_trace!("Found action name: {}", id);
-                    self.tokens.next();
-                    id.clone()
-                } else {
-                    exec_trace!(
-                        "Expected identifier after 'called', found {:?}",
-                        token.token
-                    );
+            if let Token::Identifier(id) = &token.token {
+                exec_trace!("Found action name: {}", id);
+                self.tokens.next();
+                id.clone()
+            } else {
+                exec_trace!(
+                    "Expected identifier after 'called', found {:?}",
+                    token.token
+                );
                 return Err(ParseError::new(
                     format!(
                         "Expected identifier after 'called', found {:?}",

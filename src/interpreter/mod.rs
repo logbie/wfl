@@ -1152,10 +1152,7 @@ impl Interpreter {
                             }
                         };
 
-                        exec_trace!(
-                            "Writing to file: {}, content: {}",
-                            file_str, content_str
-                        );
+                        exec_trace!("Writing to file: {}, content: {}", file_str, content_str);
                         match mode {
                             crate::parser::ast::WriteMode::Append => {
                                 match self.io_client.append_file(&file_str, &content_str).await {
@@ -1836,7 +1833,9 @@ impl Interpreter {
         for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
             exec_trace!(
                 "call_function - Binding parameter {} '{}' to argument {:?}",
-                i, param, arg
+                i,
+                param,
+                arg
             );
             #[cfg(debug_assertions)]
             exec_var_declare!(param, &arg);
@@ -1861,10 +1860,7 @@ impl Interpreter {
 
         exec_trace!("call_function - Executing function body");
         let result = self.execute_block(&func.body, call_env.clone()).await;
-        exec_trace!(
-            "call_function - Function execution result: {:?}",
-            result
-        );
+        exec_trace!("call_function - Function execution result: {:?}", result);
 
         #[cfg(debug_assertions)]
         exec_block_exit!(format!("function {}", func_name));
