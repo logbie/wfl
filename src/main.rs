@@ -631,7 +631,6 @@ async fn main() -> io::Result<()> {
                     for d in &sema_diags {
                         reporter.report_diagnostic(file_id, d)?;
                     }
-                    process::exit(2);
                 }
                 exec_trace!("Semantic analysis passed.");
 

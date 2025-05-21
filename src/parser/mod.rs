@@ -29,6 +29,19 @@ impl<'a> Parser<'a> {
             
             // Debug output removed - no longer needed once parser is fixed
             
+            // Special case for "end action" which should be handled by parse_action_definition
+            if let Some(token) = self.tokens.peek() {
+                if token.token == Token::KeywordEnd {
+                    if let Some(next_token) = self.tokens.clone().nth(1) {
+                        if next_token.token == Token::KeywordAction {
+                            self.tokens.next(); // Consume "end"
+                            self.tokens.next(); // Consume "action"
+                            continue;
+                        }
+                    }
+                }
+            }
+            
             match self.parse_statement() {
                 Ok(statement) => program.statements.push(statement),
                 Err(error) => {
@@ -162,6 +175,17 @@ impl<'a> Parser<'a> {
                         self.parse_open_file_read_statement()
                     } else {
                         self.parse_open_file_statement()
+                    }
+                }
+                Token::KeywordClose => {
+                    if let Some(next_token) = self.tokens.clone().nth(1) {
+                        if next_token.token == Token::KeywordFile {
+                            self.parse_close_file_statement()
+                        } else {
+                            self.parse_expression_statement()
+                        }
+                    } else {
+                        self.parse_expression_statement()
                     }
                 }
                 Token::KeywordWait => self.parse_wait_for_statement(),
@@ -441,15 +465,46 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Token::KeywordWith => {
-                    self.tokens.next(); // Consume "with"
-                    let right = self.parse_expression()?;
-                    left = Expression::Concatenation {
-                        left: Box::new(left),
-                        right: Box::new(right),
-                        line: token_pos.line,
-                        column: token_pos.column,
-                    };
-                    continue; // Skip the rest of the loop since we've already updated left
+                    match left {
+                        Expression::Variable(ref name, var_line, var_column) => {
+                            println!("DEBUG: Found potential action call '{}' at line {}, column {}", name, var_line, var_column);
+                            self.tokens.next(); // Consume "with"
+                            
+                            let before_count = self.tokens.clone().count();
+                            
+                            let arguments = self.parse_argument_list()?;
+                            println!("DEBUG: Parsed {} arguments for action call '{}'", arguments.len(), name);
+                            
+                            let after_count = self.tokens.clone().count();
+                            assert!(
+                                after_count < before_count,
+                                "Parser made no progress while parsing action call arguments"
+                            );
+                            
+                            let name_clone = name.clone();
+                            let action_call = Expression::ActionCall {
+                                name: name_clone,
+                                arguments,
+                                line: var_line,
+                                column: var_column,
+                            };
+                            println!("DEBUG: Created ActionCall expression for '{}'", name);
+                            
+                            left = action_call;
+                            continue; // Skip the rest of the loop since we've already updated left
+                        },
+                        _ => {
+                            self.tokens.next(); // Consume "with"
+                            let right = self.parse_expression()?;
+                            left = Expression::Concatenation {
+                                left: Box::new(left),
+                                right: Box::new(right),
+                                line: token_pos.line,
+                                column: token_pos.column,
+                            };
+                            continue; // Skip the rest of the loop since we've already updated left
+                        }
+                    }
                 }
                 Token::KeywordAnd => {
                     self.tokens.next(); // Consume "and"
@@ -741,61 +796,13 @@ impl<'a> Parser<'a> {
                         if let Token::Identifier(id) = &next_token.token {
                             if id.to_lowercase() == "with" {
                                 self.tokens.next(); // Consume "with"
-
-                                let mut arguments = Vec::with_capacity(4);
-
-                                loop {
-                                    let arg_name =
-                                        if let Some(name_token) = self.tokens.peek().cloned() {
-                                            if let Token::Identifier(id) = &name_token.token {
-                                                if let Some(next) = self.tokens.clone().nth(1) {
-                                                    if matches!(next.token, Token::Colon) {
-                                                        self.tokens.next(); // Consume name
-                                                        self.tokens.next(); // Consume ":"
-                                                        Some(id.to_string())
-                                                    } else {
-                                                        None
-                                                    }
-                                                } else {
-                                                    None
-                                                }
-                                            } else {
-                                                None
-                                            }
-                                        } else {
-                                            None
-                                        };
-
-                                    let arg_value = self.parse_expression()?;
-
-                                    arguments.push(Argument {
-                                        name: arg_name,
-                                        value: arg_value,
-                                    });
-
-                                    if let Some(token) = self.tokens.peek().cloned() {
-                                        if let Token::Identifier(id) = &token.token {
-                                            if id.to_lowercase() == "and" {
-                                                self.tokens.next(); // Consume "and"
-                                            } else {
-                                                break;
-                                            }
-                                        } else {
-                                            break;
-                                        }
-                                    } else {
-                                        break;
-                                    }
-                                }
-
+                                
+                                let arguments = self.parse_argument_list()?;
+                                
                                 let token_line = token.line;
                                 let token_column = token.column;
-                                return Ok(Expression::FunctionCall {
-                                    function: Box::new(Expression::Variable(
-                                        name.clone(),
-                                        token_line,
-                                        token_column,
-                                    )),
+                                return Ok(Expression::ActionCall {
+                                    name: name.clone(),
                                     arguments,
                                     line: token_line,
                                     column: token_column,
@@ -1057,6 +1064,13 @@ impl<'a> Parser<'a> {
                     column,
                 }),
                 Expression::AwaitExpression { line, column, .. } => {
+                    Ok(Statement::DisplayStatement {
+                        value: expr,
+                        line,
+                        column,
+                    })
+                }
+                Expression::ActionCall { line, column, .. } => {
                     Ok(Statement::DisplayStatement {
                         value: expr,
                         line,
@@ -1379,16 +1393,23 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_action_definition(&mut self) -> Result<Statement, ParseError> {
+        println!("DEBUG: Parsing action definition");
         self.tokens.next(); // Consume "define"
 
+        println!("DEBUG: Expecting 'action' after 'define'");
         self.expect_token(Token::KeywordAction, "Expected 'action' after 'define'")?;
+        
+        println!("DEBUG: Expecting 'called' after 'action'");
         self.expect_token(Token::KeywordCalled, "Expected 'called' after 'action'")?;
 
+        println!("DEBUG: Expecting identifier after 'called'");
         let name = if let Some(token) = self.tokens.peek() {
             if let Token::Identifier(id) = &token.token {
+                println!("DEBUG: Found action name: {}", id);
                 self.tokens.next();
                 id.clone()
             } else {
+                println!("DEBUG: Expected identifier after 'called', found {:?}", token.token);
                 return Err(ParseError::new(
                     format!(
                         "Expected identifier after 'called', found {:?}",
@@ -1399,6 +1420,7 @@ impl<'a> Parser<'a> {
                 ));
             }
         } else {
+            println!("DEBUG: Unexpected end of input after 'called'");
             return Err(ParseError::new(
                 "Unexpected end of input after 'called'".to_string(),
                 0,
@@ -1406,17 +1428,22 @@ impl<'a> Parser<'a> {
             ));
         };
 
+        println!("DEBUG: Action name parsed: {}", name);
         let mut parameters = Vec::with_capacity(4);
 
         if let Some(token) = self.tokens.peek().cloned() {
-            if matches!(token.token, Token::KeywordWith) {
-                self.tokens.next(); // Consume "with"
+            if let Token::KeywordNeeds = token.token {
+                println!("DEBUG: Found 'needs' keyword, parsing parameters");
+                self.tokens.next(); // Consume "needs"
 
                 while let Some(token) = self.tokens.peek().cloned() {
+                    println!("DEBUG: Checking token for parameter: {:?}", token.token);
                     let param_name = if let Token::Identifier(id) = &token.token {
+                        println!("DEBUG: Found parameter: {}", id);
                         self.tokens.next();
                         id.clone()
                     } else {
+                        println!("DEBUG: Not an identifier, breaking parameter parsing");
                         break;
                     };
 
@@ -1560,8 +1587,49 @@ impl<'a> Parser<'a> {
             }
         }
 
-        self.expect_token(Token::KeywordEnd, "Expected 'end' after action body")?;
-        self.expect_token(Token::KeywordAction, "Expected 'action' after 'end'")?;
+        let before_count = self.tokens.clone().count();
+        
+        if let Some(token) = self.tokens.peek() {
+            if matches!(token.token, Token::KeywordEnd) {
+                self.tokens.next(); // Consume "end"
+                
+                if let Some(token) = self.tokens.peek() {
+                    if matches!(token.token, Token::KeywordAction) {
+                        self.tokens.next(); // Consume "action"
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected 'action' after 'end'".to_string(),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new(
+                        "Expected 'action' after 'end'".to_string(),
+                        0,
+                        0,
+                    ));
+                }
+            } else {
+                return Err(ParseError::new(
+                    "Expected 'end' after action body".to_string(),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected 'end' after action body".to_string(),
+                0,
+                0,
+            ));
+        }
+        
+        let after_count = self.tokens.clone().count();
+        assert!(
+            after_count < before_count,
+            "Parser made no progress while parsing end action tokens"
+        );
 
         let token_pos = self.tokens.peek().map_or(
             &TokenWithPosition {
@@ -1991,5 +2059,77 @@ impl<'a> Parser<'a> {
             line: token_pos.line,
             column: token_pos.column,
         })
+    }
+    
+    fn parse_close_file_statement(&mut self) -> Result<Statement, ParseError> {
+        let token_pos = self.tokens.next().unwrap(); // Consume "close"
+        self.expect_token(Token::KeywordFile, "Expected 'file' after 'close'")?;
+        
+        let file = self.parse_expression()?;
+        
+        Ok(Statement::CloseFileStatement {
+            file,
+            line: token_pos.line,
+            column: token_pos.column,
+        })
+    }
+
+    fn parse_argument_list(&mut self) -> Result<Vec<Argument>, ParseError> {
+        let mut arguments = Vec::with_capacity(4);
+        
+        let before_count = self.tokens.clone().count();
+
+        loop {
+            // Check for named arguments (name: value)
+            let arg_name =
+                if let Some(name_token) = self.tokens.peek().cloned() {
+                    if let Token::Identifier(id) = &name_token.token {
+                        if let Some(next) = self.tokens.clone().nth(1) {
+                            if matches!(next.token, Token::Colon) {
+                                self.tokens.next(); // Consume name
+                                self.tokens.next(); // Consume ":"
+                                Some(id.to_string())
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+            let arg_value = self.parse_expression()?;
+
+            arguments.push(Argument {
+                name: arg_name,
+                value: arg_value,
+            });
+
+            if let Some(token) = self.tokens.peek().cloned() {
+                if let Token::Identifier(id) = &token.token {
+                    if id.to_lowercase() == "and" {
+                        self.tokens.next(); // Consume "and"
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+        
+        let after_count = self.tokens.clone().count();
+        assert!(
+            after_count < before_count,
+            "Parser made no progress while parsing argument list"
+        );
+
+        Ok(arguments)
     }
 }
