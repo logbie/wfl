@@ -56,11 +56,11 @@ mod tests {
         let _profiler = dhat::Profiler::builder().testing().build();
 
         let source = r#"
-        define action double(x):
+        define action called double needs x:
             return x times 2
         end action
         
-        store result as double(21)
+        store result as double with 21
         "#;
 
         let tokens = lex_wfl_with_positions(source);
@@ -95,20 +95,20 @@ mod tests {
         let source = r#"
         store global_var as "global"
         
-        define action create_counter():
-            store count as 0
+        define action called create_counter:
+            store counter_value as 0
             
-            define action increment():
-                store count as count plus 1
-                return count
+            define action called increment:
+                store counter_value as counter_value plus 1
+                return counter_value
             end action
             
             return increment
         end action
         
-        store counter as create_counter()
-        store result1 as counter()
-        store result2 as counter()
+        store counter as create_counter with nothing
+        store result1 as counter with nothing
+        store result2 as counter with nothing
         "#;
 
         let tokens = lex_wfl_with_positions(source);

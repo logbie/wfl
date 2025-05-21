@@ -83,8 +83,8 @@ mod tests {
 
         let action_def = Statement::ActionDefinition {
             name: "log_message".to_string(),
-            parameters: parameters,
-            body: body,
+            parameters,
+            body,
             return_type: None,
             line: 1,
             column: 1,

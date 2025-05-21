@@ -1,2 +1,196 @@
-17:12:05.9083667 [INFO] WFL execution logging initialized at 2025-05-20 12:12:05 - wfl_exec.log
-17:12:05.9085195 [DEBUG] (1) wfl: [src\main.rs:619] EXEC: Parsing and executing script...
+17:15:47.3228349 [INFO] WFL execution logging initialized at 2025-05-21 12:15:47 - wfl_exec.log
+17:15:47.3229671 [DEBUG] (1) wfl: [src\main.rs:622] EXEC: Parsing and executing script...
+17:15:47.3230838 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1399] EXEC: Parsing action definition
+17:15:47.3231274 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1402] EXEC: Expecting 'action' after 'define'
+17:15:47.3231652 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1405] EXEC: Expecting 'called' after 'action'
+17:15:47.3232087 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1408] EXEC: Expecting identifier after 'called'
+17:15:47.3232472 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1411] EXEC: Found action name: log_message
+17:15:47.323285 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1437] EXEC: Action name parsed: log_message
+17:15:47.3233245 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1449] EXEC: Found 'needs' keyword, parsing parameters
+17:15:47.3233643 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1453] EXEC: Checking token for parameter: Identifier("message_text")
+17:15:47.3234033 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1455] EXEC: Found parameter: message_text
+17:15:47.3235017 [DEBUG] (1) wfl: [src\main.rs:626] EXEC: AST: [large output suppressed]
+17:15:47.3235436 [DEBUG] (1) wfl: [src\main.rs:627] EXEC: Program has 18 statements
+17:15:47.325116 [DEBUG] (1) wfl: [src\main.rs:638] EXEC: Semantic analysis passed.
+17:15:47.3252964 [DEBUG] (1) wfl: [src\main.rs:647] EXEC: Type checking completed.
+17:15:47.3253364 [DEBUG] (1) wfl: [src\main.rs:649] EXEC: Script directory: ""
+17:15:47.3253736 [DEBUG] (1) wfl: [src\main.rs:650] EXEC: Timeout seconds: 60
+17:15:47.3254099 [DEBUG] (1) wfl: [src\main.rs:653] EXEC: Starting execution of script: test.wfl
+17:15:47.3256614 [DEBUG] (1) wfl: [src\main.rs:669] EXEC: Program contains 18 statements
+17:15:47.3257087 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:461] EXEC: Starting script execution with 18 statements...
+17:15:47.3257463 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:466] EXEC: === Starting program execution ===
+17:15:47.3257842 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 1/18...
+17:15:47.32582 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 1/18
+17:15:47.3258631 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'a'
+17:15:47.3259118 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 6
+17:15:47.3259604 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'a' = 6
+17:15:47.3260104 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 1/18 completed successfully
+17:15:47.3260464 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 2/18...
+17:15:47.326082 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 2/18
+17:15:47.3261184 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'b'
+17:15:47.3261547 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 2
+17:15:47.3261953 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'b' = 2
+17:15:47.3262415 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 2/18 completed successfully
+17:15:47.3262778 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 3/18...
+17:15:47.3263137 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 3/18
+17:15:47.32635 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: OpenFileStatement 'logHandle'
+17:15:47.3263872 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: StringLiteral "nexus.log"
+17:15:47.3267614 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 3/18 completed successfully
+17:15:47.3268124 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 4/18...
+17:15:47.3268498 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 4/18
+17:15:47.3268887 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: ActionDefinition 'log_message'
+17:15:47.3269385 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 4/18 completed successfully
+17:15:47.3269757 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 5/18...
+17:15:47.3270121 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 5/18
+17:15:47.3270488 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: ExpressionStatement
+17:15:47.3270866 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: ActionCall 'log_message'
+17:15:47.3271344 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: StringLiteral "Starting Nexus WFL Integration Test Suite..."
+17:15:47.3271893 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1604] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
+17:15:47.3272354 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1819] EXEC: call_function - Successfully upgraded function environment
+17:15:47.3272736 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1834] EXEC: call_function - Created child environment for function call
+17:15:47.3273165 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1837] EXEC: call_function - Binding parameter 0 'message_text' to argument "Starting Nexus WFL Integration Test Suite..."
+17:15:47.3273531 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1842] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
+17:15:47.3274005 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1854] EXEC: call_function - Pushed frame to call stack
+17:15:47.3274395 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1857] EXEC: ┌─ Block entry: function log_message
+17:15:47.3274783 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1862] EXEC:   call_function - Executing function body
+17:15:47.3275187 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 2 statements
+17:15:47.3275573 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.327615 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: Variable 'message_text'
+17:15:47.3277716 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: WaitForStatement
+17:15:47.3278233 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: Variable 'logHandle'
+17:15:47.3278681 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: Concatenation
+17:15:47.3279111 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: Variable 'message_text'
+17:15:47.3279595 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "\n"
+17:15:47.3280012 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1155] EXEC:     Writing to file: file1, content: Starting Nexus WFL Integration Test Suite...\n
+17:15:47.3281044 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1163] EXEC:     Successfully appended to file
+17:15:47.3281547 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1864] EXEC:   call_function - Function execution result: Ok(null)
+17:15:47.3281959 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1870] EXEC:   └─ Block exit: function log_message
+17:15:47.3282382 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1875] EXEC:   call_function - Function returned successfully with value: null
+17:15:47.3282795 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1615] EXEC: Function return: log_message = null
+17:15:47.3283233 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 5/18 completed successfully
+17:15:47.3283615 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 6/18...
+17:15:47.3283991 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 6/18
+17:15:47.3284376 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'add_result'
+17:15:47.3284768 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Plus'
+17:15:47.3285151 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'a'
+17:15:47.3285564 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'b'
+17:15:47.328596 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'add_result' = 8
+17:15:47.3286406 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 6/18 completed successfully
+17:15:47.3286791 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 7/18...
+17:15:47.3287166 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 7/18
+17:15:47.3287549 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
+17:15:47.3287934 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Equals'
+17:15:47.328832 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'add_result'
+17:15:47.328871 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 8
+17:15:47.3289127 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
+17:15:47.3289545 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
+17:15:47.3289945 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 1 statements
+17:15:47.3290347 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.3290767 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "yes"
+17:15:47.3292287 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
+17:15:47.3292978 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 7/18 completed successfully
+17:15:47.3293384 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 8/18...
+17:15:47.3293756 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 8/18
+17:15:47.3294148 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'sub_result'
+17:15:47.3294558 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Minus'
+17:15:47.329501 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'a'
+17:15:47.329545 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'b'
+17:15:47.3295829 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'sub_result' = 4
+17:15:47.3296279 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 8/18 completed successfully
+17:15:47.3296642 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 9/18...
+17:15:47.3296999 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 9/18
+17:15:47.3297363 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
+17:15:47.3297777 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Equals'
+17:15:47.3298144 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'sub_result'
+17:15:47.3298517 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 4
+17:15:47.3298895 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
+17:15:47.3299275 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
+17:15:47.3299678 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 1 statements
+17:15:47.3300061 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.330047 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "yes"
+17:15:47.3301743 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
+17:15:47.3302317 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 9/18 completed successfully
+17:15:47.330272 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 10/18...
+17:15:47.3303092 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 10/18
+17:15:47.3303478 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'multi_result'
+17:15:47.3303887 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Multiply'
+17:15:47.3304417 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'a'
+17:15:47.3304961 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'b'
+17:15:47.3305361 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'multi_result' = 12
+17:15:47.33058 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 10/18 completed successfully
+17:15:47.3306164 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 11/18...
+17:15:47.3306527 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 11/18
+17:15:47.3306892 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
+17:15:47.330729 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Equals'
+17:15:47.3307671 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'multi_result'
+17:15:47.3308072 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 12
+17:15:47.3308755 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
+17:15:47.3309245 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
+17:15:47.3309779 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 1 statements
+17:15:47.3310216 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.3310668 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "yes"
+17:15:47.3311991 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
+17:15:47.3312591 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 11/18 completed successfully
+17:15:47.3313045 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 12/18...
+17:15:47.3313447 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 12/18
+17:15:47.3313939 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'div_result'
+17:15:47.3314599 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Divide'
+17:15:47.331504 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'a'
+17:15:47.331548 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'b'
+17:15:47.3315963 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'div_result' = 3
+17:15:47.3316407 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 12/18 completed successfully
+17:15:47.3316788 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 13/18...
+17:15:47.3317156 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 13/18
+17:15:47.3317539 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
+17:15:47.3317922 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Equals'
+17:15:47.3318296 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'div_result'
+17:15:47.3318678 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 3
+17:15:47.3319061 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
+17:15:47.3319452 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
+17:15:47.3319836 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 1 statements
+17:15:47.3320228 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.3320643 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "yes"
+17:15:47.3322205 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
+17:15:47.3322967 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 13/18 completed successfully
+17:15:47.332353 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 14/18...
+17:15:47.3324054 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 14/18
+17:15:47.3324581 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'x'
+17:15:47.3325183 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 5
+17:15:47.3325725 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'x' = 5
+17:15:47.3326326 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 14/18 completed successfully
+17:15:47.3326837 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 15/18...
+17:15:47.3327347 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 15/18
+17:15:47.3327877 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'y'
+17:15:47.332841 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 2
+17:15:47.3328925 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'y' = 2
+17:15:47.3329507 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 15/18 completed successfully
+17:15:47.3330015 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 16/18...
+17:15:47.3330522 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 16/18
+17:15:47.3331037 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'frac_result'
+17:15:47.3331557 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Divide'
+17:15:47.3332096 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'x'
+17:15:47.3332673 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'y'
+17:15:47.3333202 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'frac_result' = 2.5
+17:15:47.3333834 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 16/18 completed successfully
+17:15:47.3334339 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 17/18...
+17:15:47.3334845 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 17/18
+17:15:47.3335356 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: VariableDeclaration 'doubled'
+17:15:47.3335867 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Multiply'
+17:15:47.3336381 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'frac_result'
+17:15:47.3336897 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: IntegerLiteral 2
+17:15:47.3337408 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:612] EXEC: Declaration: 'doubled' = 5
+17:15:47.3337985 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 17/18 completed successfully
+17:15:47.3338492 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 18/18...
+17:15:47.3338995 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 18/18
+17:15:47.3339503 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
+17:15:47.3340016 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: BinaryOperation 'Equals'
+17:15:47.3340528 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'doubled'
+17:15:47.3341046 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC: Evaluating expression: Variable 'x'
+17:15:47.3341594 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
+17:15:47.3342221 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
+17:15:47.334275 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1366] EXEC:   Executing block of 1 statements
+17:15:47.3343282 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
+17:15:47.3343847 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1385] EXEC:     Evaluating expression: StringLiteral "Fractional division test: PASS"
+17:15:47.3345248 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
+17:15:47.3345761 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 18/18 completed successfully
+17:15:47.3346237 [DEBUG] (1) wfl: [src\main.rs:677] EXEC: Execution completed successfully. Result: null

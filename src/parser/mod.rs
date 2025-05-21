@@ -2,6 +2,7 @@ pub mod ast;
 #[cfg(test)]
 mod tests;
 
+use crate::exec_trace;
 use crate::lexer::token::{Token, TokenWithPosition};
 use ast::*;
 use std::iter::Peekable;
@@ -10,6 +11,7 @@ use std::slice::Iter;
 pub struct Parser<'a> {
     tokens: Peekable<Iter<'a, TokenWithPosition>>,
     errors: Vec<ParseError>,
+    known_actions: std::collections::HashSet<String>,
 }
 
 impl<'a> Parser<'a> {
@@ -17,6 +19,7 @@ impl<'a> Parser<'a> {
         Parser {
             tokens: tokens.iter().peekable(),
             errors: Vec::with_capacity(4),
+            known_actions: std::collections::HashSet::new(),
         }
     }
 
@@ -465,53 +468,33 @@ impl<'a> Parser<'a> {
                     }
                 }
                 Token::KeywordWith => {
-                    match left {
-                        Expression::Variable(ref name, var_line, var_column) => {
-                            println!(
-                                "DEBUG: Found potential action call '{}' at line {}, column {}",
-                                name, var_line, var_column
-                            );
+                    // Only create an ActionCall if this is a known action name
+                    if let Expression::Variable(ref name, var_line, var_column) = left {
+                        if self.known_actions.contains(name) {
+                            // This is a known action, treat it as an action call
                             self.tokens.next(); // Consume "with"
-
-                            let before_count = self.tokens.clone().count();
-
                             let arguments = self.parse_argument_list()?;
-                            println!(
-                                "DEBUG: Parsed {} arguments for action call '{}'",
-                                arguments.len(),
-                                name
-                            );
-
-                            let after_count = self.tokens.clone().count();
-                            assert!(
-                                after_count < before_count,
-                                "Parser made no progress while parsing action call arguments"
-                            );
-
-                            let name_clone = name.clone();
-                            let action_call = Expression::ActionCall {
-                                name: name_clone,
+                            
+                            left = Expression::ActionCall {
+                                name: name.clone(),
                                 arguments,
                                 line: var_line,
                                 column: var_column,
                             };
-                            println!("DEBUG: Created ActionCall expression for '{}'", name);
-
-                            left = action_call;
-                            continue; // Skip the rest of the loop since we've already updated left
-                        }
-                        _ => {
-                            self.tokens.next(); // Consume "with"
-                            let right = self.parse_expression()?;
-                            left = Expression::Concatenation {
-                                left: Box::new(left),
-                                right: Box::new(right),
-                                line: token_pos.line,
-                                column: token_pos.column,
-                            };
                             continue; // Skip the rest of the loop since we've already updated left
                         }
                     }
+                    
+                    // Default case - treat as concatenation
+                    self.tokens.next(); // Consume "with"
+                    let right = self.parse_expression()?;
+                    left = Expression::Concatenation {
+                        left: Box::new(left),
+                        right: Box::new(right),
+                        line: token_pos.line,
+                        column: token_pos.column,
+                    };
+                    continue; // Skip the rest of the loop since we've already updated left
                 }
                 Token::KeywordAnd => {
                     self.tokens.next(); // Consume "and"
@@ -824,8 +807,8 @@ impl<'a> Parser<'a> {
                     let token_column = token.column;
 
                     if is_standalone {
-                        println!(
-                            "DEBUG: Found standalone identifier '{}', treating as function call",
+                        exec_trace!(
+                            "Found standalone identifier '{}', treating as function call",
                             name
                         );
                         Ok(Expression::ActionCall {
@@ -1413,26 +1396,26 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_action_definition(&mut self) -> Result<Statement, ParseError> {
-        println!("DEBUG: Parsing action definition");
+        exec_trace!("Parsing action definition");
         self.tokens.next(); // Consume "define"
 
-        println!("DEBUG: Expecting 'action' after 'define'");
+        exec_trace!("Expecting 'action' after 'define'");
         self.expect_token(Token::KeywordAction, "Expected 'action' after 'define'")?;
 
-        println!("DEBUG: Expecting 'called' after 'action'");
+        exec_trace!("Expecting 'called' after 'action'");
         self.expect_token(Token::KeywordCalled, "Expected 'called' after 'action'")?;
 
-        println!("DEBUG: Expecting identifier after 'called'");
+        exec_trace!("Expecting identifier after 'called'");
         let name = if let Some(token) = self.tokens.peek() {
-            if let Token::Identifier(id) = &token.token {
-                println!("DEBUG: Found action name: {}", id);
-                self.tokens.next();
-                id.clone()
-            } else {
-                println!(
-                    "DEBUG: Expected identifier after 'called', found {:?}",
-                    token.token
-                );
+                if let Token::Identifier(id) = &token.token {
+                    exec_trace!("Found action name: {}", id);
+                    self.tokens.next();
+                    id.clone()
+                } else {
+                    exec_trace!(
+                        "Expected identifier after 'called', found {:?}",
+                        token.token
+                    );
                 return Err(ParseError::new(
                     format!(
                         "Expected identifier after 'called', found {:?}",
@@ -1443,7 +1426,7 @@ impl<'a> Parser<'a> {
                 ));
             }
         } else {
-            println!("DEBUG: Unexpected end of input after 'called'");
+            exec_trace!("Unexpected end of input after 'called'");
             return Err(ParseError::new(
                 "Unexpected end of input after 'called'".to_string(),
                 0,
@@ -1451,7 +1434,7 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        println!("DEBUG: Action name parsed: {}", name);
+        exec_trace!("Action name parsed: {}", name);
         let mut parameters = Vec::with_capacity(4);
 
         if let Some(token) = self.tokens.peek().cloned() {
@@ -1463,17 +1446,17 @@ impl<'a> Parser<'a> {
                 } else {
                     "with"
                 };
-                println!("DEBUG: Found '{}' keyword, parsing parameters", keyword);
+                exec_trace!("Found '{}' keyword, parsing parameters", keyword);
                 self.tokens.next(); // Consume "needs" or "with"
 
                 while let Some(token) = self.tokens.peek().cloned() {
-                    println!("DEBUG: Checking token for parameter: {:?}", token.token);
+                    exec_trace!("Checking token for parameter: {:?}", token.token);
                     let param_name = if let Token::Identifier(id) = &token.token {
-                        println!("DEBUG: Found parameter: {}", id);
+                        exec_trace!("Found parameter: {}", id);
                         self.tokens.next();
                         id.clone()
                     } else {
-                        println!("DEBUG: Not an identifier, breaking parameter parsing");
+                        exec_trace!("Not an identifier, breaking parameter parsing");
                         break;
                     };
 
@@ -1660,6 +1643,9 @@ impl<'a> Parser<'a> {
             after_count < before_count,
             "Parser made no progress while parsing end action tokens"
         );
+
+        // Add the action name to our known actions
+        self.known_actions.insert(name.clone());
 
         let token_pos = self.tokens.peek().map_or(
             &TokenWithPosition {

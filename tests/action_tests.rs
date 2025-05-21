@@ -29,14 +29,19 @@ fn test_action_def_parses() {
 
 #[test]
 fn test_action_call_parses() {
-    let source = "log_message with \"Hello, world!\"";
+    // Define the action first, then call it
+    let source = "define action called log_message needs message_text:
+        display message_text
+    end action
+
+    log_message with \"Hello, world!\"";
 
     let tokens = lex_wfl_with_positions(source);
     let mut parser = Parser::new(&tokens);
     let program = parser.parse().expect("Failed to parse program");
 
-    assert_eq!(program.statements.len(), 1);
-    match &program.statements[0] {
+    assert_eq!(program.statements.len(), 2);
+    match &program.statements[1] {
         Statement::ExpressionStatement { expression, .. } => match expression {
             Expression::ActionCall {
                 name, arguments, ..
@@ -54,7 +59,7 @@ fn test_action_call_parses() {
         },
         _ => panic!(
             "Expected ExpressionStatement, got {:?}",
-            program.statements[0]
+            program.statements[1]
         ),
     }
 }

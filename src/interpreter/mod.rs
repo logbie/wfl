@@ -1152,19 +1152,19 @@ impl Interpreter {
                             }
                         };
 
-                        println!(
-                            "DEBUG: Writing to file: {}, content: {}",
+                        exec_trace!(
+                            "Writing to file: {}, content: {}",
                             file_str, content_str
                         );
                         match mode {
                             crate::parser::ast::WriteMode::Append => {
                                 match self.io_client.append_file(&file_str, &content_str).await {
                                     Ok(_) => {
-                                        println!("DEBUG: Successfully appended to file");
+                                        exec_trace!("Successfully appended to file");
                                         Ok(Value::Null)
                                     }
                                     Err(e) => {
-                                        println!("DEBUG: Error appending to file: {}", e);
+                                        exec_trace!("Error appending to file: {}", e);
                                         Err(RuntimeError::new(e, *line, *column))
                                     }
                                 }
@@ -1172,11 +1172,11 @@ impl Interpreter {
                             crate::parser::ast::WriteMode::Overwrite => {
                                 match self.io_client.write_file(&file_str, &content_str).await {
                                     Ok(_) => {
-                                        println!("DEBUG: Successfully wrote to file");
+                                        exec_trace!("Successfully wrote to file");
                                         Ok(Value::Null)
                                     }
                                     Err(e) => {
-                                        println!("DEBUG: Error writing to file: {}", e);
+                                        exec_trace!("Error writing to file: {}", e);
                                         Err(RuntimeError::new(e, *line, *column))
                                     }
                                 }
@@ -1189,7 +1189,7 @@ impl Interpreter {
                         line,
                         column,
                     } => {
-                        println!("DEBUG: Executing wait for read file statement");
+                        exec_trace!("Executing wait for read file statement");
                         let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
                         let path_str = match &path_value {
                             Value::Text(s) => s.clone(),
@@ -1816,11 +1816,11 @@ impl Interpreter {
 
         let func_env = match func.env.upgrade() {
             Some(env) => {
-                println!("DEBUG: call_function - Successfully upgraded function environment");
+                exec_trace!("call_function - Successfully upgraded function environment");
                 env
             }
             None => {
-                println!("DEBUG: call_function - Failed to upgrade function environment");
+                exec_trace!("call_function - Failed to upgrade function environment");
                 return Err(RuntimeError::with_kind(
                     "Environment no longer exists".to_string(),
                     line,
@@ -1831,11 +1831,11 @@ impl Interpreter {
         };
 
         let call_env = Environment::new_child_env(&func_env);
-        println!("DEBUG: call_function - Created child environment for function call");
+        exec_trace!("call_function - Created child environment for function call");
 
         for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
-            println!(
-                "DEBUG: call_function - Binding parameter {} '{}' to argument {:?}",
+            exec_trace!(
+                "call_function - Binding parameter {} '{}' to argument {:?}",
                 i, param, arg
             );
             #[cfg(debug_assertions)]
@@ -1851,7 +1851,7 @@ impl Interpreter {
             column,
         );
         self.call_stack.borrow_mut().push(frame);
-        println!("DEBUG: call_function - Pushed frame to call stack");
+        exec_trace!("call_function - Pushed frame to call stack");
 
         #[cfg(debug_assertions)]
         exec_block_enter!(format!("function {}", func_name));
@@ -1859,10 +1859,10 @@ impl Interpreter {
         #[cfg(debug_assertions)]
         let _guard = IndentGuard::new();
 
-        println!("DEBUG: call_function - Executing function body");
+        exec_trace!("call_function - Executing function body");
         let result = self.execute_block(&func.body, call_env.clone()).await;
-        println!(
-            "DEBUG: call_function - Function execution result: {:?}",
+        exec_trace!(
+            "call_function - Function execution result: {:?}",
             result
         );
 
@@ -1872,15 +1872,15 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 self.call_stack.borrow_mut().pop();
-                println!(
-                    "DEBUG: call_function - Function returned successfully with value: {:?}",
+                exec_trace!(
+                    "call_function - Function returned successfully with value: {:?}",
                     value
                 );
                 Ok(value)
             }
             Err(err) => {
-                println!(
-                    "DEBUG: call_function - Function execution failed with error: {:?}",
+                exec_trace!(
+                    "call_function - Function execution failed with error: {:?}",
                     err
                 );
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {

@@ -1,48 +1,58 @@
-# Fix Action Definition and Call Handling
+# Debug Output Refactoring PR
 
-This PR fixes the WFL interpreter to properly handle action definitions and calls, specifically focusing on the `log_message` action. It resolves an infinite loop in the parser when encountering action definitions and ensures that action calls are correctly parsed and executed.
+## Summary
 
-## Acceptance Criteria
+This PR refactors the debug output system in the WFL interpreter and parser to ensure all debug messages go through the logging system rather than directly to stdout. It standardizes the use of `exec_trace!` macros throughout the codebase, ensuring clean separation between program output and debugging information.
 
-- [x] Parser recognizes `define action called <Ident> needs <IdentList>: ... end action` constructs and emits an `Ast::ActionDefinition`
-- [x] Parser recognizes `<Ident> with <ArgList>` as an `Ast::ActionCall`
-- [x] Runtime stores action definitions in the environment (using the existing values map)
-- [x] Runtime executes the body with argument bindings when an `ActionCall` node is interpreted
-- [x] Integration test creates/overwrites test.log and appends the expected content
-- [x] All pre-existing unit tests still pass
-- [x] New tests for action definitions and calls pass
-- [x] `cargo run -- tests/nexus.wfl` terminates normally in <1s on a debug build
+## Changes
 
-## Implementation Details
+- Replaced all direct `println!("DEBUG: ...")` statements with `exec_trace!` macros
+- Added missing `use crate::exec_trace;` import to the parser module
+- Fixed 12+ instances of debug output in the parser module
+- Fixed 7+ instances of debug output in the interpreter module
+- Updated documentation to reflect the changes
+- Modified test.wfl to accommodate static analyzer limitations
 
-1. Added `ActionCall` expression type to the AST
-2. Created a helper method for parsing argument lists to avoid code duplication
-3. Updated the parser to recognize action calls with the "with" keyword
-4. Updated the interpreter to handle `ActionCall` expressions
-5. Added comprehensive tests for action definition parsing, action call parsing, and execution
-6. Added an integration test for the `log_message` action
-7. Fixed the infinite loop in the parser when encountering "end action"
-8. Modified main.rs to not exit on semantic diagnostics to allow action definitions to be processed
+## Testing
 
-## Test Results
+- Ran test.wfl script to verify the fixes work as expected
+- Confirmed proper execution without debug messages in console output
+- Verified log messages are correctly appended to nexus.log file
+- Checked the AST dump to confirm concatenation expressions are properly parsed
 
-All tests pass, including the new action tests:
+## Related Issues
 
+This PR completes the work started in the previous PR where we began standardizing the logging approach across the codebase. It also enhances our fix for the concatenation vs. action call parsing issue.
+
+## Known Limitations
+
+- The static analyzer doesn't recognize variable usage inside `WaitForStatement` structures, resulting in false positive "unused variable" warnings
+- Future enhancement could include updating the static analyzer to inspect the inner statement of `WaitForStatement` nodes for variable usage
+
+## Documentation
+
+- Added implementation_progress_2025-05-21.md with details of the changes
+- No README updates needed as these are implementation details
+
+## Screenshots
+
+Before: Debug output mixed with program output
 ```
-test test_action_def_parses ... ok
-test test_parser_token_consumption ... ok
-test test_action_call_parses ... ok
-test test_action_call_executes ... ok
+DEBUG: call_function - Created child environment for function call
+DEBUG: call_function - Binding parameter 0 'message_text' to argument Text("Starting Nexus WFL Integration Test Suite...")
+DEBUG: call_function - Pushed frame to call stack
+DEBUG: call_function - Executing function body
+yes
+yes
+yes
+yes
+Fractional division test: PASS
 ```
 
-The integration test creates a test.log file with the expected content:
+After: Clean program output only
 ```
-Starting Nexus WFL Integration Test Suite...
-```
-
-## Link to Devin Run
-https://app.devin.ai/sessions/4587626a91b24f3aa0a7ac6499eb2ab3
-
-Requested by: bsbyrd@logbie.com
-
-Fix #Nexus-Action-Parsing
+yes
+yes
+yes
+yes
+Fractional division test: PASS
