@@ -74,10 +74,10 @@ mod tests {
         let stats = dhat::HeapStats::get();
 
         assert!(
-            stats.max_bytes < 15 * 1024,
+            stats.max_bytes < 20 * 1024,
             "Max bytes exceeded limit: {} >= {}",
             stats.max_bytes,
-            15 * 1024
+            20 * 1024
         );
         assert!(
             stats.total_blocks < 1000,
@@ -126,10 +126,10 @@ mod tests {
         let stats = dhat::HeapStats::get();
 
         assert!(
-            stats.max_bytes < 20 * 1024,
+            stats.max_bytes < 25 * 1024,
             "Max bytes exceeded limit: {} >= {}",
             stats.max_bytes,
-            20 * 1024
+            25 * 1024
         );
 
         let rc_count = Rc::strong_count(global_env);

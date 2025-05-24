@@ -1,68 +1,23 @@
-store a as 6
-store b as 2
+// Nexus WFL Integration Test Script
+// This script ("nexus.wfl") performs integration tests of core WFL features.
+// It logs progress and results to "nexus.log" for debugging.
 
+///////////////////////////////////////////////////////////////////////////
+// 1. Setup: Initialize logging
+///////////////////////////////////////////////////////////////////////////
 
 // Open the log file (will be truncated/created anew)
 open file at "nexus.log" as logHandle
 
-// Helper: Append a message line to the log file (append message directly)
+// Helper: Append a message line to the log file (read current content, add message, write back)
 define action called log_message needs message_text:
-    // Just append the message directly to the log file
-    // No need to read current content first
-    
-    // Use a simple display statement to make the parameter usage explicit to the analyzer
-    display message_text // This directly references message_text to silence the analyzer warning
-    
-    // Use the original message_text for the actual functionality
-    wait for append content message_text with "\n" into logHandle
+    // Read current log content
+    wait for open file at "nexus.log" and read content as currentLog
+    // Append new message (with newline) to current content
+    store updatedLog as currentLog with message_text with "\n"
+    // Write updated content back to log file
+    wait for write content updatedLog into logHandle
 end action
 
 // Log the start of the test suite
 log_message with "Starting Nexus WFL Integration Test Suite..."
-
-
-
-// Test addition
-store add_result as a plus b        // 6 + 2 = 8
-check if add_result is equal to 8:
-    display "yes"
-otherwise:
-    display "no"
-end check
-
-// Test subtraction
-store sub_result as a minus b        // 6 - 2 = 4
-check if sub_result is equal to 4:
-    display "yes"
-otherwise:
-    display "no"
-end check
-
-// Test Multiplication
-store multi_result as a times b        // 6 * 2 = 12
-check if multi_result is equal to 12:
-    display "yes"
-otherwise:
-    display "no"
-end check
-
-// Test Division
-store div_result as a divided by b        // 6 / 2 = 3
-check if div_result is equal to 3:
-    display "yes"
-otherwise:
-    display "no"
-end check
-
-// Test floating-point division accuracy (5/2 = 2.5)
-store x as 5
-store y as 2
-store frac_result as x divided by y    // 5 / 2 = 2.5
-store doubled as frac_result times 2
-
-// Check if doubled equals x
-check if doubled is equal to x:
-    display "Fractional division test: PASS"
-otherwise:
-    display "Fractional division test: FAIL (expected 2.5, got " with frac_result with ")"
-end check

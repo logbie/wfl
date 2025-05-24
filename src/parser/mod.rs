@@ -30,17 +30,78 @@ impl<'a> Parser<'a> {
         while self.tokens.peek().is_some() {
             let start_len = self.tokens.clone().count();
 
-            // Debug output removed - no longer needed once parser is fixed
-
-            // Special case for "end action" which should be handled by parse_action_definition
-            if let Some(token) = self.tokens.peek() {
-                if token.token == Token::KeywordEnd {
-                    if let Some(next_token) = self.tokens.clone().nth(1) {
-                        if next_token.token == Token::KeywordAction {
-                            self.tokens.next(); // Consume "end"
-                            self.tokens.next(); // Consume "action"
-                            continue;
+            // Comprehensive handling of "end" tokens that might be left unconsumed
+            // Check first two tokens to avoid borrow checker issues
+            let mut tokens_clone = self.tokens.clone();
+            if let Some(first_token) = tokens_clone.next() {
+                if first_token.token == Token::KeywordEnd {
+                    if let Some(second_token) = tokens_clone.next() {
+                        match &second_token.token {
+                            Token::KeywordAction => {
+                                exec_trace!("Consuming orphaned 'end action' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "action"
+                                continue;
+                            }
+                            Token::KeywordCheck => {
+                                exec_trace!("Consuming orphaned 'end check' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "check"
+                                continue;
+                            }
+                            Token::KeywordFor => {
+                                exec_trace!("Consuming orphaned 'end for' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "for"
+                                continue;
+                            }
+                            Token::KeywordCount => {
+                                exec_trace!("Consuming orphaned 'end count' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "count"
+                                continue;
+                            }
+                            Token::KeywordRepeat => {
+                                exec_trace!("Consuming orphaned 'end repeat' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "repeat"
+                                continue;
+                            }
+                            Token::KeywordTry => {
+                                exec_trace!("Consuming orphaned 'end try' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "try"
+                                continue;
+                            }
+                            Token::KeywordLoop => {
+                                exec_trace!("Consuming orphaned 'end loop' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "loop"
+                                continue;
+                            }
+                            Token::KeywordWhile => {
+                                exec_trace!("Consuming orphaned 'end while' at line {}", first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.tokens.next(); // Consume "while"
+                                continue;
+                            }
+                            _ => {
+                                // Standalone "end" or unexpected pattern - consume and log error
+                                exec_trace!("Found unexpected 'end' followed by {:?} at line {}", second_token.token, first_token.line);
+                                self.tokens.next(); // Consume "end"
+                                self.errors.push(ParseError::new(
+                                    format!("Unexpected 'end' followed by {:?}", second_token.token),
+                                    first_token.line,
+                                    first_token.column,
+                                ));
+                                continue;
+                            }
                         }
+                    } else {
+                        // "end" at end of file
+                        exec_trace!("Found standalone 'end' at end of file, line {}", first_token.line);
+                        self.tokens.next();
+                        break;
                     }
                 }
             }
@@ -89,9 +150,30 @@ impl<'a> Parser<'a> {
                 | Token::KeywordCount
                 | Token::KeywordFor
                 | Token::KeywordDefine
-                | Token::KeywordIf
-                | Token::KeywordEnd => {
+                | Token::KeywordIf => {
                     break;
+                }
+                Token::KeywordEnd => {
+                    // Handle orphaned "end" tokens during error recovery
+                    exec_trace!("Synchronizing: found 'end' token at line {}", token.line);
+                    self.tokens.next(); // Consume "end"
+                    if let Some(next_token) = self.tokens.peek() {
+                        match &next_token.token {
+                            Token::KeywordAction
+                            | Token::KeywordCheck
+                            | Token::KeywordFor
+                            | Token::KeywordCount
+                            | Token::KeywordRepeat
+                            | Token::KeywordTry
+                            | Token::KeywordLoop
+                            | Token::KeywordWhile => {
+                                exec_trace!("Synchronizing: consuming {:?} after 'end'", next_token.token);
+                                self.tokens.next(); // Consume the keyword after "end"
+                            }
+                            _ => {} // Just consumed "end", continue
+                        }
+                    }
+                    break; // After handling orphaned end, continue with recovery
                 }
                 _ => {
                     self.tokens.next(); // Skip the token
