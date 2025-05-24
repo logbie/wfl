@@ -1225,6 +1225,104 @@ impl TypeChecker {
                     }
                 }
             }
+            Expression::ActionCall {
+                name,
+                arguments,
+                line,
+                column,
+            } => {
+                let symbol_opt = self.analyzer.get_symbol(name);
+
+                if symbol_opt.is_none() {
+                    self.type_error(
+                        format!("Undefined action '{}'", name),
+                        None,
+                        None,
+                        *line,
+                        *column,
+                    );
+                    return Type::Error;
+                }
+
+                let symbol = symbol_opt.unwrap();
+
+                if symbol.symbol_type.is_none() {
+                    self.type_error(
+                        format!("Cannot determine type of action '{}'", name),
+                        None,
+                        None,
+                        *line,
+                        *column,
+                    );
+                    return Type::Unknown;
+                }
+
+                let symbol_type = symbol.symbol_type.clone().unwrap();
+
+                match symbol_type {
+                    Type::Function {
+                        parameters,
+                        return_type,
+                    } => {
+                        if arguments.len() != parameters.len() {
+                            self.type_error(
+                                format!(
+                                    "Action '{}' expects {} arguments, but {} were provided",
+                                    name,
+                                    parameters.len(),
+                                    arguments.len()
+                                ),
+                                None,
+                                None,
+                                *line,
+                                *column,
+                            );
+                            return Type::Error;
+                        }
+
+                        let mut arg_types = Vec::with_capacity(arguments.len());
+                        for arg in arguments {
+                            arg_types.push(self.infer_expression_type(&arg.value));
+                        }
+
+                        for (i, (param_type, arg_type)) in
+                            parameters.iter().zip(arg_types.iter()).enumerate()
+                        {
+                            if !self.are_types_compatible(param_type, arg_type) {
+                                self.type_error(
+                                    format!(
+                                        "Argument {} of action '{}' expects {}, but got {}",
+                                        i + 1,
+                                        name,
+                                        param_type,
+                                        arg_type
+                                    ),
+                                    Some(param_type.clone()),
+                                    Some(arg_type.clone()),
+                                    *line,
+                                    *column,
+                                );
+                                return Type::Error;
+                            }
+                        }
+
+                        *return_type
+                    }
+                    _ => {
+                        self.type_error(
+                            format!("'{}' is not an action", name),
+                            Some(Type::Function {
+                                parameters: vec![],
+                                return_type: Box::new(Type::Unknown),
+                            }),
+                            Some(symbol_type),
+                            *line,
+                            *column,
+                        );
+                        Type::Error
+                    }
+                }
+            }
         }
     }
 
