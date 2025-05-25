@@ -460,6 +460,16 @@ impl CodeFixer {
                     output.push_str(p);
                     output.push('/');
                 }
+                Literal::List(elements) => {
+                    output.push('[');
+                    for (i, element) in elements.iter().enumerate() {
+                        if i > 0 {
+                            output.push_str(" and ");
+                        }
+                        self.pretty_print_expression(element, output, indent_level, summary);
+                    }
+                    output.push(']');
+                }
             },
             Expression::Variable(name, ..) => {
                 let fixed_name = self.fix_identifier_name(name, summary);

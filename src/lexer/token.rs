@@ -133,6 +133,8 @@ pub enum Token {
     KeywordReplace,
     #[token("split")]
     KeywordSplit,
+    #[token("push")]
+    KeywordPush,
     #[token("above")]
     KeywordAbove, // e.g., "is above 100"
     #[token("below")]
@@ -147,9 +149,17 @@ pub enum Token {
     KeywordNot,
     #[token("is")]
     KeywordIs,
+    #[token("than")]
+    KeywordThan,
 
     #[token(":")]
     Colon,
+
+    #[token("[")]
+    LeftBracket,
+
+    #[token("]")]
+    RightBracket,
 
     #[regex("(?:yes|no|true|false)", |lex| {
         let text = lex.slice().to_ascii_lowercase();
@@ -252,6 +262,8 @@ impl Token {
                 | Token::KeywordRead
                 | Token::KeywordWait
                 | Token::KeywordSkip
+                | Token::KeywordThan
+                | Token::KeywordPush
         )
     }
 }

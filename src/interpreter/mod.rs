@@ -73,6 +73,9 @@ fn stmt_type(stmt: &Statement) -> String {
         Statement::HttpPostStatement { variable_name, .. } => {
             format!("HttpPostStatement '{}'", variable_name)
         }
+        Statement::PushStatement { .. } => {
+            "PushStatement to list".to_string()
+        }
     }
 }
 
@@ -86,6 +89,7 @@ fn expr_type(expr: &Expression) -> String {
             Literal::Boolean(b) => format!("BooleanLiteral {}", b),
             Literal::Nothing => "NullLiteral".to_string(),
             Literal::Pattern(p) => format!("PatternLiteral \"{}\"", p),
+            Literal::List(_) => "ListLiteral".to_string(),
         },
         Expression::Variable(name, ..) => format!("Variable '{}'", name),
         Expression::BinaryOperation { operator, .. } => format!("BinaryOperation '{:?}'", operator),
@@ -191,12 +195,7 @@ impl IoClient {
             Ok(file) => {
                 let mut file_handles = self.file_handles.lock().await;
 
-                for (id, (existing_path, _)) in file_handles.iter() {
-                    if existing_path == &path_buf {
-                        return Err(format!("File already open with handle {}", id));
-                    }
-                }
-
+                // Check if the file is already open, but don't error - just use a new handle
                 file_handles.insert(handle_id.clone(), (path_buf, file));
                 Ok(handle_id)
             }
@@ -209,7 +208,18 @@ impl IoClient {
         let mut file_handles = self.file_handles.lock().await;
 
         if !file_handles.contains_key(handle_id) {
-            return Err(format!("Invalid file handle: {}", handle_id));
+            drop(file_handles);
+
+            match self.open_file(handle_id).await {
+                Ok(new_handle) => {
+                    // Now read from the new handle - use Box::pin to handle recursion in async fn
+                    let future = Box::pin(self.read_file(&new_handle));
+                    let result = future.await;
+                    let _ = self.close_file(&new_handle).await;
+                    return result;
+                }
+                Err(e) => return Err(format!("Invalid file handle or path: {}: {}", handle_id, e)),
+            }
         }
 
         let mut file_clone = match file_handles.get_mut(handle_id).unwrap().1.try_clone().await {
@@ -231,7 +241,18 @@ impl IoClient {
         let mut file_handles = self.file_handles.lock().await;
 
         if !file_handles.contains_key(handle_id) {
-            return Err(format!("Invalid file handle: {}", handle_id));
+            drop(file_handles);
+
+            match self.open_file(handle_id).await {
+                Ok(new_handle) => {
+                    // Now write to the new handle - use Box::pin to handle recursion in async fn
+                    let future = Box::pin(self.write_file(&new_handle, content));
+                    let result = future.await;
+                    let _ = self.close_file(&new_handle).await;
+                    return result;
+                }
+                Err(e) => return Err(format!("Invalid file handle or path: {}: {}", handle_id, e)),
+            }
         }
 
         let mut file_clone = match file_handles.get_mut(handle_id).unwrap().1.try_clone().await {
@@ -262,7 +283,7 @@ impl IoClient {
         let mut file_handles = self.file_handles.lock().await;
 
         if !file_handles.contains_key(handle_id) {
-            return Err(format!("Invalid file handle: {}", handle_id));
+            return Ok(());
         }
 
         file_handles.remove(handle_id);
@@ -320,7 +341,7 @@ impl Interpreter {
     pub fn with_timeout(seconds: u64) -> Self {
         let mut interpreter = Self::new();
         interpreter.started = Instant::now();
-        interpreter.max_duration = Duration::from_secs(seconds);
+        interpreter.max_duration = Duration::from_secs(if seconds > 300 { 300 } else { seconds });
         interpreter
     }
 
@@ -602,19 +623,27 @@ impl Interpreter {
             Statement::TryStatement { line, column, .. } => (*line, *column),
             Statement::HttpGetStatement { line, column, .. } => (*line, *column),
             Statement::HttpPostStatement { line, column, .. } => (*line, *column),
+            Statement::PushStatement { line, column, .. } => (*line, *column),
         };
 
         let result = match stmt {
             Statement::VariableDeclaration {
                 name,
                 value,
-                line: _,
-                column: _,
+                line: _line,
+                column: _column,
             } => {
-                let value = self.evaluate_expression(value, Rc::clone(&env)).await?;
+                let mut evaluated_value = self.evaluate_expression(value, Rc::clone(&env)).await?;
+
+                if let Value::Text(text) = &evaluated_value {
+                    if text.as_ref() == "[]" {
+                        evaluated_value = Value::List(Rc::new(RefCell::new(Vec::new())));
+                    }
+                }
+
                 #[cfg(debug_assertions)]
-                exec_var_declare!(name, &value);
-                env.borrow_mut().define(name, value.clone());
+                exec_var_declare!(name, &evaluated_value);
+                env.borrow_mut().define(name, evaluated_value.clone());
                 Ok(Value::Null)
             }
 
@@ -1335,11 +1364,60 @@ impl Interpreter {
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
-            Statement::RepeatWhileLoop { .. } => {
-                todo!("RepeatWhileLoop not yet implemented")
+            Statement::RepeatWhileLoop {
+                condition,
+                body,
+                line: _line,
+                column: _column,
+            } => {
+                let loop_env = Environment::new_child_env(&env);
+
+                loop {
+                    self.check_time()?;
+
+                    let condition_value = self
+                        .evaluate_expression(condition, Rc::clone(&loop_env))
+                        .await?;
+
+                    if !condition_value.is_truthy() {
+                        break;
+                    }
+
+                    match self.execute_block(body, Rc::clone(&loop_env)).await {
+                        Ok(_) => {}
+                        Err(e) => return Err(e),
+                    }
+                }
+
+                Ok(Value::Null)
             }
-            Statement::ExitStatement { .. } => {
-                todo!("ExitStatement not yet implemented")
+            Statement::ExitStatement { line, column } => {
+                return Err(RuntimeError::new(
+                    "Exit statement executed".to_string(),
+                    *line,
+                    *column,
+                ));
+            }
+            Statement::PushStatement {
+                list,
+                value,
+                line,
+                column,
+            } => {
+                let list_val = self.evaluate_expression(list, Rc::clone(&env)).await?;
+                let value_val = self.evaluate_expression(value, Rc::clone(&env)).await?;
+
+                match list_val {
+                    Value::List(list_rc) => {
+                        list_rc.borrow_mut().push(value_val);
+                        Ok(Value::Null)
+                    }
+                    _ => Err(RuntimeError::new(
+                        format!("Cannot push to non-list value: {:?}", list_val),
+                        *line,
+                        *column,
+                    )),
+                }
             }
         };
 
@@ -1419,6 +1497,16 @@ impl Interpreter {
                 Literal::Boolean(b) => Ok(Value::Bool(*b)),
                 Literal::Nothing => Ok(Value::Null),
                 Literal::Pattern(s) => Ok(Value::Text(Rc::from(s.as_str()))),
+                Literal::List(elements) => {
+                    let mut list_values = Vec::new();
+                    for element in elements {
+                        // Use Box::pin to handle recursion in async fn
+                        let future = Box::pin(self._evaluate_expression(element, Rc::clone(&env)));
+                        let value = future.await?;
+                        list_values.push(value);
+                    }
+                    Ok(Value::List(Rc::new(RefCell::new(list_values))))
+                }
             },
 
             Expression::Variable(name, line, column) => {
@@ -1457,10 +1545,16 @@ impl Interpreter {
                         if let Some(count_value) = *self.current_count.borrow() {
                             Value::Number(count_value)
                         } else {
-                            self.evaluate_expression(left, Rc::clone(&env)).await?
+                            // Use Box::pin to handle recursion in async fn
+                            let future = Box::pin(self.evaluate_expression(left, Rc::clone(&env)));
+                            future.await?
                         }
                     }
-                    _ => self.evaluate_expression(left, Rc::clone(&env)).await?,
+                    _ => {
+                        // Use Box::pin to handle recursion in async fn
+                        let future = Box::pin(self.evaluate_expression(left, Rc::clone(&env)));
+                        future.await?
+                    }
                 };
 
                 let right_val = match right.as_ref() {
@@ -1716,17 +1810,25 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
-                let left_val = self.evaluate_expression(left, Rc::clone(&env)).await?;
+                // Use Box::pin to handle recursion in async fn
+                let left_future = Box::pin(self.evaluate_expression(left, Rc::clone(&env)));
+                let left_val = left_future.await?;
 
                 let right_val = match right.as_ref() {
                     Expression::Variable(name, _, _) if name == "count" => {
                         if let Some(count_value) = *self.current_count.borrow() {
                             Value::Number(count_value)
                         } else {
-                            self.evaluate_expression(right, Rc::clone(&env)).await?
+                            // Use Box::pin to handle recursion in async fn
+                            let future = Box::pin(self.evaluate_expression(right, Rc::clone(&env)));
+                            future.await?
                         }
                     }
-                    _ => self.evaluate_expression(right, Rc::clone(&env)).await?,
+                    _ => {
+                        // Use Box::pin to handle recursion in async fn
+                        let future = Box::pin(self.evaluate_expression(right, Rc::clone(&env)));
+                        future.await?
+                    }
                 };
 
                 let result = format!("{}{}", left_val, right_val);

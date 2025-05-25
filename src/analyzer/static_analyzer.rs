@@ -527,6 +527,7 @@ impl Analyzer {
                             Statement::TryStatement { line, .. } => *line,
                             Statement::HttpGetStatement { line, .. } => *line,
                             Statement::HttpPostStatement { line, .. } => *line,
+                            Statement::PushStatement { line, .. } => *line,
                         },
                         column: match statement {
                             Statement::VariableDeclaration { column, .. } => *column,
@@ -554,6 +555,7 @@ impl Analyzer {
                             Statement::TryStatement { column, .. } => *column,
                             Statement::HttpGetStatement { column, .. } => *column,
                             Statement::HttpPostStatement { column, .. } => *column,
+                            Statement::PushStatement { column, .. } => *column,
                         },
                     });
                     stmt_nodes.push(node_idx);
@@ -609,6 +611,7 @@ impl Analyzer {
                                 Statement::TryStatement { line, .. } => *line,
                                 Statement::HttpGetStatement { line, .. } => *line,
                                 Statement::HttpPostStatement { line, .. } => *line,
+                                Statement::PushStatement { line, .. } => *line,
                             },
                             column: match stmt {
                                 Statement::VariableDeclaration { column, .. } => *column,
@@ -636,6 +639,7 @@ impl Analyzer {
                                 Statement::TryStatement { column, .. } => *column,
                                 Statement::HttpGetStatement { column, .. } => *column,
                                 Statement::HttpPostStatement { column, .. } => *column,
+                                Statement::PushStatement { column, .. } => *column,
                             },
                         });
                         then_nodes.push(then_node_idx);
@@ -679,6 +683,7 @@ impl Analyzer {
                                     Statement::TryStatement { line, .. } => *line,
                                     Statement::HttpGetStatement { line, .. } => *line,
                                     Statement::HttpPostStatement { line, .. } => *line,
+                                    Statement::PushStatement { line, .. } => *line,
                                 },
                                 column: match stmt {
                                     Statement::VariableDeclaration { column, .. } => *column,
@@ -706,6 +711,7 @@ impl Analyzer {
                                     Statement::TryStatement { column, .. } => *column,
                                     Statement::HttpGetStatement { column, .. } => *column,
                                     Statement::HttpPostStatement { column, .. } => *column,
+                                    Statement::PushStatement { column, .. } => *column,
                                 },
                             });
                             else_nodes.push(else_node_idx);

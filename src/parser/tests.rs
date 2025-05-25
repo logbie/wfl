@@ -473,3 +473,32 @@ fn test_store_with_keyword_as_variable_name() {
         );
     }
 }
+
+#[test]
+fn test_than_keyword_parsing() {
+    let input = "check if x is greater than 5:\n  display \"x is greater than 5\"\nend check";
+    let tokens = lex_wfl_with_positions(input);
+    let mut parser = Parser::new(&tokens);
+
+    let result = parser.parse_statement();
+    assert!(result.is_ok());
+
+    if let Ok(Statement::IfStatement { condition, .. }) = result {
+        if let Expression::BinaryOperation {
+            operator, right, ..
+        } = condition
+        {
+            assert_eq!(operator, Operator::GreaterThan);
+
+            if let Expression::Literal(Literal::Integer(n), ..) = *right {
+                assert_eq!(n, 5);
+            } else {
+                panic!("Expected integer literal in condition");
+            }
+        } else {
+            panic!("Expected binary operation in condition");
+        }
+    } else {
+        panic!("Expected if statement");
+    }
+}
