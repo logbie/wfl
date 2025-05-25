@@ -1,0 +1,63 @@
+17:25:26.7378999 [INFO] WFL execution logging initialized at 2025-05-24 12:25:26 - Nexus\wfl_exec.log
+17:25:26.7380443 [DEBUG] (1) wfl: [src\main.rs:622] EXEC: Parsing and executing script...
+17:25:26.7381359 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7381754 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.7382138 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.7382503 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.7382909 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: log_message
+17:25:26.7383274 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: log_message
+17:25:26.7383665 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1534] EXEC: Found 'needs' keyword, parsing parameters
+17:25:26.7384036 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1538] EXEC: Checking token for parameter: Identifier("message_text")
+17:25:26.7384421 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1540] EXEC: Found parameter: message_text
+17:25:26.7386022 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 74
+17:25:26.7386401 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordCheck after 'end'
+17:25:26.7387277 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 172
+17:25:26.7387648 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordRepeat after 'end'
+17:25:26.7388199 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 188
+17:25:26.7388566 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordCheck after 'end'
+17:25:26.7388958 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:65] EXEC: Consuming orphaned 'end repeat' at line 190
+17:25:26.738962 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7390011 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.7390375 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.739078 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.7391288 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: greet
+17:25:26.7391653 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: greet
+17:25:26.7392034 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7392395 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.7392758 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.7393117 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.739348 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: square
+17:25:26.7393867 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: square
+17:25:26.7394259 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1534] EXEC: Found 'needs' keyword, parsing parameters
+17:25:26.7394668 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1538] EXEC: Checking token for parameter: Identifier("value")
+17:25:26.7395039 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1540] EXEC: Found parameter: value
+17:25:26.7395458 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7395866 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.7396231 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.7396593 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.7396956 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: add
+17:25:26.7397319 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: add
+17:25:26.7397892 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1534] EXEC: Found 'needs' keyword, parsing parameters
+17:25:26.7398257 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1538] EXEC: Checking token for parameter: Identifier("p")
+17:25:26.7398617 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1540] EXEC: Found parameter: p
+17:25:26.7399063 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 284
+17:25:26.7399427 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordAction after 'end'
+17:25:26.7399791 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7400151 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.7400514 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.7400875 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.7401238 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: factorial
+17:25:26.7401599 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: factorial
+17:25:26.7401961 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1534] EXEC: Found 'needs' keyword, parsing parameters
+17:25:26.7402323 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1538] EXEC: Checking token for parameter: Identifier("n")
+17:25:26.7402686 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1540] EXEC: Found parameter: n
+17:25:26.7403238 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Parsing action definition
+17:25:26.7403607 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'action' after 'define'
+17:25:26.740397 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting 'called' after 'action'
+17:25:26.7404333 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Expecting identifier after 'called'
+17:25:26.7404692 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1496] EXEC: Found action name: faulty
+17:25:26.7405054 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1522] EXEC: Action name parsed: faulty
+17:25:26.7405672 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 344
+17:25:26.740604 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordTry after 'end'
+17:25:26.7406617 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:158] EXEC: Synchronizing: found 'end' token at line 407
+17:25:26.7406982 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:170] EXEC: Synchronizing: consuming KeywordCheck after 'end'

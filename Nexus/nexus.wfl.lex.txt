@@ -1,4 +1,4 @@
-Lexer output for: Nexus/nexus.wfl
+Lexer output for: Nexus\nexus.wfl
 ==============================================
 
    0: KeywordOpen at line 10, column 1 (length: 4)
