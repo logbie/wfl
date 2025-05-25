@@ -98,6 +98,34 @@ end check
    - Created helper function for writing to output files
    - Implemented proper error handling for file writing operations
 
+## Parser Fix: Handling 'with' Keyword for Concatenation vs Action Calls
+
+- Fixed critical issue with the parser incorrectly interpreting concatenation expressions as action calls
+- Modified the parser to treat identifiers followed by 'with' as concatenation operations by default
+- Added a tracking mechanism for known action names to properly handle 'with' keyword
+- Implemented the Expression::Concatenation type to properly represent string concatenation
+- Fixed crash in scripts using string concatenation in variable assignments
+
+### Technical Implementation
+
+1. Added `known_actions` HashSet to the Parser struct to track defined actions
+2. Updated parser initialization to set up the actions tracking
+3. Modified action definition parsing to register action names during parsing
+4. Enhanced the binary expression parsing logic to distinguish between:
+   - `variable with arguments` pattern for known actions (produces ActionCall)
+   - `expression with expression` pattern for concatenation (produces Concatenation)
+5. Added unit tests to verify correct parsing of concatenation expressions
+6. Fixed a critical bug in the test.wfl script where a file was being opened twice, causing a runtime error
+
+### Impact
+
+This fix allows proper parsing of expressions like:
+```wfl
+store updatedLog as currentLog with message_text with "\n"
+```
+
+Previously these would incorrectly be interpreted as nested action calls, causing semantic errors when variables like `currentLog` and `message_text` were treated as actions.
+
 ## Next Steps
 
 1. Add unit tests specifically for variable usage analysis in binary operations
@@ -108,3 +136,4 @@ end check
 4. Consider enhancing the lexer and AST dumps:
    - Add optional JSON output format for programmatic processing
    - Add visualization options for the AST (e.g., tree view)
+5. Consider adding an idempotent open file operation to handle multiple opens of the same file

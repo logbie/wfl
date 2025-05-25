@@ -2,9 +2,9 @@
 pub mod environment;
 pub mod error;
 #[cfg(test)]
-mod tests;
-#[cfg(test)]
 mod memory_tests;
+#[cfg(test)]
+mod tests;
 pub mod value;
 
 use self::environment::Environment;
@@ -92,6 +92,7 @@ fn expr_type(expr: &Expression) -> String {
             Expression::Variable(name, ..) => format!("FunctionCall '{}'", name),
             _ => "FunctionCall".to_string(),
         },
+        Expression::ActionCall { name, .. } => format!("ActionCall '{}'", name),
         Expression::MemberAccess { property, .. } => format!("MemberAccess '{}'", property),
         Expression::IndexAccess { .. } => "IndexAccess".to_string(),
         Expression::Concatenation { .. } => "Concatenation".to_string(),
@@ -412,10 +413,10 @@ impl Interpreter {
                 *self.in_count_loop.borrow_mut() = false;
                 *self.current_count.borrow_mut() = None;
             }
-            
+
             // Force all resources to be released
             self.call_stack.borrow_mut().clear();
-            
+
             // Terminate with a timeout error
             Err(RuntimeError::with_kind(
                 format!(
@@ -1084,8 +1085,8 @@ impl Interpreter {
             }
             Statement::WaitForStatement {
                 inner,
-                line: _,
-                column: _,
+                line: _line,
+                column: _column,
             } => {
                 match inner.as_ref() {
                     Statement::ExpressionStatement {
@@ -1112,12 +1113,80 @@ impl Interpreter {
                             0,
                         ))
                     }
+                    Statement::WriteFileStatement {
+                        file,
+                        content,
+                        mode,
+                        line,
+                        column,
+                    } => {
+                        let file_value = self.evaluate_expression(file, Rc::clone(&env)).await?;
+                        let content_value =
+                            self.evaluate_expression(content, Rc::clone(&env)).await?;
+
+                        let file_str = match &file_value {
+                            Value::Text(s) => s.clone(),
+                            _ => {
+                                return Err(RuntimeError::new(
+                                    format!(
+                                        "Expected string for file handle, got {:?}",
+                                        file_value
+                                    ),
+                                    *line,
+                                    *column,
+                                ));
+                            }
+                        };
+
+                        let content_str = match &content_value {
+                            Value::Text(s) => s.clone(),
+                            _ => {
+                                return Err(RuntimeError::new(
+                                    format!(
+                                        "Expected string for file content, got {:?}",
+                                        content_value
+                                    ),
+                                    *line,
+                                    *column,
+                                ));
+                            }
+                        };
+
+                        exec_trace!("Writing to file: {}, content: {}", file_str, content_str);
+                        match mode {
+                            crate::parser::ast::WriteMode::Append => {
+                                match self.io_client.append_file(&file_str, &content_str).await {
+                                    Ok(_) => {
+                                        exec_trace!("Successfully appended to file");
+                                        Ok(Value::Null)
+                                    }
+                                    Err(e) => {
+                                        exec_trace!("Error appending to file: {}", e);
+                                        Err(RuntimeError::new(e, *line, *column))
+                                    }
+                                }
+                            }
+                            crate::parser::ast::WriteMode::Overwrite => {
+                                match self.io_client.write_file(&file_str, &content_str).await {
+                                    Ok(_) => {
+                                        exec_trace!("Successfully wrote to file");
+                                        Ok(Value::Null)
+                                    }
+                                    Err(e) => {
+                                        exec_trace!("Error writing to file: {}", e);
+                                        Err(RuntimeError::new(e, *line, *column))
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Statement::ReadFileStatement {
                         path,
                         variable_name,
                         line,
                         column,
                     } => {
+                        exec_trace!("Executing wait for read file statement");
                         let path_value = self.evaluate_expression(path, Rc::clone(&env)).await?;
                         let path_str = match &path_value {
                             Value::Text(s) => s.clone(),
@@ -1494,6 +1563,58 @@ impl Interpreter {
                 result
             }
 
+            Expression::ActionCall {
+                name,
+                arguments,
+                line,
+                column,
+            } => {
+                let function_val = env.borrow().get(name).ok_or_else(|| {
+                    RuntimeError::new(format!("Undefined action '{}'", name), *line, *column)
+                })?;
+
+                if !matches!(function_val, Value::Function(_)) {
+                    return Err(RuntimeError::new(
+                        format!("'{}' is not callable", name),
+                        *line,
+                        *column,
+                    ));
+                }
+
+                let mut arg_values = Vec::new();
+                for arg in arguments.iter() {
+                    arg_values.push(
+                        self.evaluate_expression(&arg.value, Rc::clone(&env))
+                            .await?,
+                    );
+                }
+
+                #[cfg(debug_assertions)]
+                let func_name = match &function_val {
+                    Value::Function(f) => {
+                        f.name.clone().unwrap_or_else(|| "<anonymous>".to_string())
+                    }
+                    _ => format!("{:?}", function_val),
+                };
+
+                #[cfg(debug_assertions)]
+                exec_function_call!(&func_name, &arg_values);
+
+                let result = match &function_val {
+                    Value::Function(func) => {
+                        self.call_function(func, arg_values, *line, *column).await
+                    }
+                    _ => unreachable!(), // We already checked this above
+                };
+
+                #[cfg(debug_assertions)]
+                if let Ok(ref val) = result {
+                    exec_function_return!(&func_name, val);
+                }
+
+                result
+            }
+
             Expression::MemberAccess {
                 object,
                 property,
@@ -1677,6 +1798,7 @@ impl Interpreter {
             .name
             .clone()
             .unwrap_or_else(|| "<anonymous>".to_string());
+
         if args.len() != func.params.len() {
             return Err(RuntimeError::new(
                 format!(
@@ -1690,8 +1812,12 @@ impl Interpreter {
         }
 
         let func_env = match func.env.upgrade() {
-            Some(env) => env,
+            Some(env) => {
+                exec_trace!("call_function - Successfully upgraded function environment");
+                env
+            }
             None => {
+                exec_trace!("call_function - Failed to upgrade function environment");
                 return Err(RuntimeError::with_kind(
                     "Environment no longer exists".to_string(),
                     line,
@@ -1702,8 +1828,15 @@ impl Interpreter {
         };
 
         let call_env = Environment::new_child_env(&func_env);
+        exec_trace!("call_function - Created child environment for function call");
 
-        for (param, arg) in func.params.iter().zip(args.clone()) {
+        for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
+            exec_trace!(
+                "call_function - Binding parameter {} '{}' to argument {:?}",
+                i,
+                param,
+                arg
+            );
             #[cfg(debug_assertions)]
             exec_var_declare!(param, &arg);
             call_env.borrow_mut().define(param, arg);
@@ -1717,6 +1850,7 @@ impl Interpreter {
             column,
         );
         self.call_stack.borrow_mut().push(frame);
+        exec_trace!("call_function - Pushed frame to call stack");
 
         #[cfg(debug_assertions)]
         exec_block_enter!(format!("function {}", func_name));
@@ -1724,7 +1858,9 @@ impl Interpreter {
         #[cfg(debug_assertions)]
         let _guard = IndentGuard::new();
 
+        exec_trace!("call_function - Executing function body");
         let result = self.execute_block(&func.body, call_env.clone()).await;
+        exec_trace!("call_function - Function execution result: {:?}", result);
 
         #[cfg(debug_assertions)]
         exec_block_exit!(format!("function {}", func_name));
@@ -1732,9 +1868,17 @@ impl Interpreter {
         match result {
             Ok(value) => {
                 self.call_stack.borrow_mut().pop();
+                exec_trace!(
+                    "call_function - Function returned successfully with value: {:?}",
+                    value
+                );
                 Ok(value)
             }
             Err(err) => {
+                exec_trace!(
+                    "call_function - Function execution failed with error: {:?}",
+                    err
+                );
                 if let Some(last_frame) = self.call_stack.borrow_mut().last_mut() {
                     last_frame.capture_locals(&call_env);
                 }
@@ -1820,7 +1964,7 @@ impl Interpreter {
     ) -> Result<Value, RuntimeError> {
         #[cfg(feature = "dhat-ad-hoc")]
         dhat::ad_hoc_event(1); // Track division operations for memory profiling
-        
+
         match (left, right) {
             (Value::Number(a), Value::Number(b)) => {
                 if b == 0.0 {
@@ -1832,7 +1976,7 @@ impl Interpreter {
                 } else {
                     // Calculate the result of the division operation
                     let result = a / b;
-                    
+
                     // Check if the result is valid (not NaN or infinite)
                     if !result.is_finite() {
                         return Err(RuntimeError::new(
@@ -1841,7 +1985,7 @@ impl Interpreter {
                             column,
                         ));
                     }
-                    
+
                     // Return the valid result as a Value::Number
                     Ok(Value::Number(result))
                 }

@@ -39,7 +39,7 @@ mod tests {
         let stats = dhat::HeapStats::get();
         println!("Max memory usage: {} bytes", stats.max_bytes);
         println!("Total allocations: {}", stats.total_blocks);
-        
+
         // Check that memory usage is reasonable
         // With the fixed Weak<RefCell<Environment>> references, memory should be much lower
         assert!(
@@ -47,7 +47,7 @@ mod tests {
             "Max memory usage was too high: {} bytes >= 1 MB",
             stats.max_bytes
         );
-        
+
         // Also check the total number of allocations is reasonable
         assert!(
             stats.total_blocks < 20000,
@@ -65,7 +65,7 @@ mod tests {
             "Global environment should have exactly one reference, but had {}",
             rc_count
         );
-        
+
         drop(interpreter); // Explicitly drop to ensure cleanup
     }
 }

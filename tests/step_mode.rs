@@ -15,7 +15,7 @@ display x
     fs::write(&file_path, test_content).expect("Failed to write test file");
 
     let output_no_step = Command::new(env!("CARGO_BIN_EXE_wfl"))
-        .args(&[file_path.to_str().unwrap()])
+        .args([file_path.to_str().unwrap()])
         .output()
         .expect("Failed to execute command");
 
@@ -45,7 +45,7 @@ store y as 100
     fs::write(&file_path, test_content).expect("Failed to write test file");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_wfl"))
-        .args(&["--step", file_path.to_str().unwrap()])
+        .args(["--step", file_path.to_str().unwrap()])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -88,8 +88,8 @@ define action called main:
     helper_function with x
 end action
 
-define action called helper_function with value:
-    display "In helper with value: " with value
+define action called helper_function needs v:
+    display "In helper with value: " with v
     nested_function
 end action
 
@@ -102,7 +102,7 @@ main
     fs::write(&file_path, test_content).expect("Failed to write test file");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_wfl"))
-        .args(&["--step", file_path.to_str().unwrap()])
+        .args(["--step", file_path.to_str().unwrap()])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -151,7 +151,7 @@ end count
     fs::write(&file_path, test_content).expect("Failed to write test file");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_wfl"))
-        .args(&["--step", file_path.to_str().unwrap()])
+        .args(["--step", file_path.to_str().unwrap()])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -193,7 +193,7 @@ display x
     fs::write(&file_path, test_content).expect("Failed to write test file");
 
     let mut child = Command::new(env!("CARGO_BIN_EXE_wfl"))
-        .args(&["--step", file_path.to_str().unwrap()])
+        .args(["--step", file_path.to_str().unwrap()])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

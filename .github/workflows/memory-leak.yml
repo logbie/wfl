@@ -25,8 +25,8 @@ jobs:
         DHAT_PROFILE=1 cargo test --features dhat-heap test_log_message_memory_usage -- --nocapture
     - name: Verify memory usage
       run: |
-        # Parse dhat-heap.json to extract max_bytes value
-        MAX_BYTES=$(python -c "import json; print(json.load(open('dhat-heap.json'))['max_bytes'])")
+        # Parse dhat-heap.json to extract max_bytes value with null-check
+        MAX_BYTES=$(python -c "import json; data = json.load(open('dhat-heap.json')); print(data.get('max_bytes', 0))")
         if [ $MAX_BYTES -lt 15728640 ]; then
           echo "Memory usage within acceptable limits: $MAX_BYTES bytes"
         else

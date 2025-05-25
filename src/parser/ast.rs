@@ -185,6 +185,12 @@ pub enum Expression {
         line: usize,
         column: usize,
     },
+    ActionCall {
+        name: String,
+        arguments: Vec<Argument>,
+        line: usize,
+        column: usize,
+    },
     IndexAccess {
         collection: Box<Expression>,
         index: Box<Expression>,

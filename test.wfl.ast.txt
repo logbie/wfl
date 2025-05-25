@@ -1,13 +1,13 @@
 AST output for: test.wfl
 ==============================================
 
-Program with 10 statements:
+Program with 18 statements:
 
 Statement #1: VariableDeclaration {
     name: "a",
     value: Literal(
-        Float(
-            6.5,
+        Integer(
+            6,
         ),
         1,
         12,
@@ -29,32 +29,123 @@ Statement #2: VariableDeclaration {
     column: 1,
 }
 
-Statement #3: VariableDeclaration {
+Statement #3: OpenFileStatement {
+    path: Literal(
+        String(
+            "nexus.log",
+        ),
+        6,
+        14,
+    ),
+    variable_name: "logHandle",
+    line: 6,
+    column: 1,
+}
+
+Statement #4: ActionDefinition {
+    name: "log_message",
+    parameters: [
+        Parameter {
+            name: "message_text",
+            param_type: None,
+            default_value: None,
+        },
+    ],
+    body: [
+        VariableDeclaration {
+            name: "message",
+            value: Concatenation {
+                left: Variable(
+                    "message_text",
+                    12,
+                    22,
+                ),
+                right: Literal(
+                    String(
+                        "\\n",
+                    ),
+                    12,
+                    40,
+                ),
+                line: 12,
+                column: 35,
+            },
+            line: 12,
+            column: 5,
+        },
+        WaitForStatement {
+            inner: WriteFileStatement {
+                file: Variable(
+                    "logHandle",
+                    13,
+                    42,
+                ),
+                content: Variable(
+                    "message",
+                    13,
+                    29,
+                ),
+                mode: Append,
+                line: 13,
+                column: 5,
+            },
+            line: 13,
+            column: 5,
+        },
+    ],
+    return_type: None,
+    line: 17,
+    column: 1,
+}
+
+Statement #5: ExpressionStatement {
+    expression: ActionCall {
+        name: "log_message",
+        arguments: [
+            Argument {
+                name: None,
+                value: Literal(
+                    String(
+                        "Starting Nexus WFL Integration Test Suite...",
+                    ),
+                    17,
+                    18,
+                ),
+            },
+        ],
+        line: 17,
+        column: 1,
+    },
+    line: 22,
+    column: 1,
+}
+
+Statement #6: VariableDeclaration {
     name: "add_result",
     value: BinaryOperation {
         left: Variable(
             "a",
-            5,
+            22,
             21,
         ),
         operator: Plus,
         right: Variable(
             "b",
-            5,
+            22,
             28,
         ),
-        line: 5,
+        line: 22,
         column: 23,
     },
-    line: 5,
+    line: 22,
     column: 1,
 }
 
-Statement #4: IfStatement {
+Statement #7: IfStatement {
     condition: BinaryOperation {
         left: Variable(
             "add_result",
-            6,
+            23,
             10,
         ),
         operator: Equals,
@@ -62,10 +153,10 @@ Statement #4: IfStatement {
             Integer(
                 8,
             ),
-            6,
+            23,
             33,
         ),
-        line: 6,
+        line: 23,
         column: 21,
     },
     then_block: [
@@ -74,10 +165,10 @@ Statement #4: IfStatement {
                 String(
                     "yes",
                 ),
-                7,
+                24,
                 13,
             ),
-            line: 8,
+            line: 25,
             column: 1,
         },
     ],
@@ -88,44 +179,44 @@ Statement #4: IfStatement {
                     String(
                         "no",
                     ),
-                    9,
+                    26,
                     13,
                 ),
-                line: 10,
+                line: 27,
                 column: 1,
             },
         ],
     ),
-    line: 13,
+    line: 23,
     column: 1,
 }
 
-Statement #5: VariableDeclaration {
+Statement #8: VariableDeclaration {
     name: "sub_result",
     value: BinaryOperation {
         left: Variable(
             "a",
-            13,
+            30,
             21,
         ),
         operator: Minus,
         right: Variable(
             "b",
-            13,
+            30,
             29,
         ),
-        line: 13,
+        line: 30,
         column: 23,
     },
-    line: 13,
+    line: 30,
     column: 1,
 }
 
-Statement #6: IfStatement {
+Statement #9: IfStatement {
     condition: BinaryOperation {
         left: Variable(
             "sub_result",
-            14,
+            31,
             10,
         ),
         operator: Equals,
@@ -133,10 +224,10 @@ Statement #6: IfStatement {
             Integer(
                 4,
             ),
-            14,
+            31,
             33,
         ),
-        line: 14,
+        line: 31,
         column: 21,
     },
     then_block: [
@@ -145,10 +236,10 @@ Statement #6: IfStatement {
                 String(
                     "yes",
                 ),
-                15,
+                32,
                 13,
             ),
-            line: 16,
+            line: 33,
             column: 1,
         },
     ],
@@ -159,44 +250,44 @@ Statement #6: IfStatement {
                     String(
                         "no",
                     ),
-                    17,
+                    34,
                     13,
                 ),
-                line: 18,
+                line: 35,
                 column: 1,
             },
         ],
     ),
-    line: 21,
+    line: 31,
     column: 1,
 }
 
-Statement #7: VariableDeclaration {
+Statement #10: VariableDeclaration {
     name: "multi_result",
     value: BinaryOperation {
         left: Variable(
             "a",
-            21,
+            38,
             23,
         ),
         operator: Multiply,
         right: Variable(
             "b",
-            21,
+            38,
             31,
         ),
-        line: 21,
+        line: 38,
         column: 25,
     },
-    line: 21,
+    line: 38,
     column: 1,
 }
 
-Statement #8: IfStatement {
+Statement #11: IfStatement {
     condition: BinaryOperation {
         left: Variable(
             "multi_result",
-            22,
+            39,
             10,
         ),
         operator: Equals,
@@ -204,10 +295,10 @@ Statement #8: IfStatement {
             Integer(
                 12,
             ),
-            22,
+            39,
             35,
         ),
-        line: 22,
+        line: 39,
         column: 23,
     },
     then_block: [
@@ -216,10 +307,10 @@ Statement #8: IfStatement {
                 String(
                     "yes",
                 ),
-                23,
+                40,
                 13,
             ),
-            line: 24,
+            line: 41,
             column: 1,
         },
     ],
@@ -230,44 +321,44 @@ Statement #8: IfStatement {
                     String(
                         "no",
                     ),
-                    25,
+                    42,
                     13,
                 ),
-                line: 26,
+                line: 43,
                 column: 1,
             },
         ],
     ),
-    line: 29,
+    line: 39,
     column: 1,
 }
 
-Statement #9: VariableDeclaration {
+Statement #12: VariableDeclaration {
     name: "div_result",
     value: BinaryOperation {
         left: Variable(
             "a",
-            29,
+            46,
             21,
         ),
         operator: Divide,
         right: Variable(
             "b",
-            29,
+            46,
             34,
         ),
-        line: 29,
+        line: 46,
         column: 23,
     },
-    line: 29,
+    line: 46,
     column: 1,
 }
 
-Statement #10: IfStatement {
+Statement #13: IfStatement {
     condition: BinaryOperation {
         left: Variable(
             "div_result",
-            30,
+            47,
             10,
         ),
         operator: Equals,
@@ -275,10 +366,10 @@ Statement #10: IfStatement {
             Integer(
                 3,
             ),
-            30,
+            47,
             33,
         ),
-        line: 30,
+        line: 47,
         column: 21,
     },
     then_block: [
@@ -287,10 +378,10 @@ Statement #10: IfStatement {
                 String(
                     "yes",
                 ),
-                31,
+                48,
                 13,
             ),
-            line: 32,
+            line: 49,
             column: 1,
         },
     ],
@@ -301,15 +392,153 @@ Statement #10: IfStatement {
                     String(
                         "no",
                     ),
-                    33,
+                    50,
                     13,
                 ),
-                line: 34,
+                line: 51,
                 column: 1,
             },
         ],
     ),
-    line: 0,
-    column: 0,
+    line: 47,
+    column: 1,
+}
+
+Statement #14: VariableDeclaration {
+    name: "x",
+    value: Literal(
+        Integer(
+            5,
+        ),
+        54,
+        12,
+    ),
+    line: 54,
+    column: 1,
+}
+
+Statement #15: VariableDeclaration {
+    name: "y",
+    value: Literal(
+        Integer(
+            2,
+        ),
+        55,
+        12,
+    ),
+    line: 55,
+    column: 1,
+}
+
+Statement #16: VariableDeclaration {
+    name: "frac_result",
+    value: BinaryOperation {
+        left: Variable(
+            "x",
+            56,
+            22,
+        ),
+        operator: Divide,
+        right: Variable(
+            "y",
+            56,
+            35,
+        ),
+        line: 56,
+        column: 24,
+    },
+    line: 56,
+    column: 1,
+}
+
+Statement #17: VariableDeclaration {
+    name: "doubled",
+    value: BinaryOperation {
+        left: Variable(
+            "frac_result",
+            57,
+            18,
+        ),
+        operator: Multiply,
+        right: Literal(
+            Integer(
+                2,
+            ),
+            57,
+            36,
+        ),
+        line: 57,
+        column: 30,
+    },
+    line: 57,
+    column: 1,
+}
+
+Statement #18: IfStatement {
+    condition: BinaryOperation {
+        left: Variable(
+            "doubled",
+            60,
+            10,
+        ),
+        operator: Equals,
+        right: Variable(
+            "x",
+            60,
+            30,
+        ),
+        line: 60,
+        column: 18,
+    },
+    then_block: [
+        DisplayStatement {
+            value: Literal(
+                String(
+                    "Fractional division test: PASS",
+                ),
+                61,
+                13,
+            ),
+            line: 62,
+            column: 1,
+        },
+    ],
+    else_block: Some(
+        [
+            DisplayStatement {
+                value: Concatenation {
+                    left: Literal(
+                        String(
+                            "Fractional division test: FAIL (expected 2.5, got ",
+                        ),
+                        63,
+                        13,
+                    ),
+                    right: Concatenation {
+                        left: Variable(
+                            "frac_result",
+                            63,
+                            71,
+                        ),
+                        right: Literal(
+                            String(
+                                ")",
+                            ),
+                            63,
+                            88,
+                        ),
+                        line: 63,
+                        column: 83,
+                    },
+                    line: 63,
+                    column: 66,
+                },
+                line: 64,
+                column: 1,
+            },
+        ],
+    ),
+    line: 60,
+    column: 1,
 }
 

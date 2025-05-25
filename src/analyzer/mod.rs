@@ -609,6 +609,24 @@ impl Analyzer {
                 self.analyze_expression(text);
                 self.analyze_expression(pattern);
             }
+            Expression::ActionCall {
+                name,
+                arguments,
+                line,
+                column,
+            } => {
+                if self.current_scope.resolve(name).is_none() {
+                    self.errors.push(SemanticError::new(
+                        format!("Action '{}' is not defined", name),
+                        *line,
+                        *column,
+                    ));
+                }
+
+                for arg in arguments {
+                    self.analyze_expression(&arg.value);
+                }
+            }
             Expression::Literal(_, _, _) => {}
         }
     }
