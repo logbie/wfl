@@ -62,6 +62,12 @@ pub enum Statement {
         line: usize,
         column: usize,
     },
+    RepeatWhileLoop {
+        condition: Expression,
+        body: Vec<Statement>,
+        line: usize,
+        column: usize,
+    },
     RepeatUntilLoop {
         condition: Expression,
         body: Vec<Statement>,
@@ -101,6 +107,10 @@ pub enum Statement {
         column: usize,
     },
     ContinueStatement {
+        line: usize,
+        column: usize,
+    },
+    ExitStatement {
         line: usize,
         column: usize,
     },

@@ -52,9 +52,11 @@ fn stmt_type(stmt: &Statement) -> String {
         Statement::ForEachLoop { item_name, .. } => format!("ForEachLoop '{}'", item_name),
         Statement::WhileLoop { .. } => "WhileLoop".to_string(),
         Statement::RepeatUntilLoop { .. } => "RepeatUntilLoop".to_string(),
+        Statement::RepeatWhileLoop { .. } => "RepeatWhileLoop".to_string(),
         Statement::ForeverLoop { .. } => "ForeverLoop".to_string(),
         Statement::BreakStatement { .. } => "BreakStatement".to_string(),
         Statement::ContinueStatement { .. } => "ContinueStatement".to_string(),
+        Statement::ExitStatement { .. } => "ExitStatement".to_string(),
         Statement::OpenFileStatement { variable_name, .. } => {
             format!("OpenFileStatement '{}'", variable_name)
         }
@@ -587,9 +589,11 @@ impl Interpreter {
             Statement::ForEachLoop { line, column, .. } => (*line, *column),
             Statement::WhileLoop { line, column, .. } => (*line, *column),
             Statement::RepeatUntilLoop { line, column, .. } => (*line, *column),
+            Statement::RepeatWhileLoop { line, column, .. } => (*line, *column),
             Statement::ForeverLoop { line, column, .. } => (*line, *column),
             Statement::BreakStatement { line, column, .. } => (*line, *column),
             Statement::ContinueStatement { line, column, .. } => (*line, *column),
+            Statement::ExitStatement { line, column, .. } => (*line, *column),
             Statement::OpenFileStatement { line, column, .. } => (*line, *column),
             Statement::ReadFileStatement { line, column, .. } => (*line, *column),
             Statement::WriteFileStatement { line, column, .. } => (*line, *column),
@@ -1330,6 +1334,12 @@ impl Interpreter {
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
+            }
+            Statement::RepeatWhileLoop { .. } => {
+                todo!("RepeatWhileLoop not yet implemented")
+            }
+            Statement::ExitStatement { .. } => {
+                todo!("ExitStatement not yet implemented")
             }
         };
 
