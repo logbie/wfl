@@ -73,9 +73,7 @@ fn stmt_type(stmt: &Statement) -> String {
         Statement::HttpPostStatement { variable_name, .. } => {
             format!("HttpPostStatement '{}'", variable_name)
         }
-        Statement::PushStatement { .. } => {
-            "PushStatement to list".to_string()
-        }
+        Statement::PushStatement { .. } => "PushStatement to list".to_string(),
     }
 }
 
