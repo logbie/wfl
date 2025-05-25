@@ -230,6 +230,9 @@ impl<'a> Parser<'a> {
                 Token::KeywordFor => self.parse_for_each_loop(),
                 Token::KeywordDefine => self.parse_action_definition(),
                 Token::KeywordChange => self.parse_assignment(),
+                Token::KeywordTry => self.parse_try_statement(),
+                Token::KeywordRepeat => self.parse_repeat_statement(),
+                Token::KeywordExit => self.parse_exit_statement(),
                 Token::KeywordBreak => {
                     let token_pos = self.tokens.next().unwrap();
                     Ok(Statement::BreakStatement {
@@ -561,7 +564,38 @@ impl<'a> Parser<'a> {
                                     if let Token::Identifier(id) = &than_token.token {
                                         if id == "than" {
                                             self.tokens.next(); // Consume "than"
-                                            Some((Operator::LessThan, 0))
+                                            
+                                            // Check for "or equal to" after "less than"
+                                            if let Some(or_token) = self.tokens.peek().cloned() {
+                                                if matches!(or_token.token, Token::KeywordOr) {
+                                                    self.tokens.next(); // Consume "or"
+                                                    
+                                                    if let Some(equal_token) = self.tokens.peek().cloned() {
+                                                        if matches!(equal_token.token, Token::KeywordEqual) {
+                                                            self.tokens.next(); // Consume "equal"
+                                                            
+                                                            if let Some(to_token) = self.tokens.peek().cloned() {
+                                                                if matches!(to_token.token, Token::KeywordTo) {
+                                                                    self.tokens.next(); // Consume "to"
+                                                                    Some((Operator::LessThanOrEqual, 0))
+                                                                } else {
+                                                                    Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
+                                                                }
+                                                            } else {
+                                                                Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
+                                                            }
+                                                        } else {
+                                                            Some((Operator::LessThan, 0)) // Just "less than or" without "equal" is treated as "less than"
+                                                        }
+                                                    } else {
+                                                        Some((Operator::LessThan, 0)) // Just "less than or" without "equal" is treated as "less than"
+                                                    }
+                                                } else {
+                                                    Some((Operator::LessThan, 0)) // Just "less than" without "or equal to"
+                                                }
+                                            } else {
+                                                Some((Operator::LessThan, 0)) // Just "less than" without "or equal to"
+                                            }
                                         } else {
                                             Some((Operator::LessThan, 0)) // "is less" without "than" is valid too
                                         }
@@ -621,6 +655,42 @@ impl<'a> Parser<'a> {
                 }
                 Token::KeywordOr => {
                     self.tokens.next(); // Consume "or"
+                    
+                    // Handle "or equal to" as a special case
+                    if let Some(equal_token) = self.tokens.peek().cloned() {
+                        if matches!(equal_token.token, Token::KeywordEqual) {
+                            self.tokens.next(); // Consume "equal"
+                            
+                            if let Some(to_token) = self.tokens.peek().cloned() {
+                                if matches!(to_token.token, Token::KeywordTo) {
+                                    self.tokens.next(); // Consume "to"
+                                    
+                                    if let Expression::BinaryOperation { operator, left: left_expr, right: right_expr, line: op_line, column: op_column } = &left {
+                                        if *operator == Operator::LessThan {
+                                            left = Expression::BinaryOperation {
+                                                left: left_expr.clone(),
+                                                operator: Operator::LessThanOrEqual,
+                                                right: right_expr.clone(),
+                                                line: *op_line,
+                                                column: *op_column,
+                                            };
+                                            continue;
+                                        } else if *operator == Operator::GreaterThan {
+                                            left = Expression::BinaryOperation {
+                                                left: left_expr.clone(),
+                                                operator: Operator::GreaterThanOrEqual,
+                                                right: right_expr.clone(),
+                                                line: *op_line,
+                                                column: *op_column,
+                                            };
+                                            continue;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     Some((Operator::Or, 0))
                 }
                 Token::KeywordMatches => {
@@ -806,6 +876,10 @@ impl<'a> Parser<'a> {
                     }
 
                     Some((Operator::Contains, 0))
+                }
+                Token::Colon => {
+                    self.tokens.next(); // Consume ":"
+                    continue;
                 }
                 _ => None,
             };
@@ -995,6 +1069,76 @@ impl<'a> Parser<'a> {
                             token.column,
                         ));
                     }
+                }
+                Token::KeywordLoop => {
+                    self.tokens.next(); // Consume "loop"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "loop".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordRepeat => {
+                    self.tokens.next(); // Consume "repeat"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "repeat".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordExit => {
+                    self.tokens.next(); // Consume "exit"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "exit".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordBack => {
+                    self.tokens.next(); // Consume "back"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "back".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordTry => {
+                    self.tokens.next(); // Consume "try"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "try".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordWhen => {
+                    self.tokens.next(); // Consume "when"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "when".to_string(),
+                        token_line,
+                        token_column,
+                    ))
+                }
+                Token::KeywordError => {
+                    self.tokens.next(); // Consume "error"
+                    let token_line = token.line;
+                    let token_column = token.column;
+                    Ok(Expression::Variable(
+                        "error".to_string(),
+                        token_line,
+                        token_column,
+                    ))
                 }
                 _ => Err(ParseError::new(
                     format!("Unexpected token in expression: {:?}", token.token),
@@ -1217,7 +1361,11 @@ impl<'a> Parser<'a> {
 
         let condition = self.parse_expression()?;
 
-        self.expect_token(Token::Colon, "Expected ':' after if condition")?;
+        if let Some(token) = self.tokens.peek() {
+            if matches!(token.token, Token::Colon) {
+                self.tokens.next(); // Consume the colon if present
+            }
+        }
 
         let mut then_block = Vec::with_capacity(8);
 
@@ -1238,7 +1386,11 @@ impl<'a> Parser<'a> {
             if matches!(token.token, Token::KeywordOtherwise) {
                 self.tokens.next(); // Consume "otherwise"
 
-                self.expect_token(Token::Colon, "Expected ':' after 'otherwise'")?;
+                if let Some(token) = self.tokens.peek() {
+                    if matches!(token.token, Token::Colon) {
+                        self.tokens.next(); // Consume the colon if present
+                    }
+                }
 
                 let mut else_stmts = Vec::with_capacity(8);
 
@@ -1385,7 +1537,11 @@ impl<'a> Parser<'a> {
 
         let collection = self.parse_expression()?;
 
-        self.expect_token(Token::Colon, "Expected ':' after for-each loop collection")?;
+        if let Some(token) = self.tokens.peek() {
+            if matches!(token.token, Token::Colon) {
+                self.tokens.next(); // Consume the colon if present
+            }
+        }
 
         let mut body = Vec::with_capacity(10);
 
@@ -1476,7 +1632,11 @@ impl<'a> Parser<'a> {
             None
         };
 
-        self.expect_token(Token::Colon, "Expected ':' after count loop range")?;
+        if let Some(token) = self.tokens.peek() {
+            if matches!(token.token, Token::Colon) {
+                self.tokens.next(); // Consume the colon if present
+            }
+        }
 
         let mut body = Vec::with_capacity(10);
 
@@ -1643,12 +1803,9 @@ impl<'a> Parser<'a> {
                     });
 
                     if let Some(token) = self.tokens.peek().cloned() {
-                        if let Token::Identifier(id) = &token.token {
-                            if id == "and" {
-                                self.tokens.next(); // Consume "and"
-                            } else {
-                                break;
-                            }
+                        if matches!(token.token, Token::KeywordAnd) || 
+                           matches!(token.token, Token::Identifier(ref id) if id.to_lowercase() == "and") {
+                            self.tokens.next(); // Consume "and"
                         } else {
                             break;
                         }
@@ -1704,6 +1861,15 @@ impl<'a> Parser<'a> {
             None
         };
 
+        // Check for KeywordAnd that might be mistakenly present after the last parameter
+        if let Some(token) = self.tokens.peek().cloned() {
+            if let Token::Identifier(id) = &token.token {
+                if id == "and" {
+                    self.tokens.next(); // Consume the extra "and"
+                }
+            }
+        }
+        
         self.expect_token(Token::Colon, "Expected ':' after action definition")?;
 
         let mut body = Vec::with_capacity(10);
@@ -1847,7 +2013,11 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
-        self.tokens.next(); // Consume "give" or "return"
+        let return_token = self.tokens.next().unwrap(); // Consume "give" or "return"
+        
+        if matches!(return_token.token, Token::KeywordGive) {
+            self.expect_token(Token::KeywordBack, "Expected 'back' after 'give'")?;
+        }
 
         let value = if let Some(token) = self.tokens.peek().cloned() {
             if matches!(token.token, Token::NothingLiteral) {
@@ -1860,19 +2030,10 @@ impl<'a> Parser<'a> {
             None
         };
 
-        let token_pos = self.tokens.peek().map_or(
-            &TokenWithPosition {
-                token: Token::KeywordGive,
-                line: 0,
-                column: 0,
-                length: 0,
-            },
-            |v| v,
-        );
         Ok(Statement::ReturnStatement {
             value,
-            line: token_pos.line,
-            column: token_pos.column,
+            line: return_token.line,
+            column: return_token.column,
         })
     }
 
@@ -2265,5 +2426,176 @@ impl<'a> Parser<'a> {
         );
 
         Ok(arguments)
+    }
+
+    fn parse_try_statement(&mut self) -> Result<Statement, ParseError> {
+        let try_token = self.tokens.next().unwrap(); // Consume "try"
+        self.expect_token(Token::Colon, "Expected ':' after 'try'")?;
+
+        let mut body = Vec::new();
+        while let Some(token) = self.tokens.peek().cloned() {
+            if matches!(token.token, Token::KeywordWhen | Token::KeywordEnd) {
+                break;
+            }
+            body.push(self.parse_statement()?);
+        }
+
+        self.expect_token(Token::KeywordWhen, "Expected 'when' after try block")?;
+        self.expect_token(Token::KeywordError, "Expected 'error' after 'when'")?;
+        self.expect_token(Token::Colon, "Expected ':' after 'when error'")?;
+
+        let mut when_block = Vec::new();
+        while let Some(token) = self.tokens.peek().cloned() {
+            if matches!(token.token, Token::KeywordEnd) {
+                break;
+            }
+            when_block.push(self.parse_statement()?);
+        }
+
+        self.expect_token(Token::KeywordEnd, "Expected 'end' after when block")?;
+        self.expect_token(Token::KeywordTry, "Expected 'try' after 'end'")?;
+
+        Ok(Statement::TryStatement {
+            body,
+            error_name: "error".to_string(), // Default error name
+            when_block,
+            otherwise_block: None,
+            line: try_token.line,
+            column: try_token.column,
+        })
+    }
+    
+    fn parse_repeat_statement(&mut self) -> Result<Statement, ParseError> {
+        let repeat_token = self.tokens.next().unwrap(); // Consume "repeat"
+        
+        if let Some(token) = self.tokens.peek().cloned() {
+            match token.token {
+                Token::KeywordWhile => {
+                    self.tokens.next(); // Consume "while"
+                    let condition = self.parse_expression()?;
+                    if let Some(token) = self.tokens.peek() {
+                        if matches!(token.token, Token::Colon) {
+                            self.tokens.next(); // Consume the colon if present
+                        }
+                    }
+                    
+                    let mut body = Vec::new();
+                    while let Some(token) = self.tokens.peek().cloned() {
+                        if matches!(token.token, Token::KeywordEnd) {
+                            break;
+                        }
+                        body.push(self.parse_statement()?);
+                    }
+                    
+                    self.expect_token(Token::KeywordEnd, "Expected 'end' after repeat while body")?;
+                    self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
+                    
+                    Ok(Statement::RepeatWhileLoop {
+                        condition,
+                        body,
+                        line: repeat_token.line,
+                        column: repeat_token.column,
+                    })
+                }
+                Token::KeywordUntil => {
+                    self.tokens.next(); // Consume "until"
+                    let condition = self.parse_expression()?;
+                    if let Some(token) = self.tokens.peek() {
+                        if matches!(token.token, Token::Colon) {
+                            self.tokens.next(); // Consume the colon if present
+                        }
+                    }
+                    
+                    let mut body = Vec::new();
+                    while let Some(token) = self.tokens.peek().cloned() {
+                        if matches!(token.token, Token::KeywordEnd) {
+                            break;
+                        }
+                        body.push(self.parse_statement()?);
+                    }
+                    
+                    self.expect_token(Token::KeywordEnd, "Expected 'end' after repeat until body")?;
+                    self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
+                    
+                    Ok(Statement::RepeatUntilLoop {
+                        condition,
+                        body,
+                        line: repeat_token.line,
+                        column: repeat_token.column,
+                    })
+                }
+                Token::KeywordForever => {
+                    self.tokens.next(); // Consume "forever"
+                    self.expect_token(Token::Colon, "Expected ':' after 'forever'")?;
+                    
+                    let mut body = Vec::new();
+                    while let Some(token) = self.tokens.peek().cloned() {
+                        if matches!(token.token, Token::KeywordEnd) {
+                            break;
+                        }
+                        body.push(self.parse_statement()?);
+                    }
+                    
+                    self.expect_token(Token::KeywordEnd, "Expected 'end' after forever body")?;
+                    self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
+                    
+                    Ok(Statement::ForeverLoop {
+                        body,
+                        line: repeat_token.line,
+                        column: repeat_token.column,
+                    })
+                }
+                Token::Colon => {
+                    self.tokens.next(); // Consume ":"
+                    
+                    let mut body = Vec::new();
+                    while let Some(token) = self.tokens.peek().cloned() {
+                        if matches!(token.token, Token::KeywordUntil) {
+                            break;
+                        }
+                        body.push(self.parse_statement()?);
+                    }
+                    
+                    self.expect_token(Token::KeywordUntil, "Expected 'until' after repeat body")?;
+                    let condition = self.parse_expression()?;
+                    
+                    Ok(Statement::RepeatUntilLoop {
+                        condition,
+                        body,
+                        line: repeat_token.line,
+                        column: repeat_token.column,
+                    })
+                }
+                _ => Err(ParseError::new(
+                    format!("Expected 'while', 'until', 'forever', or ':' after 'repeat', found {:?}", token.token),
+                    token.line,
+                    token.column,
+                ))
+            }
+        } else {
+            Err(ParseError::new(
+                "Unexpected end of input after 'repeat'".to_string(),
+                repeat_token.line,
+                repeat_token.column,
+            ))
+        }
+    }
+    
+    fn parse_exit_statement(&mut self) -> Result<Statement, ParseError> {
+        let exit_token = self.tokens.next().unwrap(); // Consume "exit"
+        
+        // Check for "loop" after "exit"
+        if let Some(token) = self.tokens.peek().cloned() {
+            if let Token::Identifier(id) = &token.token {
+                if id.to_lowercase() == "loop" {
+                    self.tokens.next(); // Consume "loop"
+                }
+            }
+        }
+        
+        Ok(Statement::ExitStatement {
+            line: exit_token.line,
+            column: exit_token.column,
+        })
     }
 }

@@ -128,6 +128,12 @@ impl TypeChecker {
 
     fn check_statement_types(&mut self, statement: &Statement) {
         match statement {
+            Statement::RepeatWhileLoop { .. } => {
+                todo!("RepeatWhileLoop not yet implemented in typechecker");
+            }
+            Statement::ExitStatement { .. } => {
+                todo!("ExitStatement not yet implemented in typechecker");
+            }
             Statement::WaitForStatement {
                 inner,
                 line: _line,
