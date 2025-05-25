@@ -564,22 +564,38 @@ impl<'a> Parser<'a> {
                                     if let Token::Identifier(id) = &than_token.token {
                                         if id == "than" {
                                             self.tokens.next(); // Consume "than"
-                                            
+
                                             // Check for "or equal to" after "less than"
                                             if let Some(or_token) = self.tokens.peek().cloned() {
                                                 if matches!(or_token.token, Token::KeywordOr) {
                                                     self.tokens.next(); // Consume "or"
-                                                    
-                                                    if let Some(equal_token) = self.tokens.peek().cloned() {
-                                                        if matches!(equal_token.token, Token::KeywordEqual) {
+
+                                                    if let Some(equal_token) =
+                                                        self.tokens.peek().cloned()
+                                                    {
+                                                        if matches!(
+                                                            equal_token.token,
+                                                            Token::KeywordEqual
+                                                        ) {
                                                             self.tokens.next(); // Consume "equal"
-                                                            
-                                                            if let Some(to_token) = self.tokens.peek().cloned() {
-                                                                if matches!(to_token.token, Token::KeywordTo) {
+
+                                                            if let Some(to_token) =
+                                                                self.tokens.peek().cloned()
+                                                            {
+                                                                if matches!(
+                                                                    to_token.token,
+                                                                    Token::KeywordTo
+                                                                ) {
                                                                     self.tokens.next(); // Consume "to"
-                                                                    Some((Operator::LessThanOrEqual, 0))
+                                                                    Some((
+                                                                        Operator::LessThanOrEqual,
+                                                                        0,
+                                                                    ))
                                                                 } else {
-                                                                    Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
+                                                                    Some((
+                                                                        Operator::LessThanOrEqual,
+                                                                        0,
+                                                                    )) // "or equal" without "to" is valid too
                                                                 }
                                                             } else {
                                                                 Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
@@ -655,17 +671,24 @@ impl<'a> Parser<'a> {
                 }
                 Token::KeywordOr => {
                     self.tokens.next(); // Consume "or"
-                    
+
                     // Handle "or equal to" as a special case
                     if let Some(equal_token) = self.tokens.peek().cloned() {
                         if matches!(equal_token.token, Token::KeywordEqual) {
                             self.tokens.next(); // Consume "equal"
-                            
+
                             if let Some(to_token) = self.tokens.peek().cloned() {
                                 if matches!(to_token.token, Token::KeywordTo) {
                                     self.tokens.next(); // Consume "to"
-                                    
-                                    if let Expression::BinaryOperation { operator, left: left_expr, right: right_expr, line: op_line, column: op_column } = &left {
+
+                                    if let Expression::BinaryOperation {
+                                        operator,
+                                        left: left_expr,
+                                        right: right_expr,
+                                        line: op_line,
+                                        column: op_column,
+                                    } = &left
+                                    {
                                         if *operator == Operator::LessThan {
                                             left = Expression::BinaryOperation {
                                                 left: left_expr.clone(),
@@ -690,7 +713,7 @@ impl<'a> Parser<'a> {
                             }
                         }
                     }
-                    
+
                     Some((Operator::Or, 0))
                 }
                 Token::KeywordMatches => {
@@ -1803,8 +1826,9 @@ impl<'a> Parser<'a> {
                     });
 
                     if let Some(token) = self.tokens.peek().cloned() {
-                        if matches!(token.token, Token::KeywordAnd) || 
-                           matches!(token.token, Token::Identifier(ref id) if id.to_lowercase() == "and") {
+                        if matches!(token.token, Token::KeywordAnd)
+                            || matches!(token.token, Token::Identifier(ref id) if id.to_lowercase() == "and")
+                        {
                             self.tokens.next(); // Consume "and"
                         } else {
                             break;
@@ -1869,7 +1893,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        
+
         self.expect_token(Token::Colon, "Expected ':' after action definition")?;
 
         let mut body = Vec::with_capacity(10);
@@ -2014,7 +2038,7 @@ impl<'a> Parser<'a> {
 
     fn parse_return_statement(&mut self) -> Result<Statement, ParseError> {
         let return_token = self.tokens.next().unwrap(); // Consume "give" or "return"
-        
+
         if matches!(return_token.token, Token::KeywordGive) {
             self.expect_token(Token::KeywordBack, "Expected 'back' after 'give'")?;
         }
@@ -2464,10 +2488,10 @@ impl<'a> Parser<'a> {
             column: try_token.column,
         })
     }
-    
+
     fn parse_repeat_statement(&mut self) -> Result<Statement, ParseError> {
         let repeat_token = self.tokens.next().unwrap(); // Consume "repeat"
-        
+
         if let Some(token) = self.tokens.peek().cloned() {
             match token.token {
                 Token::KeywordWhile => {
@@ -2478,7 +2502,7 @@ impl<'a> Parser<'a> {
                             self.tokens.next(); // Consume the colon if present
                         }
                     }
-                    
+
                     let mut body = Vec::new();
                     while let Some(token) = self.tokens.peek().cloned() {
                         if matches!(token.token, Token::KeywordEnd) {
@@ -2486,10 +2510,10 @@ impl<'a> Parser<'a> {
                         }
                         body.push(self.parse_statement()?);
                     }
-                    
+
                     self.expect_token(Token::KeywordEnd, "Expected 'end' after repeat while body")?;
                     self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
-                    
+
                     Ok(Statement::RepeatWhileLoop {
                         condition,
                         body,
@@ -2505,7 +2529,7 @@ impl<'a> Parser<'a> {
                             self.tokens.next(); // Consume the colon if present
                         }
                     }
-                    
+
                     let mut body = Vec::new();
                     while let Some(token) = self.tokens.peek().cloned() {
                         if matches!(token.token, Token::KeywordEnd) {
@@ -2513,10 +2537,10 @@ impl<'a> Parser<'a> {
                         }
                         body.push(self.parse_statement()?);
                     }
-                    
+
                     self.expect_token(Token::KeywordEnd, "Expected 'end' after repeat until body")?;
                     self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
-                    
+
                     Ok(Statement::RepeatUntilLoop {
                         condition,
                         body,
@@ -2527,7 +2551,7 @@ impl<'a> Parser<'a> {
                 Token::KeywordForever => {
                     self.tokens.next(); // Consume "forever"
                     self.expect_token(Token::Colon, "Expected ':' after 'forever'")?;
-                    
+
                     let mut body = Vec::new();
                     while let Some(token) = self.tokens.peek().cloned() {
                         if matches!(token.token, Token::KeywordEnd) {
@@ -2535,10 +2559,10 @@ impl<'a> Parser<'a> {
                         }
                         body.push(self.parse_statement()?);
                     }
-                    
+
                     self.expect_token(Token::KeywordEnd, "Expected 'end' after forever body")?;
                     self.expect_token(Token::KeywordRepeat, "Expected 'repeat' after 'end'")?;
-                    
+
                     Ok(Statement::ForeverLoop {
                         body,
                         line: repeat_token.line,
@@ -2547,7 +2571,7 @@ impl<'a> Parser<'a> {
                 }
                 Token::Colon => {
                     self.tokens.next(); // Consume ":"
-                    
+
                     let mut body = Vec::new();
                     while let Some(token) = self.tokens.peek().cloned() {
                         if matches!(token.token, Token::KeywordUntil) {
@@ -2555,10 +2579,10 @@ impl<'a> Parser<'a> {
                         }
                         body.push(self.parse_statement()?);
                     }
-                    
+
                     self.expect_token(Token::KeywordUntil, "Expected 'until' after repeat body")?;
                     let condition = self.parse_expression()?;
-                    
+
                     Ok(Statement::RepeatUntilLoop {
                         condition,
                         body,
@@ -2567,10 +2591,13 @@ impl<'a> Parser<'a> {
                     })
                 }
                 _ => Err(ParseError::new(
-                    format!("Expected 'while', 'until', 'forever', or ':' after 'repeat', found {:?}", token.token),
+                    format!(
+                        "Expected 'while', 'until', 'forever', or ':' after 'repeat', found {:?}",
+                        token.token
+                    ),
                     token.line,
                     token.column,
-                ))
+                )),
             }
         } else {
             Err(ParseError::new(
@@ -2580,10 +2607,10 @@ impl<'a> Parser<'a> {
             ))
         }
     }
-    
+
     fn parse_exit_statement(&mut self) -> Result<Statement, ParseError> {
         let exit_token = self.tokens.next().unwrap(); // Consume "exit"
-        
+
         // Check for "loop" after "exit"
         if let Some(token) = self.tokens.peek().cloned() {
             if let Token::Identifier(id) = &token.token {
@@ -2592,7 +2619,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        
+
         Ok(Statement::ExitStatement {
             line: exit_token.line,
             column: exit_token.column,
