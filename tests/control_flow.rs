@@ -1,4 +1,3 @@
-
 use wfl::interpreter::Interpreter;
 use wfl::interpreter::value::Value;
 use wfl::lexer::lex_wfl_with_positions;
@@ -17,7 +16,6 @@ async fn execute_wfl(code: &str) -> Result<Value, String> {
         .await
         .map_err(|e| format!("Runtime error: {:?}", e))
 }
-
 
 #[tokio::test]
 async fn test_break_in_forever_loop() {
