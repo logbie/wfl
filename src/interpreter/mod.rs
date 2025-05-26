@@ -1,4 +1,5 @@
 #![allow(clippy::await_holding_refcell_ref)]
+pub mod control_flow;
 pub mod environment;
 pub mod error;
 #[cfg(test)]
@@ -6,6 +7,8 @@ mod memory_tests;
 #[cfg(test)]
 mod tests;
 pub mod value;
+
+use self::control_flow::ControlFlow;
 
 use self::environment::Environment;
 use self::error::{ErrorKind, RuntimeError};
@@ -516,7 +519,7 @@ impl Interpreter {
                 .execute_statement(statement, Rc::clone(&self.global_env))
                 .await
             {
-                Ok(value) => {
+                Ok((value, control_flow)) => {
                     last_value = value;
                     if !self.step_mode {
                         exec_trace!(
@@ -524,6 +527,18 @@ impl Interpreter {
                             i + 1,
                             program.statements.len()
                         );
+                    }
+
+                    match control_flow {
+                        ControlFlow::Break | ControlFlow::Continue | ControlFlow::Exit => {
+                            exec_trace!("Warning: {:?} at top level ignored", control_flow);
+                        }
+                        ControlFlow::Return(val) => {
+                            exec_trace!("Return at top level with value: {:?}", val);
+                            last_value = val;
+                            break;
+                        }
+                        ControlFlow::None => {}
                     }
                 }
                 Err(err) => {
@@ -576,7 +591,7 @@ impl Interpreter {
         &self,
         stmt: &Statement,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, ControlFlow), RuntimeError> {
         #[cfg(debug_assertions)]
         exec_trace!("Executing statement: {}", stmt_type(stmt));
         Box::pin(self._execute_statement(stmt, env)).await
@@ -586,7 +601,7 @@ impl Interpreter {
         &self,
         stmt: &Statement,
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, ControlFlow), RuntimeError> {
         self.check_time()?;
 
         let env_before = if self.step_mode {
@@ -642,7 +657,7 @@ impl Interpreter {
                 #[cfg(debug_assertions)]
                 exec_var_declare!(name, &evaluated_value);
                 env.borrow_mut().define(name, evaluated_value.clone());
-                Ok(Value::Null)
+                Ok((Value::Null, ControlFlow::None))
             }
 
             Statement::Assignment {
@@ -655,7 +670,7 @@ impl Interpreter {
                 #[cfg(debug_assertions)]
                 exec_var_assign!(name, &value);
                 match env.borrow_mut().assign(name, value.clone()) {
-                    Ok(_) => Ok(Value::Null),
+                    Ok(_) => Ok((Value::Null, ControlFlow::None)),
                     Err(msg) => Err(RuntimeError::new(msg, *line, *column)),
                 }
             }
@@ -690,7 +705,7 @@ impl Interpreter {
                     exec_block_exit!("else branch");
                     result
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, ControlFlow::None))
                 }
             }
 
@@ -708,7 +723,7 @@ impl Interpreter {
                 } else if let Some(else_stmt) = else_stmt {
                     self.execute_statement(else_stmt, Rc::clone(&env)).await
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, ControlFlow::None))
                 }
             }
 
@@ -719,7 +734,7 @@ impl Interpreter {
             } => {
                 let value = self.evaluate_expression(value, Rc::clone(&env)).await?;
                 println!("{}", value);
-                Ok(Value::Null)
+                Ok((Value::Null, ControlFlow::None))
             }
 
             Statement::ActionDefinition {
@@ -744,7 +759,7 @@ impl Interpreter {
                 let function_value = Value::Function(Rc::new(function));
                 env.borrow_mut().define(name, function_value.clone());
 
-                Ok(function_value)
+                Ok((function_value, ControlFlow::None))
             }
 
             Statement::ReturnStatement {
@@ -752,10 +767,14 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                #[cfg(debug_assertions)]
+                exec_trace!("Executing return statement");
+
                 if let Some(expr) = value {
-                    self.evaluate_expression(expr, Rc::clone(&env)).await
+                    let result = self.evaluate_expression(expr, Rc::clone(&env)).await?;
+                    Ok((result.clone(), ControlFlow::Return(result)))
                 } else {
-                    Ok(Value::Null)
+                    Ok((Value::Null, ControlFlow::Return(Value::Null)))
                 }
             }
 
@@ -763,7 +782,12 @@ impl Interpreter {
                 expression,
                 line: _line,
                 column: _column,
-            } => self.evaluate_expression(expression, Rc::clone(&env)).await,
+            } => {
+                let value = self
+                    .evaluate_expression(expression, Rc::clone(&env))
+                    .await?;
+                Ok((value, ControlFlow::None))
+            }
 
             Statement::CountLoop {
                 start,
@@ -777,13 +801,13 @@ impl Interpreter {
                 // === CRITICAL FIX: Reset count loop state before starting ===
                 let previous_count = *self.current_count.borrow();
                 let was_in_count_loop = *self.in_count_loop.borrow();
-                
+
                 // Force reset state to prevent inheriting stale values
                 *self.current_count.borrow_mut() = None;
                 *self.in_count_loop.borrow_mut() = false;
-                
+
                 crate::exec_trace_always!("Count loop: resetting state before evaluation");
-                
+
                 let start_val = self.evaluate_expression(start, Rc::clone(&env)).await?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env)).await?;
 
@@ -836,8 +860,35 @@ impl Interpreter {
 
                     *self.current_count.borrow_mut() = Some(count);
 
-                    match self.execute_block(body, Rc::clone(&loop_env)).await {
-                        Ok(_) => {}
+                    let result = self.execute_block(body, Rc::clone(&loop_env)).await;
+
+                    match result {
+                        Ok((_, control_flow)) => match control_flow {
+                            ControlFlow::Break => {
+                                #[cfg(debug_assertions)]
+                                exec_trace!("Breaking out of count loop");
+                                break;
+                            }
+                            ControlFlow::Continue => {
+                                #[cfg(debug_assertions)]
+                                exec_trace!("Continuing count loop");
+                            }
+                            ControlFlow::Exit => {
+                                #[cfg(debug_assertions)]
+                                exec_trace!("Exiting from count loop");
+                                *self.current_count.borrow_mut() = previous_count;
+                                *self.in_count_loop.borrow_mut() = was_in_count_loop;
+                                return Ok((Value::Null, ControlFlow::Exit));
+                            }
+                            ControlFlow::Return(val) => {
+                                #[cfg(debug_assertions)]
+                                exec_trace!("Returning from count loop with value: {:?}", val);
+                                *self.current_count.borrow_mut() = previous_count;
+                                *self.in_count_loop.borrow_mut() = was_in_count_loop;
+                                return Ok((val.clone(), ControlFlow::Return(val)));
+                            }
+                            ControlFlow::None => {}
+                        },
                         Err(e) => {
                             *self.current_count.borrow_mut() = previous_count;
                             *self.in_count_loop.borrow_mut() = was_in_count_loop;
@@ -868,7 +919,7 @@ impl Interpreter {
                     ));
                 }
 
-                Ok(Value::Null)
+                Ok((Value::Null, ControlFlow::None))
             }
 
             Statement::ForEachLoop {
@@ -899,7 +950,34 @@ impl Interpreter {
 
                         for item in items {
                             loop_env.borrow_mut().define(item_name, item);
-                            self.execute_block(body, Rc::clone(&loop_env)).await?;
+                            let result = self.execute_block(body, Rc::clone(&loop_env)).await?;
+
+                            match result.1 {
+                                ControlFlow::Break => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Breaking out of foreach loop");
+                                    break;
+                                }
+                                ControlFlow::Continue => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Continuing foreach loop");
+                                    continue;
+                                }
+                                ControlFlow::Exit => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Exiting from foreach loop");
+                                    return Ok((Value::Null, ControlFlow::Exit));
+                                }
+                                ControlFlow::Return(val) => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!(
+                                        "Returning from foreach loop with value: {:?}",
+                                        val
+                                    );
+                                    return Ok((val.clone(), ControlFlow::Return(val)));
+                                }
+                                ControlFlow::None => {}
+                            }
                         }
                     }
                     Value::Object(obj_rc) => {
@@ -910,7 +988,34 @@ impl Interpreter {
 
                         for (_, value) in items {
                             loop_env.borrow_mut().define(item_name, value);
-                            self.execute_block(body, Rc::clone(&loop_env)).await?;
+                            let result = self.execute_block(body, Rc::clone(&loop_env)).await?;
+
+                            match result.1 {
+                                ControlFlow::Break => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Breaking out of foreach loop (object)");
+                                    break;
+                                }
+                                ControlFlow::Continue => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Continuing foreach loop (object)");
+                                    continue;
+                                }
+                                ControlFlow::Exit => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!("Exiting from foreach loop (object)");
+                                    return Ok((Value::Null, ControlFlow::Exit));
+                                }
+                                ControlFlow::Return(val) => {
+                                    #[cfg(debug_assertions)]
+                                    exec_trace!(
+                                        "Returning from foreach loop with value: {:?}",
+                                        val
+                                    );
+                                    return Ok((val.clone(), ControlFlow::Return(val)));
+                                }
+                                ControlFlow::None => {}
+                            }
                         }
                     }
                     _ => {
@@ -922,7 +1027,7 @@ impl Interpreter {
                     }
                 }
 
-                Ok(Value::Null)
+                Ok((Value::Null, ControlFlow::None))
             }
 
             Statement::WhileLoop {
@@ -931,15 +1036,43 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let mut _last_value = Value::Null;
+
                 while self
                     .evaluate_expression(condition, Rc::clone(&env))
                     .await?
                     .is_truthy()
                 {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    let result = self.execute_block(body, Rc::clone(&env)).await?;
+                    _last_value = result.0;
+
+                    match result.1 {
+                        ControlFlow::Break => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Breaking out of while loop");
+                            break;
+                        }
+                        ControlFlow::Continue => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Continuing while loop");
+                            continue;
+                        }
+                        ControlFlow::Exit => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Exiting from while loop");
+                            return Ok((_last_value, ControlFlow::Exit));
+                        }
+                        ControlFlow::Return(val) => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Returning from while loop with value: {:?}", val);
+                            return Ok((val.clone(), ControlFlow::Return(val)));
+                        }
+                        ControlFlow::None => {}
+                    }
                 }
-                Ok(Value::Null)
+
+                Ok((_last_value, ControlFlow::None))
             }
 
             Statement::RepeatUntilLoop {
@@ -948,9 +1081,36 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                let mut _last_value = Value::Null;
+
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    let result = self.execute_block(body, Rc::clone(&env)).await?;
+                    _last_value = result.0;
+
+                    match result.1 {
+                        ControlFlow::Break => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Breaking out of repeat-until loop");
+                            break;
+                        }
+                        ControlFlow::Continue => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Continuing repeat-until loop");
+                        }
+                        ControlFlow::Exit => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Exiting from repeat-until loop");
+                            return Ok((_last_value, ControlFlow::Exit));
+                        }
+                        ControlFlow::Return(val) => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Returning from repeat-until loop with value: {:?}", val);
+                            return Ok((val.clone(), ControlFlow::Return(val)));
+                        }
+                        ControlFlow::None => {}
+                    }
+
                     if self
                         .evaluate_expression(condition, Rc::clone(&env))
                         .await?
@@ -959,7 +1119,8 @@ impl Interpreter {
                         break;
                     }
                 }
-                Ok(Value::Null)
+
+                Ok((_last_value, ControlFlow::None))
             }
 
             Statement::ForeverLoop {
@@ -967,16 +1128,59 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                #[cfg(debug_assertions)]
+                exec_trace!("Executing forever loop");
+
+                let mut _last_value = Value::Null;
                 loop {
                     self.check_time()?;
-                    self.execute_block(body, Rc::clone(&env)).await?;
+                    let result = self.execute_block(body, Rc::clone(&env)).await?;
+                    _last_value = result.0;
+
+                    match result.1 {
+                        ControlFlow::Break => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Breaking out of forever loop");
+                            break;
+                        }
+                        ControlFlow::Continue => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Continuing forever loop");
+                            continue;
+                        }
+                        ControlFlow::Exit => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Exiting from forever loop");
+                            return Ok((_last_value, ControlFlow::Exit));
+                        }
+                        ControlFlow::Return(val) => {
+                            #[cfg(debug_assertions)]
+                            exec_trace!("Returning from forever loop with value: {:?}", val);
+                            return Ok((val.clone(), ControlFlow::Return(val)));
+                        }
+                        ControlFlow::None => {}
+                    }
                 }
-                #[allow(unreachable_code)]
-                Ok(Value::Null)
+
+                Ok((_last_value, ControlFlow::None))
             }
 
-            Statement::BreakStatement { .. } | Statement::ContinueStatement { .. } => {
-                Ok(Value::Null)
+            Statement::BreakStatement { .. } => {
+                #[cfg(debug_assertions)]
+                exec_trace!("Executing break statement");
+                Ok((Value::Null, ControlFlow::Break))
+            }
+
+            Statement::ContinueStatement { .. } => {
+                #[cfg(debug_assertions)]
+                exec_trace!("Executing continue statement");
+                Ok((Value::Null, ControlFlow::Continue))
+            }
+
+            Statement::ExitStatement { .. } => {
+                #[cfg(debug_assertions)]
+                exec_trace!("Executing exit statement");
+                Ok((Value::Null, ControlFlow::Exit))
             }
 
             Statement::OpenFileStatement {
@@ -1001,7 +1205,7 @@ impl Interpreter {
                     Ok(handle) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(handle.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, ControlFlow::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -1036,7 +1240,7 @@ impl Interpreter {
                                 env.borrow_mut()
                                     .define(variable_name, Value::Text(content.into()));
                                 let _ = self.io_client.close_file(&handle).await;
-                                Ok(Value::Null)
+                                Ok((Value::Null, ControlFlow::None))
                             }
                             Err(e) => {
                                 let _ = self.io_client.close_file(&handle).await;
@@ -1050,7 +1254,7 @@ impl Interpreter {
                         Ok(content) => {
                             env.borrow_mut()
                                 .define(variable_name, Value::Text(content.into()));
-                            Ok(Value::Null)
+                            Ok((Value::Null, ControlFlow::None))
                         }
                         Err(e) => Err(RuntimeError::new(e, *line, *column)),
                     }
@@ -1091,13 +1295,13 @@ impl Interpreter {
                 match mode {
                     crate::parser::ast::WriteMode::Append => {
                         match self.io_client.append_file(&file_str, &content_str).await {
-                            Ok(_) => Ok(Value::Null),
+                            Ok(_) => Ok((Value::Null, ControlFlow::None)),
                             Err(e) => Err(RuntimeError::new(e, *line, *column)),
                         }
                     }
                     crate::parser::ast::WriteMode::Overwrite => {
                         match self.io_client.write_file(&file_str, &content_str).await {
-                            Ok(_) => Ok(Value::Null),
+                            Ok(_) => Ok((Value::Null, ControlFlow::None)),
                             Err(e) => Err(RuntimeError::new(e, *line, *column)),
                         }
                     }
@@ -1118,7 +1322,7 @@ impl Interpreter {
                 };
 
                 match self.io_client.close_file(&file_str).await {
-                    Ok(_) => Ok(Value::Null),
+                    Ok(_) => Ok((Value::Null, ControlFlow::None)),
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
             }
@@ -1137,7 +1341,7 @@ impl Interpreter {
                         for _ in 0..max_attempts {
                             if let Some(value) = env.borrow().get(var_name) {
                                 if !matches!(value, Value::Null) {
-                                    return Ok(Value::Null);
+                                    return Ok((Value::Null, ControlFlow::None));
                                 }
                             }
 
@@ -1197,7 +1401,7 @@ impl Interpreter {
                                 match self.io_client.append_file(&file_str, &content_str).await {
                                     Ok(_) => {
                                         exec_trace!("Successfully appended to file");
-                                        Ok(Value::Null)
+                                        Ok((Value::Null, ControlFlow::None))
                                     }
                                     Err(e) => {
                                         exec_trace!("Error appending to file: {}", e);
@@ -1209,7 +1413,7 @@ impl Interpreter {
                                 match self.io_client.write_file(&file_str, &content_str).await {
                                     Ok(_) => {
                                         exec_trace!("Successfully wrote to file");
-                                        Ok(Value::Null)
+                                        Ok((Value::Null, ControlFlow::None))
                                     }
                                     Err(e) => {
                                         exec_trace!("Error writing to file: {}", e);
@@ -1251,7 +1455,7 @@ impl Interpreter {
                                         env.borrow_mut()
                                             .define(variable_name, Value::Text(content.into()));
                                         let _ = self.io_client.close_file(&handle).await;
-                                        Ok(Value::Null)
+                                        Ok((Value::Null, ControlFlow::None))
                                     }
                                     Err(e) => {
                                         let _ = self.io_client.close_file(&handle).await;
@@ -1265,7 +1469,7 @@ impl Interpreter {
                                 Ok(content) => {
                                     env.borrow_mut()
                                         .define(variable_name, Value::Text(content.into()));
-                                    Ok(Value::Null)
+                                    Ok((Value::Null, ControlFlow::None))
                                 }
                                 Err(e) => Err(RuntimeError::new(e, *line, *column)),
                             }
@@ -1324,7 +1528,7 @@ impl Interpreter {
                     Ok(body) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(body.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, ControlFlow::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -1365,7 +1569,7 @@ impl Interpreter {
                     Ok(body) => {
                         env.borrow_mut()
                             .define(variable_name, Value::Text(body.into()));
-                        Ok(Value::Null)
+                        Ok((Value::Null, ControlFlow::None))
                     }
                     Err(e) => Err(RuntimeError::new(e, *line, *column)),
                 }
@@ -1395,14 +1599,7 @@ impl Interpreter {
                     }
                 }
 
-                Ok(Value::Null)
-            }
-            Statement::ExitStatement { line, column } => {
-                return Err(RuntimeError::new(
-                    "Exit statement executed".to_string(),
-                    *line,
-                    *column,
-                ));
+                Ok((Value::Null, ControlFlow::None))
             }
             Statement::PushStatement {
                 list,
@@ -1416,7 +1613,7 @@ impl Interpreter {
                 match list_val {
                     Value::List(list_rc) => {
                         list_rc.borrow_mut().push(value_val);
-                        Ok(Value::Null)
+                        Ok((Value::Null, ControlFlow::None))
                     }
                     _ => Err(RuntimeError::new(
                         format!("Cannot push to non-list value: {:?}", list_val),
@@ -1441,7 +1638,7 @@ impl Interpreter {
         &self,
         statements: &[Statement],
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, ControlFlow), RuntimeError> {
         Box::pin(self._execute_block(statements, env)).await
     }
 
@@ -1449,7 +1646,7 @@ impl Interpreter {
         &self,
         statements: &[Statement],
         env: Rc<RefCell<Environment>>,
-    ) -> Result<Value, RuntimeError> {
+    ) -> Result<(Value, ControlFlow), RuntimeError> {
         self.assert_invariants();
         let mut last_value = Value::Null;
 
@@ -1459,12 +1656,25 @@ impl Interpreter {
         #[cfg(debug_assertions)]
         let _guard = IndentGuard::new();
 
+        let mut control_flow = ControlFlow::None;
+
         for statement in statements {
-            last_value = self.execute_statement(statement, Rc::clone(&env)).await?;
+            let result = self.execute_statement(statement, Rc::clone(&env)).await?;
+            last_value = result.0;
+            control_flow = result.1;
+
+            if !matches!(control_flow, ControlFlow::None) {
+                #[cfg(debug_assertions)]
+                exec_trace!(
+                    "Block execution interrupted by control flow: {:?}",
+                    control_flow
+                );
+                break;
+            }
         }
 
         self.assert_invariants();
-        Ok(last_value)
+        Ok((last_value, control_flow))
     }
 
     async fn evaluate_expression(
@@ -1984,13 +2194,28 @@ impl Interpreter {
         exec_block_exit!(format!("function {}", func_name));
 
         match result {
-            Ok(value) => {
+            Ok((value, control_flow)) => {
                 self.call_stack.borrow_mut().pop();
+
+                let return_value = match control_flow {
+                    ControlFlow::Return(val) => {
+                        exec_trace!(
+                            "call_function - Function explicitly returned with value: {:?}",
+                            val
+                        );
+                        val
+                    }
+                    _ => {
+                        exec_trace!("call_function - Function completed with value: {:?}", value);
+                        value
+                    }
+                };
+
                 exec_trace!(
                     "call_function - Function returned successfully with value: {:?}",
-                    value
+                    return_value
                 );
-                Ok(value)
+                Ok(return_value)
             }
             Err(err) => {
                 exec_trace!(

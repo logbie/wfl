@@ -22,9 +22,9 @@ pub struct WflConfig {
     pub log_level: LogLevel,
     pub execution_logging: bool,
     // Enhanced execution logging controls
-    pub verbose_execution: bool,       // Controls detailed per-statement logging
-    pub log_loop_iterations: bool,     // Whether to log loop iterations
-    pub log_throttle_factor: usize,    // Log every Nth iteration in loops
+    pub verbose_execution: bool, // Controls detailed per-statement logging
+    pub log_loop_iterations: bool, // Whether to log loop iterations
+    pub log_throttle_factor: usize, // Log every Nth iteration in loops
     // Code quality suite settings
     pub max_line_length: usize,
     pub max_nesting_depth: usize,
@@ -54,9 +54,9 @@ impl Default for WflConfig {
             #[cfg(not(debug_assertions))]
             execution_logging: false, // Disable by default in release builds
             // Enhanced execution logging defaults - less verbose by default
-            verbose_execution: false,          // Disable verbose per-statement logging
-            log_loop_iterations: false,       // Disable loop iteration logging by default
-            log_throttle_factor: 1000,        // Log every 1000th iteration when enabled
+            verbose_execution: false, // Disable verbose per-statement logging
+            log_loop_iterations: false, // Disable loop iteration logging by default
+            log_throttle_factor: 1000, // Log every 1000th iteration when enabled
             // Code quality suite defaults - strict by default
             max_line_length: 100,
             max_nesting_depth: 5,
