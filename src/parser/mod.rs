@@ -27,8 +27,17 @@ impl<'a> Parser<'a> {
         let mut program = Program::new();
         program.statements.reserve(self.tokens.clone().count() / 5);
 
+        let mut last_line = 0;
+
         while self.tokens.peek().is_some() {
             let start_len = self.tokens.clone().count();
+
+            if let Some(token) = self.tokens.peek() {
+                if token.line > last_line && last_line > 0 {
+                    // This is especially important for statements like "push" that don't have
+                }
+                last_line = token.line;
+            }
 
             // Comprehensive handling of "end" tokens that might be left unconsumed
             // Check first two tokens to avoid borrow checker issues
@@ -144,7 +153,20 @@ impl<'a> Parser<'a> {
                 Ok(statement) => program.statements.push(statement),
                 Err(error) => {
                     self.errors.push(error);
-                    self.synchronize(); // Skip to next statement on error
+
+                    // This is especially important for consecutive push statements
+                    let current_line = if let Some(token) = self.tokens.peek() {
+                        token.line
+                    } else {
+                        0
+                    };
+
+                    while let Some(token) = self.tokens.peek() {
+                        if token.line > current_line || Parser::is_statement_starter(&token.token) {
+                            break;
+                        }
+                        self.tokens.next(); // Skip token
+                    }
                 }
             }
 
@@ -174,6 +196,34 @@ impl<'a> Parser<'a> {
         }
     }
 
+    fn is_statement_starter(token: &Token) -> bool {
+        matches!(
+            token,
+            Token::KeywordStore
+                | Token::KeywordCreate
+                | Token::KeywordDisplay
+                | Token::KeywordCheck
+                | Token::KeywordIf
+                | Token::KeywordCount
+                | Token::KeywordFor
+                | Token::KeywordDefine
+                | Token::KeywordChange
+                | Token::KeywordTry
+                | Token::KeywordRepeat
+                | Token::KeywordExit
+                | Token::KeywordPush
+                | Token::KeywordBreak
+                | Token::KeywordContinue
+                | Token::KeywordSkip
+                | Token::KeywordOpen
+                | Token::KeywordClose
+                | Token::KeywordWait
+                | Token::KeywordGive
+                | Token::KeywordReturn
+        )
+    }
+
+    #[allow(dead_code)]
     fn synchronize(&mut self) {
         while let Some(token) = self.tokens.peek().cloned() {
             match &token.token {
@@ -184,7 +234,8 @@ impl<'a> Parser<'a> {
                 | Token::KeywordCount
                 | Token::KeywordFor
                 | Token::KeywordDefine
-                | Token::KeywordIf => {
+                | Token::KeywordIf
+                | Token::KeywordPush => {
                     break;
                 }
                 Token::KeywordEnd => {
@@ -233,6 +284,7 @@ impl<'a> Parser<'a> {
                 Token::KeywordTry => self.parse_try_statement(),
                 Token::KeywordRepeat => self.parse_repeat_statement(),
                 Token::KeywordExit => self.parse_exit_statement(),
+                Token::KeywordPush => self.parse_push_statement(),
                 Token::KeywordBreak => {
                     let token_pos = self.tokens.next().unwrap();
                     Ok(Statement::BreakStatement {
@@ -328,6 +380,43 @@ impl<'a> Parser<'a> {
         let _keyword = if is_store { "store" } else { "create" };
 
         let name = self.parse_variable_name_list()?;
+
+        // Handle special case: "create list as name"
+        if !is_store && name == "list" {
+            self.expect_token(Token::KeywordAs, "Expected 'as' after 'list'")?;
+
+            let list_name = if let Some(token) = self.tokens.peek() {
+                if let Token::Identifier(id) = &token.token {
+                    self.tokens.next();
+                    id.clone()
+                } else {
+                    return Err(ParseError::new(
+                        format!("Expected identifier after 'as', found {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+            } else {
+                return Err(ParseError::new(
+                    "Expected identifier after 'as'".to_string(),
+                    token_pos.line,
+                    token_pos.column,
+                ));
+            };
+
+            let empty_list = Expression::Literal(
+                Literal::String("[]".to_string()),
+                token_pos.line,
+                token_pos.column,
+            );
+
+            return Ok(Statement::VariableDeclaration {
+                name: list_name,
+                value: empty_list,
+                line: token_pos.line,
+                column: token_pos.column,
+            });
+        }
 
         if let Some(token) = self.tokens.peek().cloned() {
             if !matches!(token.token, Token::KeywordAs) {
@@ -478,10 +567,22 @@ impl<'a> Parser<'a> {
     fn parse_binary_expression(&mut self, precedence: u8) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary_expression()?;
 
+        let left_line = if let Some(token) = self.tokens.peek() {
+            token.line
+        } else {
+            0
+        };
+
         while let Some(token_pos) = self.tokens.peek().cloned() {
             let token = token_pos.token.clone();
             let line = token_pos.line;
             let column = token_pos.column;
+
+            // If we're on a new line or at a statement starter, stop parsing this expression
+            // This is crucial for statements like "push" that don't have explicit terminators
+            if line > left_line || Parser::is_statement_starter(&token) {
+                break;
+            }
 
             let op = match token {
                 Token::KeywordPlus => {
@@ -539,13 +640,9 @@ impl<'a> Parser<'a> {
                                 self.tokens.next(); // Consume "greater"
 
                                 if let Some(than_token) = self.tokens.peek().cloned() {
-                                    if let Token::Identifier(id) = &than_token.token {
-                                        if id == "than" {
-                                            self.tokens.next(); // Consume "than"
-                                            Some((Operator::GreaterThan, 0))
-                                        } else {
-                                            Some((Operator::GreaterThan, 0)) // "is greater" without "than" is valid too
-                                        }
+                                    if matches!(than_token.token, Token::KeywordThan) {
+                                        self.tokens.next(); // Consume "than"
+                                        Some((Operator::GreaterThan, 0))
                                     } else {
                                         Some((Operator::GreaterThan, 0)) // "is greater" without "than" is valid too
                                     }
@@ -561,59 +658,49 @@ impl<'a> Parser<'a> {
                                 self.tokens.next(); // Consume "less"
 
                                 if let Some(than_token) = self.tokens.peek().cloned() {
-                                    if let Token::Identifier(id) = &than_token.token {
-                                        if id == "than" {
-                                            self.tokens.next(); // Consume "than"
+                                    if matches!(than_token.token, Token::KeywordThan) {
+                                        self.tokens.next(); // Consume "than"
 
-                                            // Check for "or equal to" after "less than"
-                                            if let Some(or_token) = self.tokens.peek().cloned() {
-                                                if matches!(or_token.token, Token::KeywordOr) {
-                                                    self.tokens.next(); // Consume "or"
+                                        // Check for "or equal to" after "less than"
+                                        if let Some(or_token) = self.tokens.peek().cloned() {
+                                            if matches!(or_token.token, Token::KeywordOr) {
+                                                self.tokens.next(); // Consume "or"
 
-                                                    if let Some(equal_token) =
-                                                        self.tokens.peek().cloned()
-                                                    {
-                                                        if matches!(
-                                                            equal_token.token,
-                                                            Token::KeywordEqual
-                                                        ) {
-                                                            self.tokens.next(); // Consume "equal"
+                                                if let Some(equal_token) =
+                                                    self.tokens.peek().cloned()
+                                                {
+                                                    if matches!(
+                                                        equal_token.token,
+                                                        Token::KeywordEqual
+                                                    ) {
+                                                        self.tokens.next(); // Consume "equal"
 
-                                                            if let Some(to_token) =
-                                                                self.tokens.peek().cloned()
-                                                            {
-                                                                if matches!(
-                                                                    to_token.token,
-                                                                    Token::KeywordTo
-                                                                ) {
-                                                                    self.tokens.next(); // Consume "to"
-                                                                    Some((
-                                                                        Operator::LessThanOrEqual,
-                                                                        0,
-                                                                    ))
-                                                                } else {
-                                                                    Some((
-                                                                        Operator::LessThanOrEqual,
-                                                                        0,
-                                                                    )) // "or equal" without "to" is valid too
-                                                                }
+                                                        if let Some(to_token) =
+                                                            self.tokens.peek().cloned()
+                                                        {
+                                                            if matches!(
+                                                                to_token.token,
+                                                                Token::KeywordTo
+                                                            ) {
+                                                                self.tokens.next(); // Consume "to"
+                                                                Some((Operator::LessThanOrEqual, 0))
                                                             } else {
                                                                 Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
                                                             }
                                                         } else {
-                                                            Some((Operator::LessThan, 0)) // Just "less than or" without "equal" is treated as "less than"
+                                                            Some((Operator::LessThanOrEqual, 0)) // "or equal" without "to" is valid too
                                                         }
                                                     } else {
                                                         Some((Operator::LessThan, 0)) // Just "less than or" without "equal" is treated as "less than"
                                                     }
                                                 } else {
-                                                    Some((Operator::LessThan, 0)) // Just "less than" without "or equal to"
+                                                    Some((Operator::LessThan, 0)) // Just "less than or" without "equal" is treated as "less than"
                                                 }
                                             } else {
                                                 Some((Operator::LessThan, 0)) // Just "less than" without "or equal to"
                                             }
                                         } else {
-                                            Some((Operator::LessThan, 0)) // "is less" without "than" is valid too
+                                            Some((Operator::LessThan, 0)) // Just "less than" without "or equal to"
                                         }
                                     } else {
                                         Some((Operator::LessThan, 0)) // "is less" without "than" is valid too
@@ -932,6 +1019,56 @@ impl<'a> Parser<'a> {
     fn parse_primary_expression(&mut self) -> Result<Expression, ParseError> {
         if let Some(token) = self.tokens.peek().cloned() {
             let result = match &token.token {
+                Token::LeftBracket => {
+                    let bracket_token = self.tokens.next().unwrap(); // Consume '['
+
+                    // Check for empty list
+                    if let Some(next_token) = self.tokens.peek() {
+                        if next_token.token == Token::RightBracket {
+                            self.tokens.next(); // Consume ']'
+                            return Ok(Expression::Literal(
+                                Literal::List(Vec::new()),
+                                bracket_token.line,
+                                bracket_token.column,
+                            ));
+                        }
+                    }
+
+                    let mut elements = Vec::new();
+
+                    elements.push(self.parse_expression()?);
+
+                    while let Some(next_token) = self.tokens.peek() {
+                        if next_token.token == Token::RightBracket {
+                            self.tokens.next(); // Consume ']'
+                            return Ok(Expression::Literal(
+                                Literal::List(elements),
+                                bracket_token.line,
+                                bracket_token.column,
+                            ));
+                        } else if next_token.token == Token::KeywordAnd
+                            || next_token.token == Token::Colon
+                        {
+                            self.tokens.next(); // Consume separator
+                            elements.push(self.parse_expression()?);
+                        } else {
+                            return Err(ParseError::new(
+                                format!(
+                                    "Expected ']' or 'and' in list literal, found {:?}",
+                                    next_token.token
+                                ),
+                                next_token.line,
+                                next_token.column,
+                            ));
+                        }
+                    }
+
+                    return Err(ParseError::new(
+                        "Unexpected end of input while parsing list literal".into(),
+                        bracket_token.line,
+                        bracket_token.column,
+                    ));
+                }
                 Token::LeftParen => {
                     self.tokens.next(); // Consume '('
                     let expr = self.parse_expression()?;
@@ -2624,5 +2761,40 @@ impl<'a> Parser<'a> {
             line: exit_token.line,
             column: exit_token.column,
         })
+    }
+
+    fn parse_push_statement(&mut self) -> Result<Statement, ParseError> {
+        let push_token = self.tokens.next().unwrap(); // Consume "push"
+
+        self.expect_token(Token::KeywordWith, "Expected 'with' after 'push'")?;
+
+        // Parse the list expression but limit it to just the primary expression
+        let list_expr = self.parse_primary_expression()?;
+
+        self.expect_token(Token::KeywordAnd, "Expected 'and' after list expression")?;
+
+        let start_line = if let Some(token) = self.tokens.peek() {
+            token.line
+        } else {
+            push_token.line
+        };
+
+        let mut value_expr = self.parse_primary_expression()?;
+
+        if let Some(token) = self.tokens.peek() {
+            if token.line == start_line && !Parser::is_statement_starter(&token.token) {
+                // so we can continue parsing the expression
+                value_expr = self.parse_binary_expression(0)?;
+            }
+        }
+
+        let stmt = Statement::PushStatement {
+            list: list_expr,
+            value: value_expr,
+            line: push_token.line,
+            column: push_token.column,
+        };
+
+        Ok(stmt)
     }
 }

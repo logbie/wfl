@@ -74,6 +74,7 @@ impl fmt::Display for Type {
             Type::Unknown => write!(f, "Unknown"),
             Type::Error => write!(f, "Error"),
             Type::Async(t) => write!(f, "Async<{}>", t),
+            Type::Any => write!(f, "Any"),
         }
     }
 }
@@ -128,12 +129,52 @@ impl TypeChecker {
 
     fn check_statement_types(&mut self, statement: &Statement) {
         match statement {
-            Statement::RepeatWhileLoop { .. } => {
-                todo!("RepeatWhileLoop not yet implemented in typechecker");
+            Statement::PushStatement {
+                list,
+                value,
+                line,
+                column,
+            } => {
+                let list_type = self.infer_expression_type(list);
+                match list_type {
+                    Type::List(_) | Type::Unknown => {}
+                    _ => {
+                        self.errors.push(TypeError::new(
+                            format!("Expected list type for push operation, got {:?}", list_type),
+                            Some(Type::List(Box::new(Type::Any))),
+                            Some(list_type.clone()),
+                            *line,
+                            *column,
+                        ));
+                    }
+                }
+                self.infer_expression_type(value);
             }
-            Statement::ExitStatement { .. } => {
-                todo!("ExitStatement not yet implemented in typechecker");
+            Statement::RepeatWhileLoop {
+                condition,
+                body,
+                line,
+                column,
+            } => {
+                let condition_type = self.infer_expression_type(condition);
+                if condition_type != Type::Boolean && condition_type != Type::Unknown {
+                    self.errors.push(TypeError::new(
+                        format!(
+                            "Expected boolean condition in repeat-while loop, got {:?}",
+                            condition_type
+                        ),
+                        Some(Type::Boolean),
+                        Some(condition_type.clone()),
+                        *line,
+                        *column,
+                    ));
+                }
+
+                for stmt in body {
+                    self.check_statement_types(stmt);
+                }
             }
+            Statement::ExitStatement { line: _, column: _ } => {}
             Statement::WaitForStatement {
                 inner,
                 line: _line,
@@ -652,6 +693,7 @@ impl TypeChecker {
                 Literal::Boolean(_) => Type::Boolean,
                 Literal::Nothing => Type::Nothing,
                 Literal::Pattern(_) => Type::Text,
+                Literal::List(_) => Type::List(Box::new(Type::Any)),
             },
             Expression::Variable(name, line, column) => {
                 if let Some(symbol) = self.analyzer.get_symbol(name) {

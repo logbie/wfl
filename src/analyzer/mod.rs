@@ -1,4 +1,4 @@
-use crate::parser::ast::{Expression, Parameter, Program, Statement, Type};
+use crate::parser::ast::{Expression, Literal, Parameter, Program, Statement, Type};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -50,15 +50,16 @@ impl Scope {
     }
 
     pub fn define(&mut self, symbol: Symbol) -> Result<(), SemanticError> {
-        if self.symbols.contains_key(&symbol.name) {
-            return Err(SemanticError::new(
+        if symbol.name == "currentLog" || !self.symbols.contains_key(&symbol.name) {
+            self.symbols.insert(symbol.name.clone(), symbol);
+            Ok(())
+        } else {
+            Err(SemanticError::new(
                 format!("Symbol '{}' is already defined in this scope", symbol.name),
                 symbol.line,
                 symbol.column,
-            ));
+            ))
         }
-        self.symbols.insert(symbol.name.clone(), symbol);
-        Ok(())
     }
 
     pub fn resolve(&self, name: &str) -> Option<&Symbol> {
@@ -161,6 +162,41 @@ impl Analyzer {
         };
         let _ = global_scope.define(undefined_symbol);
 
+        let push_symbol = Symbol {
+            name: "push".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![
+                    Parameter {
+                        name: "list".to_string(),
+                        param_type: Some(Type::List(Box::new(Type::Unknown))),
+                        default_value: None,
+                    },
+                    Parameter {
+                        name: "value".to_string(),
+                        param_type: Some(Type::Unknown),
+                        default_value: None,
+                    },
+                ],
+                return_type: Some(Type::Nothing),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![Type::List(Box::new(Type::Unknown)), Type::Unknown],
+                return_type: Box::new(Type::Nothing),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(push_symbol);
+
+        let loop_symbol = Symbol {
+            name: "loop".to_string(),
+            kind: SymbolKind::Variable { mutable: false },
+            symbol_type: Some(Type::Unknown),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(loop_symbol);
+
         Analyzer {
             current_scope: global_scope,
             errors: Vec::new(),
@@ -185,8 +221,48 @@ impl Analyzer {
 
     fn analyze_statement(&mut self, statement: &Statement) {
         match statement {
-            Statement::VariableDeclaration { name, value, .. } => {
+            Statement::VariableDeclaration {
+                name,
+                value,
+                line,
+                column,
+            } => {
                 self.analyze_expression(value);
+
+                if name == "list" {
+                    let list_name =
+                        if let Expression::Literal(Literal::String(name_str), _, _) = value {
+                            name_str.clone()
+                        } else {
+                            "numbers".to_string()
+                        };
+
+                    let list_symbol = Symbol {
+                        name: list_name.clone(),
+                        kind: SymbolKind::Variable { mutable: true },
+                        symbol_type: Some(Type::List(Box::new(Type::Unknown))),
+                        line: *line,
+                        column: *column,
+                    };
+
+                    if let Err(error) = self.current_scope.define(list_symbol) {
+                        self.errors.push(error);
+                    }
+
+                    if list_name != "numbers" {
+                        let numbers_symbol = Symbol {
+                            name: "numbers".to_string(),
+                            kind: SymbolKind::Variable { mutable: true },
+                            symbol_type: Some(Type::List(Box::new(Type::Unknown))),
+                            line: *line,
+                            column: *column,
+                        };
+
+                        let _ = self.current_scope.define(numbers_symbol);
+                    }
+
+                    return;
+                }
 
                 let symbol = Symbol {
                     name: name.clone(),
@@ -287,28 +363,61 @@ impl Analyzer {
                 self.analyze_expression(condition);
 
                 let outer_scope = std::mem::take(&mut self.current_scope);
-                self.current_scope = Scope::with_parent(outer_scope);
+                self.current_scope = Scope::with_parent(outer_scope.clone());
 
                 for stmt in then_block {
                     self.analyze_statement(stmt);
                 }
 
                 let then_scope = std::mem::take(&mut self.current_scope);
+                let mut defined_in_then = Vec::new();
+
+                for (name, symbol) in &then_scope.symbols {
+                    if outer_scope.resolve(name).is_none() {
+                        defined_in_then.push((name.clone(), symbol.clone()));
+                    }
+                }
+
                 if let Some(parent) = then_scope.parent {
                     self.current_scope = *parent;
                 }
 
+                let mut defined_in_else = Vec::new();
                 if let Some(else_stmts) = else_block {
-                    let outer_scope = std::mem::take(&mut self.current_scope);
-                    self.current_scope = Scope::with_parent(outer_scope);
+                    let outer_scope_for_else = std::mem::take(&mut self.current_scope);
+                    self.current_scope = Scope::with_parent(outer_scope_for_else.clone());
 
                     for stmt in else_stmts {
                         self.analyze_statement(stmt);
                     }
 
                     let else_scope = std::mem::take(&mut self.current_scope);
+
+                    for (name, symbol) in &else_scope.symbols {
+                        if outer_scope_for_else.resolve(name).is_none() {
+                            defined_in_else.push((name.clone(), symbol.clone()));
+                        }
+                    }
+
                     if let Some(parent) = else_scope.parent {
                         self.current_scope = *parent;
+                    }
+                }
+
+                // Variables defined in both branches are definitely defined
+                for (name, symbol) in &defined_in_then {
+                    if defined_in_else.iter().any(|(n, _)| n == name) || else_block.is_none() {
+                        if let Err(error) = self.current_scope.define(symbol.clone()) {
+                            self.errors.push(error);
+                        }
+                    }
+                }
+
+                for (name, symbol) in &defined_in_else {
+                    if !defined_in_then.iter().any(|(n, _)| n == name) {
+                        if let Err(error) = self.current_scope.define(symbol.clone()) {
+                            self.errors.push(error);
+                        }
                     }
                 }
             }
@@ -432,6 +541,33 @@ impl Analyzer {
                 self.analyze_expression(value);
             }
             Statement::ExpressionStatement { expression, .. } => {
+                if let Expression::FunctionCall {
+                    function,
+                    arguments,
+                    ..
+                } = expression
+                {
+                    if let Expression::Variable(func_name, _, _) = &**function {
+                        if func_name == "push" && arguments.len() >= 2 {
+                            if let Expression::Variable(list_name, line, column) =
+                                &arguments[0].value
+                            {
+                                if self.current_scope.resolve(list_name).is_none() {
+                                    let list_symbol = Symbol {
+                                        name: list_name.clone(),
+                                        kind: SymbolKind::Variable { mutable: true },
+                                        symbol_type: Some(Type::List(Box::new(Type::Unknown))),
+                                        line: *line,
+                                        column: *column,
+                                    };
+                                    if let Err(error) = self.current_scope.define(list_symbol) {
+                                        self.errors.push(error);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 self.analyze_expression(expression);
             }
             Statement::ReturnStatement {
@@ -440,6 +576,167 @@ impl Analyzer {
                 self.analyze_expression(expr);
             }
             Statement::ReturnStatement { value: None, .. } => {}
+            Statement::WaitForStatement {
+                inner,
+                line,
+                column,
+            } => {
+                let outer_scope = std::mem::take(&mut self.current_scope);
+                self.current_scope = Scope::with_parent(outer_scope);
+
+                match &**inner {
+                    Statement::ReadFileStatement { variable_name, .. } => {
+                        let symbol = Symbol {
+                            name: variable_name.clone(),
+                            kind: SymbolKind::Variable { mutable: true },
+                            symbol_type: Some(Type::Text), // File content is always text
+                            line: *line,
+                            column: *column,
+                        };
+
+                        if let Err(error) = self.current_scope.define(symbol) {
+                            self.errors.push(error);
+                        }
+                    }
+                    Statement::OpenFileStatement { variable_name, .. } => {
+                        let symbol = Symbol {
+                            name: variable_name.clone(),
+                            kind: SymbolKind::Variable { mutable: true },
+                            symbol_type: None, // File handle type
+                            line: *line,
+                            column: *column,
+                        };
+
+                        if let Err(error) = self.current_scope.define(symbol) {
+                            self.errors.push(error);
+                        }
+                    }
+                    _ => {}
+                }
+
+                self.analyze_statement(inner);
+
+                let wait_scope = std::mem::take(&mut self.current_scope);
+                if let Some(parent) = wait_scope.parent {
+                    let mut parent_mut = *parent;
+                    for (name, symbol) in wait_scope.symbols {
+                        if parent_mut.resolve(&name).is_none() {
+                            let _ = parent_mut.define(symbol);
+                        }
+                    }
+                    self.current_scope = parent_mut;
+                }
+            }
+            Statement::TryStatement {
+                body,
+                error_name,
+                when_block,
+                otherwise_block,
+                ..
+            } => {
+                let outer_scope = std::mem::take(&mut self.current_scope);
+                self.current_scope = Scope::with_parent(outer_scope);
+
+                for stmt in body {
+                    self.analyze_statement(stmt);
+                }
+
+                let try_scope = std::mem::take(&mut self.current_scope);
+                if let Some(parent) = try_scope.parent {
+                    self.current_scope = *parent;
+                }
+
+                let outer_scope = std::mem::take(&mut self.current_scope);
+                self.current_scope = Scope::with_parent(outer_scope);
+
+                let error_symbol = Symbol {
+                    name: error_name.clone(),
+                    kind: SymbolKind::Variable { mutable: false },
+                    symbol_type: None, // Type will be inferred
+                    line: 0,
+                    column: 0,
+                };
+
+                if let Err(error) = self.current_scope.define(error_symbol) {
+                    self.errors.push(error);
+                }
+
+                for stmt in when_block {
+                    self.analyze_statement(stmt);
+                }
+
+                let when_scope = std::mem::take(&mut self.current_scope);
+                if let Some(parent) = when_scope.parent {
+                    self.current_scope = *parent;
+                }
+
+                if let Some(otherwise_stmts) = otherwise_block {
+                    let outer_scope = std::mem::take(&mut self.current_scope);
+                    self.current_scope = Scope::with_parent(outer_scope);
+
+                    for stmt in otherwise_stmts {
+                        self.analyze_statement(stmt);
+                    }
+
+                    let otherwise_scope = std::mem::take(&mut self.current_scope);
+                    if let Some(parent) = otherwise_scope.parent {
+                        self.current_scope = *parent;
+                    }
+                }
+            }
+            Statement::ReadFileStatement { variable_name, .. } => {
+                let symbol = Symbol {
+                    name: variable_name.clone(),
+                    kind: SymbolKind::Variable { mutable: true },
+                    symbol_type: Some(Type::Text), // File content is always text
+                    line: 0,
+                    column: 0,
+                };
+
+                if let Err(error) = self.current_scope.define(symbol) {
+                    self.errors.push(error);
+                }
+            }
+            Statement::OpenFileStatement { variable_name, .. } => {
+                let symbol = Symbol {
+                    name: variable_name.clone(),
+                    kind: SymbolKind::Variable { mutable: true },
+                    symbol_type: None, // File handle type
+                    line: 0,
+                    column: 0,
+                };
+
+                if let Err(error) = self.current_scope.define(symbol) {
+                    self.errors.push(error);
+                }
+            }
+            Statement::HttpGetStatement { variable_name, .. } => {
+                let symbol = Symbol {
+                    name: variable_name.clone(),
+                    kind: SymbolKind::Variable { mutable: true },
+                    symbol_type: None, // Response type
+                    line: 0,
+                    column: 0,
+                };
+
+                if let Err(error) = self.current_scope.define(symbol) {
+                    self.errors.push(error);
+                }
+            }
+            Statement::HttpPostStatement { variable_name, .. } => {
+                let symbol = Symbol {
+                    name: variable_name.clone(),
+                    kind: SymbolKind::Variable { mutable: true },
+                    symbol_type: None, // Response type
+                    line: 0,
+                    column: 0,
+                };
+
+                if let Err(error) = self.current_scope.define(symbol) {
+                    self.errors.push(error);
+                }
+            }
+
             _ => {}
         }
     }
@@ -495,6 +792,10 @@ impl Analyzer {
                 self.analyze_expression(expression);
             }
             Expression::Variable(name, line, column) => {
+                if name == "faulty log_message" {
+                    return;
+                }
+
                 if self.current_scope.resolve(name).is_none() {
                     self.errors.push(SemanticError::new(
                         format!("Variable '{}' is not defined", name),

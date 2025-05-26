@@ -73,3 +73,17 @@ fn test_static_analyzer_integration() {
     assert!(diagnostics.iter().any(|d| d.code == "ANALYZE-UNUSED"));
     assert!(diagnostics.iter().any(|d| d.code == "ANALYZE-RETURN"));
 }
+
+#[test]
+fn test_wait_for_variable_definition() {
+    let input = "wait for open file \"test.txt\" as file1 and read content into currentLog\ndisplay currentLog";
+    let tokens = lex_wfl_with_positions(input);
+    let program = Parser::new(&tokens).parse().unwrap();
+    
+    let mut analyzer = Analyzer::new();
+    analyzer.analyze(&program);
+    
+    assert_eq!(analyzer.errors.len(), 0);
+    
+    assert!(analyzer.current_scope.resolve("currentLog").is_some());
+}

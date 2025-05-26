@@ -155,3 +155,37 @@ async fn test_try_when_error_propagation() {
     let result = interpreter.interpret(&program).await;
     assert!(result.is_err(), "Error in when block should propagate upward");
 }
+
+#[tokio::test]
+async fn test_file_handle_cleanup() {
+    let temp_file = NamedTempFile::new().unwrap();
+    let file_path = temp_file.path().to_str().unwrap().to_string();
+    
+    let mut interpreter = Interpreter::new();
+    
+    let source = format!(
+        r#"
+        wait for open file at "{}" and store handle as file1
+        wait for write "First write" to file1
+        wait for close file1
+        
+        wait for open file at "{}" and read content into content1
+        display content1
+        
+        wait for open file at "{}" and store handle as file2
+        wait for write "Second write" to file2
+        wait for close file2
+        
+        wait for open file at "{}" and read content into content2
+        display content2
+        "#,
+        file_path, file_path, file_path, file_path
+    );
+    
+    let tokens = lex_wfl_with_positions(&source);
+    let mut parser = Parser::new(&tokens);
+    let program = parser.parse().unwrap();
+    
+    let result = interpreter.interpret(&program).await;
+    assert!(result.is_ok(), "Multiple operations on the same file should succeed");
+}

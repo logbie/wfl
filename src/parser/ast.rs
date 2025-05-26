@@ -164,6 +164,12 @@ pub enum Statement {
         line: usize,
         column: usize,
     },
+    PushStatement {
+        list: Expression,
+        value: Expression,
+        line: usize,
+        column: usize,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -253,6 +259,7 @@ pub enum Literal {
     Boolean(bool),
     Nothing,
     Pattern(String),
+    List(Vec<Expression>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -307,6 +314,7 @@ pub enum Type {
     Unknown,          // Used during type inference before a type is determined
     Error,            // Used to mark expressions that have already failed type checking
     Async(Box<Type>), // For asynchronous operations returning a value of Type
+    Any,              // Used for generic types like lists of any type
 }
 
 #[derive(Debug, Clone)]
