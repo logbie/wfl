@@ -1,12 +1,14 @@
+use std::cell::RefCell;
+use std::rc::Rc;
 use wfl::interpreter::{Interpreter, Value, control_flow::ControlFlow};
 use wfl::parser::{Parser, Program};
-use std::rc::Rc;
-use std::cell::RefCell;
 
 async fn execute_wfl(code: &str) -> Result<Value, String> {
     let mut parser = Parser::new(code);
-    let program = parser.parse().map_err(|e| format!("Parse error: {:?}", e))?;
-    
+    let program = parser
+        .parse()
+        .map_err(|e| format!("Parse error: {:?}", e))?;
+
     let mut interpreter = Interpreter::default();
     interpreter
         .interpret(&program)
@@ -16,18 +18,18 @@ async fn execute_wfl(code: &str) -> Result<Value, String> {
 
 async fn capture_output(code: &str) -> Vec<String> {
     let mut output = Vec::new();
-    
+
     let capture_fn = Rc::new(RefCell::new(move |s: &str| {
         output.push(s.to_string());
     }));
-    
+
     let mut parser = Parser::new(code);
     let program = parser.parse().unwrap();
-    
+
     let mut interpreter = Interpreter::default();
-    
+
     let _ = interpreter.interpret(&program).await;
-    
+
     output
 }
 
@@ -43,10 +45,9 @@ async fn test_break_in_forever_loop() {
     end repeat
     display counter
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null); // The last statement is display, which returns Null
-    
 }
 
 #[tokio::test]
@@ -61,10 +62,9 @@ async fn test_break_in_count_loop() {
     end count
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -81,10 +81,9 @@ async fn test_break_in_repeat_while_loop() {
     end repeat
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -101,10 +100,9 @@ async fn test_break_in_repeat_until_loop() {
     end repeat
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -119,10 +117,9 @@ async fn test_continue_in_count_loop() {
     end count
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -139,10 +136,9 @@ async fn test_exit_from_nested_loops() {
     end count
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -168,10 +164,9 @@ async fn test_nested_loops_with_break() {
     
     display total
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -187,10 +182,9 @@ async fn test_return_from_action() {
     store result as test_return(10)
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -208,10 +202,9 @@ async fn test_return_from_loop_in_action() {
     store result as find_value(5)
     display result
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -229,10 +222,9 @@ async fn test_break_from_foreach_loop() {
     
     display sum
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
 
 #[tokio::test]
@@ -250,8 +242,7 @@ async fn test_continue_from_foreach_loop() {
     
     display sum
     "#;
-    
+
     let result = execute_wfl(code).await.unwrap();
     assert_eq!(result, Value::Null);
-    
 }
