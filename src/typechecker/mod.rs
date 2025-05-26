@@ -375,19 +375,22 @@ impl TypeChecker {
                 column,
             } => {
                 let mut condition_type = self.infer_expression_type(condition);
-                
+
                 if let Expression::BinaryOperation { operator, .. } = condition {
                     if matches!(operator, Operator::Equals | Operator::NotEquals) {
                         condition_type = Type::Boolean;
                     }
                 }
-                
+
                 if let Expression::BinaryOperation { operator, .. } = condition {
-                    if matches!(operator, Operator::Plus | Operator::Minus | Operator::Multiply | Operator::Divide) {
+                    if matches!(
+                        operator,
+                        Operator::Plus | Operator::Minus | Operator::Multiply | Operator::Divide
+                    ) {
                         return;
                     }
                 }
-                
+
                 if condition_type != Type::Boolean
                     && condition_type != Type::Unknown
                     && condition_type != Type::Error
@@ -736,23 +739,20 @@ impl TypeChecker {
                 if matches!(operator, Operator::Equals | Operator::NotEquals) {
                     let left_type = self.infer_expression_type(left);
                     let right_type = self.infer_expression_type(right);
-                    
+
                     if left_type == Type::Error || right_type == Type::Error {
                         return Type::Error;
                     }
-                    
+
                     if left_type == Type::Unknown || right_type == Type::Unknown {
                         return Type::Unknown;
                     }
-                    
+
                     if !self.are_types_compatible(&left_type, &right_type)
                         && !self.are_types_compatible(&right_type, &left_type)
                     {
                         self.type_error(
-                            format!(
-                                "Cannot compare {} and {}",
-                                left_type, right_type
-                            ),
+                            format!("Cannot compare {} and {}", left_type, right_type),
                             None,
                             None,
                             *line,
@@ -760,10 +760,10 @@ impl TypeChecker {
                         );
                         return Type::Error;
                     }
-                    
+
                     return Type::Boolean;
                 }
-                
+
                 let left_type = self.infer_expression_type(left);
                 let right_type = self.infer_expression_type(right);
 
@@ -781,10 +781,7 @@ impl TypeChecker {
                             && !self.are_types_compatible(&right_type, &left_type)
                         {
                             self.type_error(
-                                format!(
-                                    "Cannot compare {} and {}",
-                                    left_type, right_type
-                                ),
+                                format!("Cannot compare {} and {}", left_type, right_type),
                                 None,
                                 None,
                                 *line,
@@ -794,7 +791,7 @@ impl TypeChecker {
                         } else {
                             Type::Boolean
                         }
-                    },
+                    }
                     Operator::Plus | Operator::Minus | Operator::Multiply | Operator::Divide => {
                         if left_type == Type::Number && right_type == Type::Number {
                             Type::Number

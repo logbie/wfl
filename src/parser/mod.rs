@@ -567,7 +567,7 @@ impl<'a> Parser<'a> {
         if let Some(token_pos) = self.tokens.peek().cloned() {
             if matches!(token_pos.token, Token::KeywordIs) {
                 self.tokens.next(); // Consume "is"
-                
+
                 let is_not = if let Some(not_token) = self.tokens.peek().cloned() {
                     if matches!(not_token.token, Token::KeywordNot) {
                         self.tokens.next(); // Consume "not"
@@ -578,25 +578,29 @@ impl<'a> Parser<'a> {
                 } else {
                     false
                 };
-                
+
                 // Check for "equal" after "is" or "is not"
                 if let Some(equal_token) = self.tokens.peek().cloned() {
                     if matches!(equal_token.token, Token::KeywordEqual) {
                         self.tokens.next(); // Consume "equal"
-                        
+
                         // Check for optional "to" after "equal"
                         if let Some(to_token) = self.tokens.peek().cloned() {
                             if matches!(to_token.token, Token::KeywordTo) {
                                 self.tokens.next(); // Consume "to"
                             }
                         }
-                        
+
                         // Parse the right side of the equality comparison
                         let right = self.parse_binary_expression(0)?;
-                        
+
                         expr = Expression::BinaryOperation {
                             left: Box::new(expr),
-                            operator: if is_not { Operator::NotEquals } else { Operator::Equals },
+                            operator: if is_not {
+                                Operator::NotEquals
+                            } else {
+                                Operator::Equals
+                            },
                             right: Box::new(right),
                             line: token_pos.line,
                             column: token_pos.column,
@@ -605,7 +609,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        
+
         Ok(expr)
     }
 
@@ -628,7 +632,7 @@ impl<'a> Parser<'a> {
             if Parser::is_statement_starter(&token) {
                 break;
             }
-            
+
             // This is necessary for compound expressions like "x times 2 is equal to y"
 
             let op = match token {
@@ -670,24 +674,24 @@ impl<'a> Parser<'a> {
                                         self.tokens.next(); // Consume "to"
                                     }
                                 }
-                                
+
                                 Some((Operator::Equals, 3))
                             }
                             Token::KeywordNot => {
                                 self.tokens.next(); // Consume "not"
-                                
+
                                 // Check for "equal" after "not"
                                 if let Some(equal_token) = self.tokens.peek().cloned() {
                                     if matches!(equal_token.token, Token::KeywordEqual) {
                                         self.tokens.next(); // Consume "equal"
-                                        
+
                                         // Check for optional "to" after "equal"
                                         if let Some(to_token) = self.tokens.peek().cloned() {
                                             if matches!(to_token.token, Token::KeywordTo) {
                                                 self.tokens.next(); // Consume "to"
                                             }
                                         }
-                                        
+
                                         Some((Operator::NotEquals, 3))
                                     } else {
                                         return Err(ParseError::new(
@@ -1589,12 +1593,12 @@ impl<'a> Parser<'a> {
 
         // Parse the left side of the condition
         let mut condition = self.parse_binary_expression(0)?;
-        
+
         // Check for "is equal to" or "is not equal to" after the expression
         if let Some(token_pos) = self.tokens.peek().cloned() {
             if matches!(token_pos.token, Token::KeywordIs) {
                 self.tokens.next(); // Consume "is"
-                
+
                 let is_not = if let Some(not_token) = self.tokens.peek().cloned() {
                     if matches!(not_token.token, Token::KeywordNot) {
                         self.tokens.next(); // Consume "not"
@@ -1605,26 +1609,30 @@ impl<'a> Parser<'a> {
                 } else {
                     false
                 };
-                
+
                 // Check for "equal" after "is" or "is not"
                 if let Some(equal_token) = self.tokens.peek().cloned() {
                     if matches!(equal_token.token, Token::KeywordEqual) {
                         self.tokens.next(); // Consume "equal"
-                        
+
                         // Check for optional "to" after "equal"
                         if let Some(to_token) = self.tokens.peek().cloned() {
                             if matches!(to_token.token, Token::KeywordTo) {
                                 self.tokens.next(); // Consume "to"
                             }
                         }
-                        
+
                         // Parse the right side of the equality comparison
                         let right = self.parse_expression()?;
-                        
+
                         // Create a binary operation for the equality comparison
                         condition = Expression::BinaryOperation {
                             left: Box::new(condition),
-                            operator: if is_not { Operator::NotEquals } else { Operator::Equals },
+                            operator: if is_not {
+                                Operator::NotEquals
+                            } else {
+                                Operator::Equals
+                            },
                             right: Box::new(right),
                             line: token_pos.line,
                             column: token_pos.column,
@@ -1633,7 +1641,7 @@ impl<'a> Parser<'a> {
                 }
             }
         }
-        
+
         if let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::Colon) {
                 self.tokens.next(); // Consume the colon if present
