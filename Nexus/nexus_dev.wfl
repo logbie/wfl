@@ -1,0 +1,24 @@
+// Nexus WFL Integration Test Script
+// This script ("nexus.wfl") performs integration tests of core WFL features.
+// It logs progress and results to "nexus.log" for debugging.
+
+///////////////////////////////////////////////////////////////////////////
+// 1. Setup: Initialize logging
+///////////////////////////////////////////////////////////////////////////
+
+// Open the log file for writing
+open file at "nexus.log" as logHandle
+
+// Create/truncate the log file initially with a proper line ending
+wait for write content "=== Nexus WFL Integration Test Suite ===
+" into logHandle
+
+// Helper: Efficiently append a message line to the log file  
+define action called log_message needs message_text:
+    // Use append mode for efficient logging - add the message with line ending
+    wait for append content message_text with "
+" into logHandle
+end action
+
+// Log the start of the test suite
+log_message with "Starting Nexus WFL Integration Test Suite..."

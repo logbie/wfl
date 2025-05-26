@@ -1,0 +1,121 @@
+AST output for: Nexus/nexus_dev.wfl
+==============================================
+
+Program with 3 statements:
+
+Statement #1: OpenFileStatement {
+    path: Literal(
+        String(
+            "nexus.log",
+        ),
+        10,
+        14,
+    ),
+    variable_name: "logHandle",
+    line: 10,
+    column: 1,
+}
+
+Statement #2: ActionDefinition {
+    name: "log_message",
+    parameters: [
+        Parameter {
+            name: "message_text",
+            param_type: None,
+            default_value: None,
+        },
+    ],
+    body: [
+        WaitForStatement {
+            inner: ReadFileStatement {
+                path: Literal(
+                    String(
+                        "nexus.log",
+                    ),
+                    15,
+                    27,
+                ),
+                variable_name: "currentLog",
+                line: 15,
+                column: 14,
+            },
+            line: 15,
+            column: 5,
+        },
+        VariableDeclaration {
+            name: "updatedLog",
+            value: Concatenation {
+                left: Variable(
+                    "currentLog",
+                    17,
+                    25,
+                ),
+                right: Concatenation {
+                    left: Variable(
+                        "message_text",
+                        17,
+                        41,
+                    ),
+                    right: Literal(
+                        String(
+                            "\\n",
+                        ),
+                        17,
+                        59,
+                    ),
+                    line: 17,
+                    column: 54,
+                },
+                line: 17,
+                column: 36,
+            },
+            line: 17,
+            column: 5,
+        },
+        WaitForStatement {
+            inner: WriteFileStatement {
+                file: Variable(
+                    "logHandle",
+                    19,
+                    44,
+                ),
+                content: Variable(
+                    "updatedLog",
+                    19,
+                    28,
+                ),
+                mode: Overwrite,
+                line: 19,
+                column: 5,
+            },
+            line: 19,
+            column: 5,
+        },
+    ],
+    return_type: None,
+    line: 23,
+    column: 1,
+}
+
+Statement #3: ExpressionStatement {
+    expression: ActionCall {
+        name: "log_message",
+        arguments: [
+            Argument {
+                name: None,
+                value: Literal(
+                    String(
+                        "Starting Nexus WFL Integration Test Suite...",
+                    ),
+                    23,
+                    18,
+                ),
+            },
+        ],
+        line: 23,
+        column: 1,
+    },
+    line: 0,
+    column: 0,
+}
+

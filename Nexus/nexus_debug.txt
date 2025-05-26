@@ -1,0 +1,19 @@
+=== WFL Debug Report ===
+Script: Nexus/nexus.wfl
+Time: 2025-05-26 09:54:45
+
+=== Error Summary ===
+Runtime error at line 319, column 22: Expected 2 arguments but got 1
+
+=== Stack Trace ===
+In main script at line 319, column 22
+
+=== Source Code ===
+   317: 
+   318: // Test add action
+>> 319: store add_result2 as add with 10 and 15   // 10 + 15 = 25
+   320: check if add_result2 is equal to 25:
+   321:     log_message with "Action test (add 10+15 -> 25): PASS"
+
+=== Local Variables ===
+(No local variables in global scope)
