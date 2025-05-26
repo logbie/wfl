@@ -415,6 +415,38 @@ impl Analyzer {
             Statement::ExpressionStatement { expression, .. } => {
                 self.mark_used_in_expression(expression, usages);
             }
+            Statement::ActionDefinition { body, .. } => {
+                for stmt in body {
+                    self.mark_used_variables(stmt, usages);
+                }
+            }
+            Statement::WaitForStatement { inner, .. } => {
+                self.mark_used_variables(inner, usages);
+            }
+            Statement::WriteFileStatement { file, content, .. } => {
+                self.mark_used_in_expression(file, usages);
+                self.mark_used_in_expression(content, usages);
+            }
+            Statement::OpenFileStatement { path, .. } => {
+                self.mark_used_in_expression(path, usages);
+            }
+            Statement::ReadFileStatement { path, .. } => {
+                self.mark_used_in_expression(path, usages);
+            }
+            Statement::CloseFileStatement { file, .. } => {
+                self.mark_used_in_expression(file, usages);
+            }
+            Statement::HttpGetStatement { url, .. } => {
+                self.mark_used_in_expression(url, usages);
+            }
+            Statement::HttpPostStatement { url, data, .. } => {
+                self.mark_used_in_expression(url, usages);
+                self.mark_used_in_expression(data, usages);
+            }
+            Statement::PushStatement { list, value, .. } => {
+                self.mark_used_in_expression(list, usages);
+                self.mark_used_in_expression(value, usages);
+            }
             _ => {}
         }
     }
@@ -444,6 +476,11 @@ impl Analyzer {
                 ..
             } => {
                 self.mark_used_in_expression(function, usages);
+                for arg in arguments {
+                    self.mark_used_in_expression(&arg.value, usages);
+                }
+            }
+            Expression::ActionCall { arguments, .. } => {
                 for arg in arguments {
                     self.mark_used_in_expression(&arg.value, usages);
                 }
