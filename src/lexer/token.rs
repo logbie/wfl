@@ -1,8 +1,10 @@
 use logos::Logos;
 
 #[derive(Logos, Debug, PartialEq, Clone)]
-#[logos(skip r"(?:[ \t\n\f\r]+|//.*)")] // Skip whitespace and line comments
+#[logos(skip r"[ \t\f\r]+|//.*")] // Skip whitespace (excluding newline) and line comments
 pub enum Token {
+    #[token("\n")]
+    Newline,
     #[token("store")]
     KeywordStore,
     #[token("create")]

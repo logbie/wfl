@@ -47,6 +47,12 @@ pub fn lex_wfl(input: &str) -> Vec<Token> {
                     current_id = Some(intern_string(word));
                 }
             }
+            Ok(Token::Newline) => {
+                if let Some(id) = current_id.take() {
+                    tokens.push(Token::Identifier(intern_string(id)));
+                }
+                // Newline token is not added to the output tokens list
+            }
             Ok(other) => {
                 if let Some(id) = current_id.take() {
                     tokens.push(Token::Identifier(intern_string(id)));
@@ -128,6 +134,17 @@ pub fn lex_wfl_with_positions(input: &str) -> Vec<TokenWithPosition> {
                     current_id_start_column = token_column;
                     current_id_length = token_length;
                 }
+            }
+            Ok(Token::Newline) => {
+                if let Some(id) = current_id.take() {
+                    tokens.push(TokenWithPosition::new(
+                        Token::Identifier(intern_string(id)),
+                        current_id_start_line,
+                        current_id_start_column,
+                        current_id_length,
+                    ));
+                }
+                // Newline token is not added to the output tokens list
             }
             Ok(other) => {
                 if let Some(id) = current_id.take() {
