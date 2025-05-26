@@ -774,8 +774,16 @@ impl Interpreter {
                 line,
                 column,
             } => {
+                // === CRITICAL FIX: Reset count loop state before starting ===
                 let previous_count = *self.current_count.borrow();
                 let was_in_count_loop = *self.in_count_loop.borrow();
+                
+                // Force reset state to prevent inheriting stale values
+                *self.current_count.borrow_mut() = None;
+                *self.in_count_loop.borrow_mut() = false;
+                
+                crate::exec_trace_always!("Count loop: resetting state before evaluation");
+                
                 let start_val = self.evaluate_expression(start, Rc::clone(&env)).await?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env)).await?;
 

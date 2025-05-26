@@ -21,6 +21,10 @@ pub struct WflConfig {
     pub debug_report_enabled: bool,
     pub log_level: LogLevel,
     pub execution_logging: bool,
+    // Enhanced execution logging controls
+    pub verbose_execution: bool,       // Controls detailed per-statement logging
+    pub log_loop_iterations: bool,     // Whether to log loop iterations
+    pub log_throttle_factor: usize,    // Log every Nth iteration in loops
     // Code quality suite settings
     pub max_line_length: usize,
     pub max_nesting_depth: usize,
@@ -49,6 +53,10 @@ impl Default for WflConfig {
             execution_logging: true, // Enable by default in debug builds
             #[cfg(not(debug_assertions))]
             execution_logging: false, // Disable by default in release builds
+            // Enhanced execution logging defaults - less verbose by default
+            verbose_execution: false,          // Disable verbose per-statement logging
+            log_loop_iterations: false,       // Disable loop iteration logging by default
+            log_throttle_factor: 1000,        // Log every 1000th iteration when enabled
             // Code quality suite defaults - strict by default
             max_line_length: 100,
             max_nesting_depth: 5,
@@ -185,6 +193,60 @@ fn parse_config_text(config: &mut WflConfig, text: &str, file: &Path) {
                         log::debug!(
                             "Loaded execution_logging: {} from {}",
                             config.execution_logging,
+                            file.display()
+                        );
+                    }
+                }
+                "verbose_execution" => {
+                    if let Ok(enabled) = value.parse::<bool>() {
+                        if config.verbose_execution != WflConfig::default().verbose_execution {
+                            log::debug!(
+                                "Overriding verbose_execution: {} -> {} from {}",
+                                config.verbose_execution,
+                                enabled,
+                                file.display()
+                            );
+                        }
+                        config.verbose_execution = enabled;
+                        log::debug!(
+                            "Loaded verbose_execution: {} from {}",
+                            config.verbose_execution,
+                            file.display()
+                        );
+                    }
+                }
+                "log_loop_iterations" => {
+                    if let Ok(enabled) = value.parse::<bool>() {
+                        if config.log_loop_iterations != WflConfig::default().log_loop_iterations {
+                            log::debug!(
+                                "Overriding log_loop_iterations: {} -> {} from {}",
+                                config.log_loop_iterations,
+                                enabled,
+                                file.display()
+                            );
+                        }
+                        config.log_loop_iterations = enabled;
+                        log::debug!(
+                            "Loaded log_loop_iterations: {} from {}",
+                            config.log_loop_iterations,
+                            file.display()
+                        );
+                    }
+                }
+                "log_throttle_factor" => {
+                    if let Ok(factor) = value.parse::<usize>() {
+                        if config.log_throttle_factor != WflConfig::default().log_throttle_factor {
+                            log::debug!(
+                                "Overriding log_throttle_factor: {} -> {} from {}",
+                                config.log_throttle_factor,
+                                factor.max(1),
+                                file.display()
+                            );
+                        }
+                        config.log_throttle_factor = factor.max(1);
+                        log::debug!(
+                            "Loaded log_throttle_factor: {} from {}",
+                            config.log_throttle_factor,
                             file.display()
                         );
                     }

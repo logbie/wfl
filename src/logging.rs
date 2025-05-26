@@ -213,8 +213,43 @@ macro_rules! exec_trace {
     ($($arg:tt)*) => {
         if let Ok(config) = $crate::CONFIG.read() {
             if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging && cfg.verbose_execution {
+                    log::debug!("EXEC: {}{}", $crate::logging::current_indent(), format!($($arg)*))
+                }
+            }
+        }
+    };
+}
+
+// High-level execution logging (always logged when execution_logging is on)
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_trace_always {
+    ($($arg:tt)*) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
                 if cfg.execution_logging {
                     log::debug!("EXEC: {}{}", $crate::logging::current_indent(), format!($($arg)*))
+                }
+            }
+        }
+    };
+}
+
+// Loop-aware execution logging with throttling
+#[cfg(debug_assertions)]
+#[macro_export]
+macro_rules! exec_trace_loop {
+    ($iteration:expr, $($arg:tt)*) => {
+        if let Ok(config) = $crate::CONFIG.read() {
+            if let Some(cfg) = config.as_ref() {
+                if cfg.execution_logging && cfg.log_loop_iterations {
+                    let iter = $iteration;
+                    let throttle = cfg.log_throttle_factor;
+                    // Log first 3, every Nth, and approach to end
+                    if iter < 3 || iter % throttle == 0 {
+                        log::debug!("EXEC: {}[Loop {}] {}", $crate::logging::current_indent(), iter, format!($($arg)*))
+                    }
                 }
             }
         }

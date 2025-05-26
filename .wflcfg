@@ -1,4 +1,6 @@
-timeout_seconds = 60
-logging_enabled = false
-debug_report_enabled = true
-log_level = info
+# WFL Configuration - Enhanced Loop Debugging
+execution_logging = true
+verbose_execution = false
+log_loop_iterations = true
+log_throttle_factor = 1000
+log_level = debug
