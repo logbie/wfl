@@ -1,10 +1,12 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use wfl::interpreter::{Interpreter, Value, control_flow::ControlFlow};
-use wfl::parser::{Parser, Program};
+
+use wfl::interpreter::Interpreter;
+use wfl::interpreter::value::Value;
+use wfl::lexer::lex_wfl_with_positions;
+use wfl::parser::Parser;
 
 async fn execute_wfl(code: &str) -> Result<Value, String> {
-    let mut parser = Parser::new(code);
+    let tokens = lex_wfl_with_positions(code);
+    let mut parser = Parser::new(&tokens);
     let program = parser
         .parse()
         .map_err(|e| format!("Parse error: {:?}", e))?;
@@ -16,32 +18,16 @@ async fn execute_wfl(code: &str) -> Result<Value, String> {
         .map_err(|e| format!("Runtime error: {:?}", e))
 }
 
-async fn capture_output(code: &str) -> Vec<String> {
-    let mut output = Vec::new();
-
-    let capture_fn = Rc::new(RefCell::new(move |s: &str| {
-        output.push(s.to_string());
-    }));
-
-    let mut parser = Parser::new(code);
-    let program = parser.parse().unwrap();
-
-    let mut interpreter = Interpreter::default();
-
-    let _ = interpreter.interpret(&program).await;
-
-    output
-}
 
 #[tokio::test]
 async fn test_break_in_forever_loop() {
     let code = r#"
     store counter as 0
     repeat forever:
-        store counter as counter + 1
-        if counter > 5:
+        change counter to counter plus 1
+        check if counter is greater than 5:
             break
-        end if
+        end check
     end repeat
     display counter
     "#;
@@ -55,10 +41,10 @@ async fn test_break_in_count_loop() {
     let code = r#"
     store result as 0
     count from 1 to 10:
-        store result as result + count
-        if count > 5:
+        change result to result plus count
+        check if count is greater than 5:
             break
-        end if
+        end check
     end count
     display result
     "#;
@@ -72,12 +58,12 @@ async fn test_break_in_repeat_while_loop() {
     let code = r#"
     store counter as 0
     store result as 0
-    repeat while counter < 10:
-        store counter as counter + 1
-        store result as result + counter
-        if counter > 5:
+    repeat while counter is less than 10:
+        change counter to counter plus 1
+        change result to result plus counter
+        check if counter is greater than 5:
             break
-        end if
+        end check
     end repeat
     display result
     "#;
@@ -91,12 +77,12 @@ async fn test_break_in_repeat_until_loop() {
     let code = r#"
     store counter as 0
     store result as 0
-    repeat until counter >= 10:
-        store counter as counter + 1
-        store result as result + counter
-        if counter > 5:
+    repeat until counter is greater than 9:
+        change counter to counter plus 1
+        change result to result plus counter
+        check if counter is greater than 5:
             break
-        end if
+        end check
     end repeat
     display result
     "#;
@@ -110,10 +96,10 @@ async fn test_continue_in_count_loop() {
     let code = r#"
     store result as 0
     count from 1 to 10:
-        if count % 2 == 0:
+        check if count is equal to 2:
             continue
-        end if
-        store result as result + count
+        end check
+        change result to result plus count
     end count
     display result
     "#;
@@ -128,10 +114,10 @@ async fn test_exit_from_nested_loops() {
     store result as 0
     count from 1 to 5:
         count from 1 to 5:
-            store result as result + 1
-            if count == 3:
+            change result to result plus 1
+            check if count is equal to 3:
                 exit loop
-            end if
+            end check
         end count
     end count
     display result
@@ -148,17 +134,17 @@ async fn test_nested_loops_with_break() {
     store inner_count as 0
     store total as 0
     
-    repeat while outer_count < 5:
-        store outer_count as outer_count + 1
+    repeat while outer_count is less than 5:
+        change outer_count to outer_count plus 1
         store inner_count as 0
         
-        repeat while inner_count < 5:
-            store inner_count as inner_count + 1
-            store total as total + 1
+        repeat while inner_count is less than 5:
+            change inner_count to inner_count plus 1
+            change total to total plus 1
             
-            if inner_count == 3:
+            check if inner_count is equal to 3:
                 break
-            end if
+            end check
         end repeat
     end repeat
     
@@ -172,14 +158,14 @@ async fn test_nested_loops_with_break() {
 #[tokio::test]
 async fn test_return_from_action() {
     let code = r#"
-    action test_return(x):
-        if x > 5:
-            return x
-        end if
-        return x * 2
+    define action called test_return needs x:
+        check if x is greater than 5:
+            give back x
+        end check
+        give back x times 2
     end action
     
-    store result as test_return(10)
+    store result as test_return with 10
     display result
     "#;
 
@@ -190,16 +176,16 @@ async fn test_return_from_action() {
 #[tokio::test]
 async fn test_return_from_loop_in_action() {
     let code = r#"
-    action find_value(target):
+    define action called find_value needs target:
         count from 1 to 10:
-            if count == target:
-                return count
-            end if
+            check if count is equal to target:
+                give back count
+            end check
         end count
-        return 0
+        give back 0
     end action
     
-    store result as find_value(5)
+    store result as find_value with 5
     display result
     "#;
 
@@ -210,14 +196,24 @@ async fn test_return_from_loop_in_action() {
 #[tokio::test]
 async fn test_break_from_foreach_loop() {
     let code = r#"
-    store items as [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    create list as items
+    push with items and 1
+    push with items and 2
+    push with items and 3
+    push with items and 4
+    push with items and 5
+    push with items and 6
+    push with items and 7
+    push with items and 8
+    push with items and 9
+    push with items and 10
     store sum as 0
     
     for each item in items:
-        store sum as sum + item
-        if item >= 5:
+        change sum to sum plus item
+        check if item is greater than 4:
             break
-        end if
+        end check
     end for
     
     display sum
@@ -230,14 +226,24 @@ async fn test_break_from_foreach_loop() {
 #[tokio::test]
 async fn test_continue_from_foreach_loop() {
     let code = r#"
-    store items as [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+    create list as items
+    push with items and 1
+    push with items and 2
+    push with items and 3
+    push with items and 4
+    push with items and 5
+    push with items and 6
+    push with items and 7
+    push with items and 8
+    push with items and 9
+    push with items and 10
     store sum as 0
     
     for each item in items:
-        if item % 2 == 0:
+        check if (item divided by 2) times 2 is equal to item:
             continue
-        end if
-        store sum as sum + item
+        end check
+        change sum to sum plus item
     end for
     
     display sum
