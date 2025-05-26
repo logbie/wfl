@@ -1,6 +1,6 @@
-# WFL (WebFirst Language)
+# WFL (WebFirst Language) v0.1.0
 
-**⚠️ IMPORTANT: This software is alpha quality at best and should not be relied on for production use. ⚠️**
+**⚠️ IMPORTANT: This software is alpha quality and should not be relied on for production use. ⚠️**
 
 WFL is a programming language designed to be readable and intuitive, using natural language constructs to lower the barrier to entry for new programmers while still providing powerful features for experienced developers.
 
@@ -10,11 +10,12 @@ WFL features a syntax that resembles English sentences, indentation-based struct
 
 ## Project Status
 
-The WFL compiler is currently under development. Here's the current status:
+The WFL compiler is currently in active development with most core components complete and stable. Here's the current status:
 
-- ✅ **Lexer**: Complete - Converts source code into tokens
+- ✅ **Lexer**: Complete - Converts source code into tokens with full support for natural language constructs
 - ✅ **Parser**: Complete - Transforms tokens into an Abstract Syntax Tree (AST)
   - ✅ Enhanced to support natural language function calls (e.g., `typeof of value`)
+  - ✅ **Critical Stability Fixes (May 2025)**: Comprehensive end token handling prevents infinite loops
 - ✅ **Semantic Analyzer**: Complete - Analyzes the AST for semantic correctness
 - ✅ **Type Checker**: Complete - Performs static type analysis on the AST
 - ✅ **Standard Library**: Complete - Core functions, math, text, and list operations
@@ -22,26 +23,51 @@ The WFL compiler is currently under development. Here's the current status:
 - ✅ **Interpreter**: Complete - Executes the AST directly
   - ✅ Supports all basic language features
   - ✅ Includes runtime error handling and reporting
-  - ✅ HTTP GET/POST support
+  - ✅ HTTP GET/POST support via Reqwest
+  - ✅ Database integration (SQLite, MySQL, PostgreSQL) via SQLx
   - ✅ Try/when/otherwise exception handling
-  - 🔄 Asynchronous operations support (in progress, tracked in issue #51)
-- ✅ **Error Reporting System**: Complete - Comprehensive diagnostics with actionable messages
+  - ✅ **Asynchronous operations support** - Full Tokio integration with async/await
+- ✅ **Error Reporting System**: Complete - Comprehensive diagnostics with actionable messages using codespan-reporting
 - ✅ **Linter and Code Fixer**: Complete - Code quality tools with CLI integration
+- ✅ **Enhanced Logging System**: Complete - Standardized debug output with exec_trace! macro
 - 🔄 **Bytecode Compiler**: Planned - Will convert the AST into bytecode instructions
 - 🔄 **Virtual Machine**: Planned - Will execute bytecode instructions
 
-### Known Issues - FIXED
+## Recent Major Improvements (May 2025)
 
-- There's a specific issue with how the interpreter handles the "count" keyword in expressions inside count loops. When using "count" directly in a display statement inside a count loop (e.g., `display "Count: " with count`), the interpreter may hang. A workaround is to store the count value in a separate variable and use that variable in expressions.
+### Parser Stability Enhancement
+- **Fixed critical infinite loop issue**: Comprehensive end token handling for all constructs (`end action`, `end check`, `end for`, `end count`, etc.)
+- **Enhanced error recovery**: Improved synchronization and orphaned token consumption
+- **Resolved borrow checker issues**: Stable compilation with proper token lookahead
+- **Added comprehensive logging**: Better debugging and execution tracing
+
+### Debug Output Refactoring
+- **Standardized logging system**: All debug output now uses `exec_trace!` macro
+- **Clean separation**: Program output no longer polluted by debug messages
+- **Memory optimization**: Adjusted thresholds while maintaining efficiency
+- **Enhanced traceability**: Improved execution flow analysis
+
+## Current Capabilities
+
+WFL now supports:
+
+- **Asynchronous Programming**: Full async/await support with Tokio runtime
+- **Network Operations**: HTTP requests with Reqwest integration
+- **Database Access**: SQLite, MySQL, and PostgreSQL support via SQLx
+- **File I/O**: Comprehensive file operations with async support
+- **Natural Language Syntax**: English-like constructs for improved readability
+- **Type Safety**: Static type checking with intelligent type inference
+- **Error Handling**: Try/when/otherwise constructs for graceful error management
+- **Real-time Development**: LSP server provides instant feedback in editors
 
 ## Current Limitations
 
-- The `wait for ... and ...` construct is currently sequential until real concurrency is implemented in a future release (tracked in issue #51).
-- The `open file` command creates the file if it doesn't exist. A future `create file` syntax is planned.
+- The `wait for ... and ...` construct executes sequentially (true concurrency planned for future release)
+- The `open file` command creates the file if it doesn't exist (dedicated `create file` syntax planned)
 
 ## Execution Pipeline
 
-All runs are now type‑checked and semantically analyzed by default. This ensures that scripts are validated for semantic correctness and type safety before execution, preventing many common runtime errors.
+All runs are type-checked and semantically analyzed by default. This ensures that scripts are validated for semantic correctness and type safety before execution, preventing many common runtime errors.
 
 ## AI-Assisted Development
 
@@ -71,7 +97,7 @@ The combination of AI assistance with human oversight has allowed for rapid deve
 
 2. Build the project:
    ```
-   cargo build
+   cargo build --release
    ```
 
 ### Usage
@@ -85,7 +111,28 @@ cargo run -- path/to/your/program.wfl
 Or, after building:
 
 ```
-./target/debug/wfl path/to/your/program.wfl
+./target/release/wfl path/to/your/program.wfl
+```
+
+### Development Tools
+
+WFL includes comprehensive development tooling:
+
+```bash
+# Run with real-time error checking
+wfl --interactive your_script.wfl
+
+# Check code quality
+wfl --lint your_script.wfl
+
+# Perform static analysis
+wfl --analyze your_script.wfl
+
+# Auto-format and fix code
+wfl --fix your_script.wfl --in-place
+
+# Validate configuration
+wfl --configCheck
 ```
 
 ## Standard Library
@@ -116,6 +163,11 @@ WFL includes a comprehensive standard library with the following modules:
 - `contains`: Checks if a list contains a specific item
 - `indexof`: Returns the position of an item in a list
 
+### I/O and Network Module
+- `open file`: Asynchronous file operations
+- `open url`: HTTP requests with full async support
+- `wait for`: Async/await operations for concurrent programming
+
 ## Example WFL Program
 
 ```
@@ -136,22 +188,29 @@ end count
 store my list as [1, 2, 3, 4, 5]
 display "List length: " with length of my list
 display "Type of list: " with typeof of my list
+
+// Asynchronous operations
+try:
+  wait for open url "https://api.example.com/data" and read response
+  display "Data received: " with response
+when error:
+  display "Network error: " with error message
+end try
 ```
 
 ## Project Structure
 
 - `src/`: Source code
-  - `lexer/`: Lexical analyzer
-  - `parser/`: Parser and AST
+  - `lexer/`: Lexical analyzer with Logos integration
+  - `parser/`: Parser and AST with comprehensive error handling
   - `analyzer/`: Semantic analyzer
   - `typechecker/`: Static type checker
-  - `interpreter/`: Runtime interpreter
+  - `interpreter/`: Runtime interpreter with Tokio async support
   - `stdlib/`: Standard library implementation
-  - `logging/`: Structured logging system
-  - `diagnostics/`: Error diagnostic and reporting system
+  - `logging/`: Structured logging system with exec_trace! macro
+  - `diagnostics/`: Error diagnostic and reporting system using codespan-reporting
   - `debug_report/`: Debugging tools and runtime error reports
-  - `bytecode/`: Bytecode compiler (planned)
-- `Docs/`: Documentation
+- `Docs/`: Comprehensive documentation
   - `wfl-spec.md`: Language specification
   - `wfl-foundation.md`: Design principles
   - `wfl-error.md`: Error handling philosophy
@@ -159,25 +218,27 @@ display "Type of list: " with typeof of my list
   - `wfl-interpretor.md`: Interpreter design
   - `error_catalog.md`: Comprehensive error message documentation
   - `implementation_progress_*.md`: Implementation status reports
-- `Test Programs/`: Example WFL programs
+- `Test Programs/`: Example WFL programs and test cases
   - Various test scripts demonstrating language features
   - `error_examples/`: Sample scripts demonstrating different error types
-- `wfl-lsp/`: Language Server Protocol implementation
-- `Tools/`: Utility scripts for development
+- `wfl-lsp/`: Language Server Protocol implementation for editor integration
+- `Tools/`: Utility scripts for development and deployment
   - `launch_msi_build.py`: MSI build launcher with version management
   - `wfl_config_checker.py`: Configuration validation tool
   - `rust_loc_counter.py`: Statistics for Rust code
   - `wfl_md_combiner.py`: Markdown documentation combiner
+- `vscode-wfl/`: VSCode extension for WFL syntax highlighting and LSP integration
 
 ## Error Reporting and Diagnostics
 
 WebFirst Language includes a comprehensive error reporting system that provides clear, actionable error messages to help developers quickly identify and fix issues:
 
-- **User-Friendly Error Messages**: Inspired by Elm's approach to error messages, WebFirst Language provides detailed, human-readable error messages
+- **User-Friendly Error Messages**: Inspired by Elm's approach to error messages, using codespan-reporting for professional formatting
 - **Source Context**: Error messages include the relevant source code snippets with precise highlighting
 - **Actionable Suggestions**: For common errors, WebFirst Language suggests specific fixes and corrections
 - **Unified Error System**: Consistent error formatting across all error types (syntax, semantic, type, runtime)
 - **Contextual Hints**: Special handling for common mistakes like missing keywords in variable declarations
+- **Enhanced Debugging**: Standardized exec_trace! macro for consistent debug output
 
 ## Code Quality Suite
 
@@ -244,7 +305,14 @@ The fixer performs the following operations:
 
 ## Logging and Debugging
 
-In addition to the error reporting system, WFL includes structured logging and automatic debug report generation to help with troubleshooting.
+WFL includes structured logging and automatic debug report generation to help with troubleshooting.
+
+### Enhanced Logging System
+
+- **Standardized Debug Output**: All debug messages use the `exec_trace!` macro
+- **Clean Separation**: Program output is separate from debugging information
+- **Centralized Control**: Debug verbosity controlled through configuration
+- **Memory Optimized**: Efficient logging with minimal overhead
 
 ### Configuration
 
@@ -310,10 +378,90 @@ When a runtime error occurs, WFL automatically generates a `<script>_debug.txt` 
 
 This makes it easier to diagnose and fix issues in your WFL scripts.
 
+## Editor Integration
+
+### Language Server Protocol (LSP)
+
+WFL includes a fully functional LSP server (`wfl-lsp`) that provides:
+
+- **Real-time Diagnostics**: Errors and warnings as you type
+- **Auto-completion**: Context-aware suggestions for keywords, variables, and functions
+- **Go-to Definition**: Navigate to symbol definitions
+- **Hover Information**: Type and documentation information on hover
+- **Symbol Search**: Find symbols across the project
+
+### VSCode Extension
+
+The project includes a VSCode extension with:
+
+- Syntax highlighting for WFL files
+- Integration with the LSP server
+- Automatic error checking
+- Code formatting and fixing
+
+Install the extension by running:
+```bash
+scripts/install_vscode_extension.ps1
+```
+
+## Deployment and Packaging
+
+WFL supports multiple deployment formats:
+
+### Windows MSI Installer
+```bash
+python Tools/launch_msi_build.py
+```
+
+### Debian Package
+```bash
+cargo deb
+```
+
+### Portable Binary
+```bash
+cargo build --release
+```
+
+The binary includes:
+- Complete WFL runtime
+- Built-in standard library
+- LSP server
+- Development tools
+
+## Performance and Memory
+
+- **Efficient Parsing**: Logos-based lexer for fast tokenization
+- **Memory Optimized**: Careful memory management with leak detection
+- **Async Runtime**: Tokio integration for concurrent operations
+- **Benchmarking**: Criterion-based performance tests
+
+## Dependencies
+
+Core dependencies include:
+- **Logos**: High-performance lexical analysis
+- **Tokio**: Async runtime for concurrent operations
+- **Reqwest**: HTTP client for network operations
+- **SQLx**: Database connectivity (SQLite, MySQL, PostgreSQL)
+- **Codespan-reporting**: Professional error message formatting
+- **Rustyline**: Interactive REPL with history and editing
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
+### Development Setup
+
+1. Clone the repository
+2. Install Rust (latest stable)
+3. Run `cargo build` to compile
+4. Run `cargo test` to execute tests
+5. Use `cargo run -- test.wfl` to test with sample programs
+
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the Apache-2.0 License - see the LICENSE file for details.
+
+## Version History
+
+- **v0.1.0**: Initial release with complete interpreter, LSP server, and development tools
