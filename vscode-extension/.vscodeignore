@@ -1,0 +1,13 @@
+.gitignore
+.vscode/**
+.vscode-test/**
+src/**
+**/tsconfig.json
+**/tslint.json
+**/*.map
+**/*.ts
+.gitattributes
+.eslintrc.json
+node_modules/**
+!node_modules/vscode-languageclient/**
+out/**/*.map

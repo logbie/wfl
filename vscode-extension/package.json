@@ -32,12 +32,12 @@
       "type": "object",
       "title": "WebFirst Language",
       "properties": {
-        "wfl-lsp.serverPath": {
+        "wfl.serverPath": {
           "type": "string",
           "default": "wfl-lsp",
           "description": "Path to the WFL language server executable"
         },
-        "wfl-lsp.serverArgs": {
+        "wfl.serverArgs": {
           "type": "array",
           "default": [],
           "items": {
@@ -45,11 +45,72 @@
           },
           "description": "Arguments to pass to the WFL language server"
         },
-        "wfl-lsp.versionMode": {
+        "wfl.versionMode": {
           "type": "string",
           "enum": ["warn", "block", "ignore"],
           "default": "warn",
           "description": "Version compatibility handling: warn (show warning), block (prevent server start), or ignore"
+        },
+        "wfl.format": {
+          "type": "object",
+          "default": {
+            "enable": true,
+            "indentSize": 4,
+            "maxLineLength": 80,
+            "formatOnSave": true,
+            "formatOnType": false,
+            "provider": "auto"
+          },
+          "properties": {
+            "enable": {
+              "type": "boolean",
+              "default": true,
+              "description": "Enable/disable WFL code formatting"
+            },
+            "indentSize": {
+              "type": "number",
+              "default": 4,
+              "description": "Number of spaces for indentation"
+            },
+            "maxLineLength": {
+              "type": "number",
+              "default": 80,
+              "description": "Maximum allowed line length"
+            },
+            "formatOnSave": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically format on save"
+            },
+            "formatOnType": {
+              "type": "boolean",
+              "default": false,
+              "description": "Format while typing"
+            },
+            "provider": {
+              "type": "string",
+              "enum": ["auto", "builtin", "wfl"],
+              "default": "auto",
+              "description": "Provider to use for formatting (auto, builtin formatter, or WFL CLI)"
+            }
+          },
+          "description": "WFL code formatting settings"
+        },
+        "wfl.cli": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "default": "wfl",
+              "description": "Path to the WFL CLI executable"
+            },
+            "autoDetect": {
+              "type": "boolean",
+              "default": true,
+              "description": "Automatically detect WFL CLI location"
+            }
+          },
+          "description": "WFL CLI configuration"
         }
       }
     },
@@ -62,6 +123,11 @@
       {
         "command": "wfl.selectLspExecutable",
         "title": "WFL: Select LSP Executable…",
+        "category": "WFL"
+      },
+      {
+        "command": "wfl.format",
+        "title": "WFL: Format Document",
         "category": "WFL"
       }
     ]
@@ -80,8 +146,8 @@
   },
   "devDependencies": {
     "@types/vscode": "^1.80.0",
-    "@types/mocha": "^10.0.10",
     "@types/node": "18.x",
+    "@types/mocha": "^10.0.10",
     "@types/semver": "^7.5.4",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",

@@ -16,3 +16,4 @@ Control Flow (If/Else) Tests completed.
 Starting Loop Tests...
 Count loop test (1 to 5 sum): PASS
 While loop test (1 to 5 sum): PASS
+Loop continue/skip test (expected 9, got 0): FAIL

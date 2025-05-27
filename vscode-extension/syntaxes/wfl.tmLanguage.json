@@ -1,34 +1,59 @@
 {
-  "name": "WebFirst Language",
-  "scopeName": "source.wfl",
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "WFL",
   "patterns": [
     {
       "include": "#comments"
     },
     {
-      "include": "#keywords"
-    },
-    {
       "include": "#strings"
     },
     {
-      "include": "#numbers"
+      "include": "#block-comments"
+    },
+    {
+      "include": "#declaration-keywords"
+    },
+    {
+      "include": "#control-keywords"
+    },
+    {
+      "include": "#flow-keywords"
+    },
+    {
+      "include": "#storage-keywords"
+    },
+    {
+      "include": "#operators"
+    },
+    {
+      "include": "#action-definition"
+    },
+    {
+      "include": "#variable-declaration"
+    },
+    {
+      "include": "#literals"
+    },
+    {
+      "include": "#block-structures"
+    },
+    {
+      "include": "#io-operations"
     }
   ],
   "repository": {
     "comments": {
-      "patterns": [
-        {
-          "name": "comment.line.double-slash.wfl",
-          "match": "//.*$"
-        }
-      ]
+      "name": "comment.line.double-slash.wfl",
+      "match": "//.*$"
     },
-    "keywords": {
+    "block-comments": {
+      "name": "comment.block.wfl",
+      "begin": "/\\*",
+      "end": "\\*/",
       "patterns": [
         {
-          "name": "keyword.control.wfl",
-          "match": "\\b(store|create|display|check|if|otherwise|count|from|to|for|each|in|define|action|called|open|file|at|repeat|while|until|give|back|try|when|error|end)\\b"
+          "include": "#block-comments"
         }
       ]
     },
@@ -39,13 +64,175 @@
       "patterns": [
         {
           "name": "constant.character.escape.wfl",
-          "match": "\\\\."
+          "match": "\\\\(n|r|t|\\\\|\"|')"
         }
       ]
     },
-    "numbers": {
-      "name": "constant.numeric.wfl",
-      "match": "\\b[0-9]+(\\.([0-9]+))?\\b"
+    "declaration-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.declaration.wfl",
+          "match": "\\b(define|action|called|container|needs)\\b"
+        }
+      ]
+    },
+    "control-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.wfl",
+          "match": "\\b(if|check|otherwise|then|else|end)\\b"
+        }
+      ]
+    },
+    "flow-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.flow.wfl",
+          "match": "\\b(count|from|to|for|each|in|by|reversed|repeat|while|until|forever|skip|continue|break|exit|loop)\\b"
+        }
+      ]
+    },
+    "storage-keywords": {
+      "patterns": [
+        {
+          "name": "storage.type.wfl",
+          "match": "\\b(store|create|as|give|back|return)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.comparison.wfl",
+          "match": "\\b(is|not|less than|greater than|at least|at most)\\b|[=<>!]=?"
+        },
+        {
+          "name": "keyword.operator.logical.wfl",
+          "match": "\\b(and|or)\\b"
+        },
+        {
+          "name": "keyword.operator.arithmetic.wfl",
+          "match": "\\b(plus|minus|times|divided by)\\b|[\\+\\-\\*\\/]"
+        }
+      ]
+    },
+    "literals": {
+      "patterns": [
+        {
+          "name": "constant.numeric.wfl",
+          "match": "\\b\\d+(\\.\\d+)?\\b"
+        },
+        {
+          "name": "constant.language.boolean.wfl",
+          "match": "\\b(yes|no|true|false)\\b"
+        },
+        {
+          "name": "constant.language.null.wfl",
+          "match": "\\b(nothing|null|nil)\\b"
+        }
+      ]
+    },
+    "action-definition": {
+      "begin": "\\b(define)\\s+(action)\\s+(called)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?:(needs)\\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*))*)?\\s*:",
+      "beginCaptures": {
+        "1": { "name": "keyword.declaration.wfl" },
+        "2": { "name": "keyword.declaration.wfl" },
+        "3": { "name": "keyword.declaration.wfl" },
+        "4": { "name": "entity.name.function.wfl" },
+        "5": { "name": "keyword.declaration.wfl" },
+        "6": { "name": "variable.parameter.wfl" },
+        "7": { "name": "variable.parameter.wfl" }
+      },
+      "end": "\\b(end)\\s+(action)\\b",
+      "endCaptures": {
+        "1": { "name": "keyword.control.wfl" },
+        "2": { "name": "keyword.declaration.wfl" }
+      },
+      "patterns": [
+        { "include": "$self" }
+      ],
+      "name": "meta.function.wfl"
+    },
+    "variable-declaration": {
+      "match": "\\b(store|create)\\s+([a-zA-Z_][a-zA-Z0-9_]*)\\s+(as)\\b",
+      "captures": {
+        "1": { "name": "storage.type.wfl" },
+        "2": { "name": "variable.other.wfl" },
+        "3": { "name": "storage.type.wfl" }
+      }
+    },
+    "block-structures": {
+      "patterns": [
+        {
+          "begin": "\\b(if|check)\\b.*:",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.wfl" }
+          },
+          "end": "\\b(end)\\s+(if|check)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.wfl" },
+            "2": { "name": "keyword.control.wfl" }
+          },
+          "patterns": [
+            { "include": "$self" }
+          ],
+          "name": "meta.block.if.wfl"
+        },
+        {
+          "begin": "\\b(count|for|repeat|while|until|forever)\\b.*:",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.flow.wfl" }
+          },
+          "end": "\\b(end)\\s+(count|for|repeat|while|until|loop)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.wfl" },
+            "2": { "name": "keyword.control.flow.wfl" }
+          },
+          "patterns": [
+            { "include": "$self" }
+          ],
+          "name": "meta.block.loop.wfl"
+        },
+        {
+          "begin": "\\b(try)\\b.*:",
+          "beginCaptures": {
+            "1": { "name": "keyword.control.exception.wfl" }
+          },
+          "end": "\\b(end)\\s+(try)\\b",
+          "endCaptures": {
+            "1": { "name": "keyword.control.wfl" },
+            "2": { "name": "keyword.control.exception.wfl" }
+          },
+          "patterns": [
+            { "include": "$self" }
+          ],
+          "name": "meta.block.exception.wfl"
+        }
+      ]
+    },
+    "io-operations": {
+      "patterns": [
+        {
+          "match": "\\b(display|open|close|read|write|append)\\b",
+          "name": "support.function.io.wfl"
+        },
+        {
+          "match": "\\b(file|url|database)\\b\\s+\\b(at)\\b",
+          "name": "support.type.resource.wfl"
+        },
+        {
+          "match": "\\b(content|into|from)\\b",
+          "name": "keyword.other.io.wfl"
+        },
+        {
+          "match": "\\b(wait)\\s+\\b(for)\\b",
+          "captures": {
+            "1": { "name": "keyword.control.async.wfl" },
+            "2": { "name": "keyword.control.async.wfl" }
+          }
+        }
+      ]
     }
-  }
+  },
+  "scopeName": "source.wfl"
 }

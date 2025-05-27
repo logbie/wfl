@@ -1,91 +1,154 @@
-# WebFirst Language (WFL) VS Code Extension
+# WFL Extension for Visual Studio Code
 
-This extension provides support for the WebFirst Language (WFL) in Visual Studio Code.
+VSCode extension providing syntax highlighting and formatting support for the WebFirst Language (WFL).
 
 ## Features
 
-- Syntax highlighting for WFL files
-- Autocompletion and snippets for WFL keywords and constructs
-- Go-to-definition and find-all-references support
-- Real-time diagnostics to catch errors as you type
-- Hover information for symbols
+### Syntax Highlighting
+
+The extension provides comprehensive syntax highlighting for WFL files:
+
+- Keywords and control structures
+- Operators and expressions
+- String and numeric literals
+- Functions/actions and their parameters
+- Variables and their scopes
+- I/O operations
+- Comments (line and block)
+- Block structures with proper nesting
+
+### Code Formatting
+
+The extension provides two formatting options:
+
+1. **Built-in Formatter**: Always available, works without WFL installed
+   - Handles indentation and basic code structure
+   - Formats operators with proper spacing
+   - Preserves comments and blank lines
+
+2. **WFL-based Formatter**: Enhanced formatting using the WFL CLI (when available)
+   - Leverages the full power of WFL's linter and fixer
+   - Provides comprehensive formatting according to WFL style guidelines
+   - Configurable options for indentation, line length, etc.
+
+### Language Server Protocol (LSP) Integration
+
+When the WFL Language Server is available:
+
+- Real-time diagnostics and error checking
+- Code completion suggestions
+- Hover information
+- Go to definition
+- Find references
+- Document symbols
+- Advanced semantic highlighting
 
 ## Requirements
 
-- VS Code 1.80.0 or higher
-- WFL Language Server (`wfl-lsp` executable)
+- VSCode 1.80.0 or newer
 
-## Setup
+**Optional (for enhanced features):**
+- WFL CLI (`wfl`) for enhanced formatting
+- WFL Language Server (`wfl-lsp`) for IDE features
 
-### Quick Start
+## Extension Settings
 
-1. Install the extension from the VS Code marketplace
-2. If you already have `wfl-lsp` in your PATH, you're all set!
-3. Otherwise, use the "WFL: Select LSP Executable…" command to select your `wfl-lsp` executable
+This extension contributes the following settings:
 
-### Manual Configuration
+### Language Server Settings
 
-You can manually configure the extension in VS Code settings:
+* `wfl.serverPath`: Path to the WFL Language Server executable
+* `wfl.serverArgs`: Arguments to pass to the WFL Language Server
+* `wfl.versionMode`: Version compatibility handling (`warn`, `block`, or `ignore`)
 
-- `wfl-lsp.serverPath`: Path to the WFL language server executable
-- `wfl-lsp.serverArgs`: Additional arguments to pass to the server
-- `wfl-lsp.versionMode`: How to handle version mismatches (warn/block/ignore)
+### Formatting Settings
+
+* `wfl.format.enable`: Enable/disable WFL code formatting
+* `wfl.format.indentSize`: Number of spaces for indentation
+* `wfl.format.maxLineLength`: Maximum allowed line length
+* `wfl.format.formatOnSave`: Automatically format on save
+* `wfl.format.formatOnType`: Format while typing
+* `wfl.format.provider`: Formatter to use (`auto`, `builtin`, or `wfl`)
+
+### WFL CLI Settings
+
+* `wfl.cli.path`: Path to the WFL CLI executable
+* `wfl.cli.autoDetect`: Automatically detect WFL CLI location
 
 ## Commands
 
-- **WFL: Restart Language Server**: Restart the language server if it's not working correctly
-- **WFL: Select LSP Executable…**: Open a file dialog to select the WFL language server executable
+This extension provides the following commands:
 
-## Building the WFL Language Server
+* `WFL: Restart Language Server`: Restart the WFL Language Server
+* `WFL: Select LSP Executable...`: Choose a custom WFL Language Server executable
+* `WFL: Format Document`: Format the current WFL document
 
-If you don't have the WFL language server, you can build it from source:
+## Operation Modes
 
-```bash
-git clone https://github.com/WebFirstLanguage/wfl.git
-cd wfl
-cargo build -p wfl-lsp
-```
+The extension operates in two modes depending on the environment:
 
-The executable will be available at `./target/debug/wfl-lsp`.
+### Independent Mode (WFL not installed)
+
+In this mode:
+- Syntax highlighting works through TextMate grammar
+- Built-in formatter provides basic formatting
+- No LSP features available
+
+### Enhanced Mode (WFL installed)
+
+When WFL is detected:
+- Full LSP integration provides advanced IDE features
+- WFL CLI-based formatter provides enhanced formatting
+- All commands are available
+
+The extension automatically detects WFL availability and adapts accordingly.
+
+## Working with WFL Files
+
+### Creating New Files
+
+1. Create a new file with a `.wfl` extension
+2. The extension will automatically activate syntax highlighting
+3. Use the built-in or WFL-based formatter to format your code
+
+### Opening Existing Files
+
+1. Open a `.wfl` file in VSCode
+2. The extension automatically activates for this file
+3. If WFL and the Language Server are available, you'll get enhanced features
 
 ## Troubleshooting
 
-- If you see "WFL LSP Server version is incompatible" warnings, make sure you're using a compatible version of the language server
-- If the server doesn't start, check that the executable path is correct and that you have the necessary permissions
-- If features like autocompletion or go-to-definition aren't working, try restarting the language server with the "WFL: Restart Language Server" command
+### Formatting Issues
 
-## Development
+If formatting does not work as expected:
 
-### Building the Extension
+1. Check that formatting is enabled (`wfl.format.enable`)
+2. Verify the formatter provider setting (`wfl.format.provider`)
+3. If using the WFL-based formatter, ensure WFL CLI is properly installed
 
-To build the extension from source:
+### LSP Issues
 
-```bash
-git clone https://github.com/WebFirstLanguage/wfl.git
-cd wfl/vscode-wfl
-npm install
-npm run compile
-```
+If LSP features do not work:
 
-### Testing the Extension
+1. Check that the WFL Language Server is installed
+2. Verify the server path setting (`wfl.serverPath`)
+3. Try restarting the Language Server with the command `WFL: Restart Language Server`
+4. Check the WFL output channel for error messages
 
-To test the extension:
+### WFL Detection Issues
 
-```bash
-npm test
-```
+If WFL is installed but not detected:
 
-### Packaging the Extension
+1. Set `wfl.cli.autoDetect` to `false`
+2. Manually specify the path to WFL CLI in `wfl.cli.path`
 
-To package the extension for distribution:
+## Release Notes
 
-```bash
-npm run vscode:prepublish
-npx vsce package
-```
+### 0.1.0
 
-This will create a `.vsix` file that can be installed in VS Code.
-
-## License
-
-This extension is released under the MIT License.
+- Initial release
+- Syntax highlighting for WFL
+- Built-in and WFL-based formatting
+- LSP integration when available
+- Automatic WFL detection

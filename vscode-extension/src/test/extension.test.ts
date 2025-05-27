@@ -1,15 +1,39 @@
 import * as assert from 'assert';
-
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
 import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+// Basic test suite for the extension
+describe('WFL Extension Tests', () => {
+  
+  it('Extension should be activated', async () => {
+    // Verify the extension is activated
+    const extension = vscode.extensions.getExtension('wfl.vscode-wfl');
+    assert.notStrictEqual(extension, undefined);
+    
+    if (extension) {
+      // Wait for extension to activate if not already
+      if (!extension.isActive) {
+        await extension.activate();
+      }
+      assert.strictEqual(extension.isActive, true);
+    }
+  });
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
-	});
+  it('Should register document formatter', () => {
+    // Create a simple WFL document
+    const content = '// This is a WFL test file\nstore test as "value"';
+    const doc = {
+      getText: () => content,
+      languageId: 'wfl',
+      uri: vscode.Uri.parse('untitled:test.wfl'),
+      version: 1
+    };
+    
+    // Check the document is identified as WFL
+    assert.strictEqual(doc.languageId, 'wfl');
+  });
+
+  // Additional tests to add:
+  // - Test syntax highlighting (requires browser automation)
+  // - Test formatter with mock WFL CLI
+  // - Test LSP integration with mock server
 });

@@ -1,6 +1,7 @@
 {
   "comments": {
-    "lineComment": "//"
+    "lineComment": "//",
+    "blockComment": ["/*", "*/"]
   },
   "brackets": [
     ["{", "}"],
@@ -12,17 +13,23 @@
     { "open": "[", "close": "]" },
     { "open": "(", "close": ")" },
     { "open": "\"", "close": "\"", "notIn": ["string"] },
-    { "open": "'", "close": "'", "notIn": ["string"] }
+    { "open": "/*", "close": "*/", "notIn": ["string"] }
   ],
   "surroundingPairs": [
     ["{", "}"],
     ["[", "]"],
     ["(", ")"],
-    ["\"", "\""],
-    ["'", "'"]
+    ["\"", "\""]
   ],
   "indentationRules": {
-    "increaseIndentPattern": "^.*:\\s*$",
-    "decreaseIndentPattern": "^\\s*(end)\\b.*$"
-  }
+    "increaseIndentPattern": "^.*(:)\\s*$",
+    "decreaseIndentPattern": "^\\s*(end|otherwise|else|when)\\b.*$"
+  },
+  "folding": {
+    "markers": {
+      "start": "^.*:\\s*$",
+      "end": "^\\s*(end)\\s+(if|check|try|action|count|for|repeat|while|until|loop)\\b"
+    }
+  },
+  "wordPattern": "(-?\\d+(\\.\\d+)?)|([A-Za-z][A-Za-z0-9_]*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\-\\=\\+\\[\\{\\]\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\>\\/\\?\\s]+)"
 }
