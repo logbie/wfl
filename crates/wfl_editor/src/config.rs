@@ -1,0 +1,106 @@
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct EditorConfig {
+    pub font_size: u32,
+    
+    pub tab_width: u32,
+    
+    pub dark_mode: bool,
+    
+    pub auto_save: bool,
+    
+    pub auto_format: bool,
+    
+    pub telemetry_enabled: bool,
+}
+
+impl Default for EditorConfig {
+    fn default() -> Self {
+        Self {
+            font_size: 14,
+            tab_width: 4,
+            dark_mode: true,
+            auto_save: true,
+            auto_format: true,
+            telemetry_enabled: false,
+        }
+    }
+}
+
+impl EditorConfig {
+    pub fn load() -> Self {
+        if let Some(config) = Self::load_from_project() {
+            return config;
+        }
+        
+        if let Some(config) = Self::load_from_user_config() {
+            return config;
+        }
+        
+        Self::default()
+    }
+    
+    fn load_from_project() -> Option<Self> {
+        let config_path = Path::new("wfl-editor.toml");
+        if config_path.exists() {
+            return Self::load_from_file(config_path);
+        }
+        None
+    }
+    
+    fn load_from_user_config() -> Option<Self> {
+        if let Some(config_dir) = dirs::config_dir() {
+            let config_path = config_dir.join("wfl").join("editor.toml");
+            return Self::load_from_file(&config_path);
+        }
+        None
+    }
+    
+    fn load_from_file(path: &Path) -> Option<Self> {
+        match fs::read_to_string(path) {
+            Ok(content) => {
+                match toml::from_str(&content) {
+                    Ok(config) => Some(config),
+                    Err(_) => None,
+                }
+            }
+            Err(_) => None,
+        }
+    }
+    
+    pub fn save(&self) -> bool {
+        let config_path = Path::new("wfl-editor.toml");
+        if config_path.exists() {
+            return self.save_to_file(config_path);
+        }
+        
+        if let Some(config_dir) = dirs::config_dir() {
+            let wfl_config_dir = config_dir.join("wfl");
+            if !wfl_config_dir.exists() {
+                if let Err(_) = fs::create_dir_all(&wfl_config_dir) {
+                    return false;
+                }
+            }
+            
+            let config_path = wfl_config_dir.join("editor.toml");
+            return self.save_to_file(&config_path);
+        }
+        
+        false
+    }
+    
+    fn save_to_file(&self, path: &Path) -> bool {
+        match toml::to_string(self) {
+            Ok(content) => {
+                match fs::write(path, content) {
+                    Ok(_) => true,
+                    Err(_) => false,
+                }
+            }
+            Err(_) => false,
+        }
+    }
+}

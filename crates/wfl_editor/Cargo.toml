@@ -1,0 +1,41 @@
+[package]
+name = "wfl_editor"
+version = "0.1.0"
+edition = "2024"
+description = "Integrated editor for the WebFirst Language (WFL)"
+license = "Apache-2.0"
+authors = ["Logbie LLC <info@logbie.com>"]
+
+[dependencies]
+wfl_core = { path = "../wfl_core", version = "0.1.0" }
+eframe = { version = "0.26.0", default-features = false, features = ["default_fonts", "wgpu"] }
+egui = "0.26.0"
+egui_extras = "0.26.0"
+xi-rope = "0.3.0"
+tokio = { version = "1.35.1", features = ["full"] }
+serde = { version = "1.0.197", features = ["derive"] }
+serde_json = "1.0.114"
+toml = "0.8.10"
+log = "0.4.20"
+simplelog = "0.12.1"
+dirs = "5.0.1"
+git2 = { version = "0.18.2", optional = true }
+
+# Optional LSP bridge dependency
+wfl_lsp = { path = "../wfl_lsp", optional = true }
+
+[features]
+default = ["git-integration"]
+git-integration = ["dep:git2"]
+lsp-bridge = ["dep:wfl_lsp"]
+
+[[bin]]
+name = "wfl-editor"
+path = "src/main.rs"
+
+[lib]
+name = "wfl_editor"
+path = "src/lib.rs"
+
+[build-dependencies]
+cfg-if = "1.0.0"
