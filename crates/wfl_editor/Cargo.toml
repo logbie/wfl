@@ -8,9 +8,9 @@ authors = ["Logbie LLC <info@logbie.com>"]
 
 [dependencies]
 wfl_core = { path = "../wfl_core", version = "0.1.0" }
-eframe = { version = "0.26.0", default-features = false, features = ["default_fonts", "wgpu"] }
-egui = "0.26.0"
-egui_extras = "0.26.0"
+eframe = { version = "0.26.0", default-features = false, features = ["default_fonts", "wgpu"], optional = true }
+egui = { version = "0.26.0", optional = true }
+egui_extras = { version = "0.26.0", optional = true }
 xi-rope = "0.3.0"
 tokio = { version = "1.35.1", features = ["full"] }
 serde = { version = "1.0.197", features = ["derive"] }
@@ -28,10 +28,12 @@ wfl_lsp = { path = "../wfl_lsp", optional = true }
 default = ["git-integration"]
 git-integration = ["dep:git2"]
 lsp-bridge = ["dep:wfl_lsp"]
+gui = ["dep:eframe", "dep:egui", "dep:egui_extras"]
 
 [[bin]]
 name = "wfl-editor"
 path = "src/main.rs"
+required-features = ["gui"]
 
 [lib]
 name = "wfl_editor"
