@@ -7,3 +7,11 @@ Multiplication test: PASS
 Division test: PASS
 Fractional division test: PASS
 Arithmetic Tests completed.
+Starting Control Flow (If/Else) Tests...
+If condition TRUE branch test: PASS
+If condition FALSE branch test: PASS
+If (no else) true-case test: PASS
+Single-line if/then/otherwise test: PASS
+Control Flow (If/Else) Tests completed.
+Starting Loop Tests...
+Count loop test (1 to 5 sum): PASS

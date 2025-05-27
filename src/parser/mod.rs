@@ -405,7 +405,7 @@ impl<'a> Parser<'a> {
             };
 
             let empty_list = Expression::Literal(
-                Literal::String("[]".to_string()),
+                Literal::List(Vec::new()),
                 token_pos.line,
                 token_pos.column,
             );

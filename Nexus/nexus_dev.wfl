@@ -76,3 +76,86 @@ otherwise:
 end check
 
 log_message with "Arithmetic Tests completed."
+
+///////////////////////////////////////////////////////////////////////////
+// 3. Control Flow (If/Else) Tests
+///////////////////////////////////////////////////////////////////////////
+log_message with "Starting Control Flow (If/Else) Tests..."
+
+store m as 10
+store n as 5
+
+// Test if-else (true condition)
+check if m is greater than n:
+    store result1 as "yes"
+otherwise:
+    store result1 as "no"
+end check
+check if result1 is equal to "yes":
+    log_message with "If condition TRUE branch test: PASS"
+otherwise:
+    log_message with "If condition TRUE branch test: FAIL (expected yes, got " with result1 with ")"
+end check
+
+// Test if-else (false condition)
+check if m is less than n:
+    store result2 as "yes"
+otherwise:
+    store result2 as "no"
+end check
+check if result2 is equal to "no":
+    log_message with "If condition FALSE branch test: PASS"
+otherwise:
+    log_message with "If condition FALSE branch test: FAIL (expected no, got " with result2 with ")"
+end check
+
+// Test if (no else branch)
+store result3 as "no"
+check if m is greater than n:
+    change result3 to "yes"
+end check
+check if result3 is equal to "yes":
+    log_message with "If (no else) true-case test: PASS"
+otherwise:
+    log_message with "If (no else) true-case test: FAIL"
+end check
+
+// Test single-line if/then/otherwise
+store result4 as "yes"
+if m is equal to n then change result4 to "yes" otherwise change result4 to "no"
+check if result4 is equal to "no":
+    log_message with "Single-line if/then/otherwise test: PASS"
+otherwise:
+    log_message with "Single-line if/then/otherwise test: FAIL (expected no, got " with result4 with ")"
+end check
+
+log_message with "Control Flow (If/Else) Tests completed."
+
+
+///////////////////////////////////////////////////////////////////////////
+// 4. Loop Tests (Count, For-Each, While, Repeat/Until, Forever, Break/Continue)
+///////////////////////////////////////////////////////////////////////////
+log_message with "Starting Loop Tests..."
+
+// 4.1 Count Loop test
+store sum_count as 0
+count from 1 to 5:
+    change sum_count to sum_count plus count
+end count
+// Expected sum_count = 1+2+3+4+5 = 15
+check if sum_count is equal to 15:
+    log_message with "Count loop test (1 to 5 sum): PASS"
+otherwise:
+    log_message with "Count loop test (expected 15, got " with sum_count with "): FAIL"
+end check
+
+// 4.2 For-Each Loop test
+create list as numbers
+push with numbers and 1
+push with numbers and 2
+push with numbers and 3
+
+store sum_for_each as 0
+for each num in numbers:
+    change sum_for_each to sum_for_each plus num
+end for

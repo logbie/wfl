@@ -267,7 +267,7 @@ impl<'a> Parser<'a> {
 
             // Create an empty list literal
             let empty_list = Expression::Literal(
-                Literal::String("[]".to_string()),
+                Literal::List(Vec::new()),
                 token_pos.line,
                 token_pos.column,
             );
