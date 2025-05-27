@@ -29,3 +29,4 @@ All notable changes to the WFL project will be documented in this file.
 - Fixed memory leak in closures with weak references to parent environments
 - Improved file I/O with append-mode operations instead of read-modify-write
 - Optimized parser memory allocations to reduce heap churn
+- Fixed static analyzer incorrectly flagging variables as unused in action definitions, I/O statements, and action calls
