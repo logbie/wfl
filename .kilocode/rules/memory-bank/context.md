@@ -24,6 +24,26 @@ The WFL team is currently focused on:
    - Implementation of configuration validation and auto-fix flags (`--configCheck` and `--configFix`)
    - Added in May 2025
 
+5. **Backward Compatibility**:
+   - Adapting the interpreter and static analyzer to work with existing WFL files
+   - Ensuring language evolution doesn't break existing code
+   - Improving error recovery mechanisms in the parser
+
+## Backward Compatibility Commitment
+
+The WFL team has established a key design principle: **The interpreter must adapt to work with existing WFL files, not the other way around**. This means:
+
+1. Language changes and improvements should never require users to modify their existing WFL code
+2. The parser, analyzer, type checker, and interpreter must all adapt to varying syntax patterns and usage styles
+3. Diagnostic tools must work with existing code without requiring modifications
+4. New features should introduce new capabilities without breaking backward compatibility
+5. Error recovery mechanisms should be robust enough to handle unexpected or non-standard syntax
+
+This principle has led to several recent improvements:
+- Enhanced parser error recovery with better end token handling
+- Updated static analyzer to correctly identify variable usage in all contexts
+- Improved type checker to handle file handling and I/O operations consistently
+
 ## Recent Changes
 
 ### Parser Stability Enhancement (May 2025)

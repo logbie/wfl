@@ -49,3 +49,15 @@ The project is developed with a focus on:
 - **Robustness**: Comprehensive error handling and reporting
 - **Developer Experience**: Strong tooling and IDE support
 - **Flexibility**: Supporting a wide range of programming styles and use cases
+- **Backward Compatibility**: The interpreter adapts to work with existing WFL files, never requiring users to modify their code to accommodate language changes
+
+## Backward Compatibility Commitment
+A fundamental design principle of WFL is that **the interpreter must adapt to work with existing WFL files, not the other way around**. This means:
+
+1. Users should never be required to modify their existing WFL code due to language evolution
+2. Parser, analyzer, and interpreter components must adapt to accommodate varying syntax patterns
+3. New language features must be implemented in a way that preserves compatibility with existing code
+4. Error recovery mechanisms must be robust enough to handle unexpected syntax variations
+5. Diagnostic tools must provide helpful feedback without requiring code modifications
+
+This commitment ensures that users can confidently build on WFL without fear that future language updates will break their existing code.

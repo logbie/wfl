@@ -1,150 +1,150 @@
-15:33:19.2744595 [INFO] WFL execution logging initialized at 2025-05-27 10:33:19 - .\Nexus\wfl_exec.log
-15:33:19.2771167 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
-15:33:19.2772285 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
-15:33:19.2773209 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2775134 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2775667 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.2776183 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Arithmetic Tests...")
-15:33:19.277662 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Arithmetic Tests..."
-15:33:19.2777389 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2778163 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2778597 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.2779026 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'a' = 6
-15:33:19.2779526 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'b' = 2
-15:33:19.2779999 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'add_result' = 8
-15:33:19.2780469 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2780863 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.278131 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Addition test: PASS")
-15:33:19.2781762 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Addition test: PASS"
-15:33:19.2782227 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2783304 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2783742 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2784169 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2784581 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sub_result' = 4
-15:33:19.2785013 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2785383 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.27858 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Subtraction test: PASS")
-15:33:19.2786294 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Subtraction test: PASS"
-15:33:19.2786752 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2787593 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2788029 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2788658 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2789077 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'mul_result' = 12
-15:33:19.2789517 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2789884 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2790305 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Multiplication test: PASS")
-15:33:19.2790746 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Multiplication test: PASS"
-15:33:19.2791213 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2792007 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.279244 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2792862 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.279327 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'div_result' = 3
-15:33:19.27937 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2794074 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2794488 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Division test: PASS")
-15:33:19.2794927 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Division test: PASS"
-15:33:19.2795377 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2796059 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2796481 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.27969 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2797319 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'x' = 5
-15:33:19.2797736 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'y' = 2
-15:33:19.2798162 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'frac_result' = 2.5
-15:33:19.2798608 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'comparison_value' = 5
-15:33:19.2799031 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2799399 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2799815 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Fractional division test: PASS")
-15:33:19.2800254 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Fractional division test: PASS"
-15:33:19.2800704 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2801329 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.280174 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2802188 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2802605 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Arithmetic Tests completed.")
-15:33:19.2803026 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Arithmetic Tests completed."
-15:33:19.2803464 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2804114 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2804536 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.2804987 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Control Flow (If/Else) Tests...")
-15:33:19.2805413 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Control Flow (If/Else) Tests..."
-15:33:19.2805852 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2806485 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2806902 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.2807476 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'm' = 10
-15:33:19.2807981 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'n' = 5
-15:33:19.2808416 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2808787 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2809176 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'result1' = "yes"
-15:33:19.2809636 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2810028 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2810397 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2810807 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If condition TRUE branch test: PASS")
-15:33:19.2811247 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If condition TRUE branch test: PASS"
-15:33:19.2811701 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2812475 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2812902 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2813321 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2813725 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = false
-15:33:19.2814094 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:702] EXEC:   ┌─ Block entry: else branch
-15:33:19.2814474 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'result2' = "no"
-15:33:19.2814928 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:705] EXEC:   └─ Block exit: else branch
-15:33:19.2815319 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2815716 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2816126 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If condition FALSE branch test: PASS")
-15:33:19.2816564 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If condition FALSE branch test: PASS"
-15:33:19.2817021 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2817702 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2818158 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2818579 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2818969 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'result3' = "no"
-15:33:19.2819435 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2819806 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2820191 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:     Assignment: 'result3' = "yes"
-15:33:19.2820644 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2821038 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2821401 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.282181 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If (no else) true-case test: PASS")
-15:33:19.2822247 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If (no else) true-case test: PASS"
-15:33:19.2822705 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2823331 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2823747 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2824164 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.282455 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'result4' = "yes"
-15:33:19.2825029 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC: Assignment: 'result4' = "no"
-15:33:19.2825489 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2825857 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2826259 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Single-line if/then/otherwise test: PASS")
-15:33:19.2826695 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Single-line if/then/otherwise test: PASS"
-15:33:19.2827147 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2827821 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.2828267 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.2828873 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2829306 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Control Flow (If/Else) Tests completed.")
-15:33:19.2829732 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Control Flow (If/Else) Tests completed."
-15:33:19.2830171 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2831096 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2831954 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.28328 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Loop Tests...")
-15:33:19.2833545 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Loop Tests..."
-15:33:19.2834323 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
-15:33:19.2835309 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
-15:33:19.2836015 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
-15:33:19.2836733 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sum_count' = 0
-15:33:19.2837464 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:809] EXEC: Count loop: resetting state before evaluation
-15:33:19.2838196 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 1
-15:33:19.2838977 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 3
-15:33:19.2839734 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 6
-15:33:19.2840497 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 10
-15:33:19.2841271 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 15
-15:33:19.2841716 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
-15:33:19.2842084 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
-15:33:19.2842489 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Count loop test (1 to 5 sum): PASS")
-15:33:19.2842924 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Count loop test (1 to 5 sum): PASS"
-15:33:19.2843378 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
-15:33:19.2844056 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
-15:33:19.284449 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
-15:33:19.284491 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
-15:33:19.2845305 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'numbers' = []
-15:33:19.2845849 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sum_for_each' = 0
-15:33:19.2846441 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 1
-15:33:19.2846926 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 3
-15:33:19.2847375 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 6
+15:36:31.8682856 [INFO] WFL execution logging initialized at 2025-05-27 10:36:31 - ./Nexus\wfl_exec.log
+15:36:31.8710335 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
+15:36:31.8711366 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
+15:36:31.8711958 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8713495 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.8714119 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.8714695 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Arithmetic Tests...")
+15:36:31.8715139 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Arithmetic Tests..."
+15:36:31.8715598 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8716796 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.8717321 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.8717794 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'a' = 6
+15:36:31.8718356 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'b' = 2
+15:36:31.8718861 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'add_result' = 8
+15:36:31.8719352 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8719775 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8720244 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Addition test: PASS")
+15:36:31.8720718 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Addition test: PASS"
+15:36:31.8721211 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.872225 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8722696 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8723121 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8723535 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sub_result' = 4
+15:36:31.8723971 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8724338 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8724756 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Subtraction test: PASS")
+15:36:31.8725192 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Subtraction test: PASS"
+15:36:31.8725646 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8726314 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8726782 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8727477 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8727923 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'mul_result' = 12
+15:36:31.8728386 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8728778 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8729224 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Multiplication test: PASS")
+15:36:31.8729689 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Multiplication test: PASS"
+15:36:31.8730169 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8730845 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8731287 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8731729 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8732149 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'div_result' = 3
+15:36:31.8732601 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8732993 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8733423 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Division test: PASS")
+15:36:31.8733882 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Division test: PASS"
+15:36:31.8734359 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8735043 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8735542 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8735981 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8736387 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'x' = 5
+15:36:31.8736828 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'y' = 2
+15:36:31.8737278 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'frac_result' = 2.5
+15:36:31.8737751 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'comparison_value' = 5
+15:36:31.8738197 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8738588 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8739024 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Fractional division test: PASS")
+15:36:31.8739485 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Fractional division test: PASS"
+15:36:31.8739961 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8740773 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8741221 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8741845 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8742303 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Arithmetic Tests completed.")
+15:36:31.8742752 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Arithmetic Tests completed."
+15:36:31.8743223 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8743981 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.874443 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.8744903 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Control Flow (If/Else) Tests...")
+15:36:31.874538 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Control Flow (If/Else) Tests..."
+15:36:31.8745849 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8746506 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.8746951 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.874739 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'm' = 10
+15:36:31.8747849 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'n' = 5
+15:36:31.87483 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8748723 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8749127 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'result1' = "yes"
+15:36:31.8749611 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8750021 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.875041 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8750837 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If condition TRUE branch test: PASS")
+15:36:31.8751302 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If condition TRUE branch test: PASS"
+15:36:31.8751777 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.875246 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8752904 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8753347 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8753775 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = false
+15:36:31.8754167 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:702] EXEC:   ┌─ Block entry: else branch
+15:36:31.8754569 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'result2' = "no"
+15:36:31.8755049 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:705] EXEC:   └─ Block exit: else branch
+15:36:31.8755531 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8755933 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8756367 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If condition FALSE branch test: PASS")
+15:36:31.8756828 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If condition FALSE branch test: PASS"
+15:36:31.8757307 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8758226 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8758742 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8759177 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8759582 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'result3' = "no"
+15:36:31.8760064 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8760431 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8760818 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:     Assignment: 'result3' = "yes"
+15:36:31.8761267 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8761657 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8762024 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.876244 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("If (no else) true-case test: PASS")
+15:36:31.8762881 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "If (no else) true-case test: PASS"
+15:36:31.8763333 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8764138 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.876457 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8764988 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8765375 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'result4' = "yes"
+15:36:31.876586 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC: Assignment: 'result4' = "no"
+15:36:31.8766318 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8766687 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.87671 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Single-line if/then/otherwise test: PASS")
+15:36:31.8767537 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Single-line if/then/otherwise test: PASS"
+15:36:31.8767989 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8768731 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8769154 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8769605 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8770027 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Control Flow (If/Else) Tests completed.")
+15:36:31.8770449 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Control Flow (If/Else) Tests completed."
+15:36:31.8770885 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8771548 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.8771968 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.877242 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC: Function call: log_message("Starting Loop Tests...")
+15:36:31.8772844 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC: Declaration: 'message_text' = "Starting Loop Tests..."
+15:36:31.8773284 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC: ┌─ Block entry: function log_message
+15:36:31.8773927 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:   └─ Block exit: function log_message
+15:36:31.8774341 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC: Function return: log_message = null
+15:36:31.8774758 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sum_count' = 0
+15:36:31.877518 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:809] EXEC: Count loop: resetting state before evaluation
+15:36:31.8775608 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 1
+15:36:31.877605 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 3
+15:36:31.8776483 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 6
+15:36:31.8776914 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 10
+15:36:31.8777363 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_count' = 15
+15:36:31.8777804 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:687] EXEC: Control flow: if condition = true
+15:36:31.8778175 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:693] EXEC:   ┌─ Block entry: if branch
+15:36:31.8778583 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1921] EXEC:     Function call: log_message("Count loop test (1 to 5 sum): PASS")
+15:36:31.8779015 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2169] EXEC:     Declaration: 'message_text' = "Count loop test (1 to 5 sum): PASS"
+15:36:31.8779464 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2184] EXEC:     ┌─ Block entry: function log_message
+15:36:31.8780152 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2194] EXEC:       └─ Block exit: function log_message
+15:36:31.8780572 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1932] EXEC:     Function return: log_message = null
+15:36:31.8780994 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:696] EXEC:   └─ Block exit: if branch
+15:36:31.8781383 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'numbers' = []
+15:36:31.8781894 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC: Declaration: 'sum_for_each' = 0
+15:36:31.8782431 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 1
+15:36:31.8782909 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 3
+15:36:31.8783356 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:671] EXEC:   Assignment: 'sum_for_each' = 6
