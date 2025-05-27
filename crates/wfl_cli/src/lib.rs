@@ -59,18 +59,18 @@ pub fn print_help() {
 
 pub fn create_new_project(name: &str, with_editor: bool) -> io::Result<()> {
     let project_dir = PathBuf::from(name);
-    
+
     fs::create_dir_all(&project_dir)?;
-    
+
     let src_dir = project_dir.join("src");
     fs::create_dir_all(&src_dir)?;
-    
+
     let main_file_content = r#"// Main entry point for the WFL project
 println("Hello from WebFirst Language!");
 
 "#;
     fs::write(src_dir.join("main.wfl"), main_file_content)?;
-    
+
     let gitignore_content = r#"# WFL build artifacts
 *.wfl.lex.txt
 *.wfl.ast.txt
@@ -86,8 +86,9 @@ println("Hello from WebFirst Language!");
 Thumbs.db
 "#;
     fs::write(project_dir.join(".gitignore"), gitignore_content)?;
-    
-    let readme_content = format!(r#"# {0}
+
+    let readme_content = format!(
+        r#"# {0}
 
 A WebFirst Language project.
 
@@ -102,9 +103,11 @@ wfl src/main.wfl
 ## Project Structure
 
 - `src/main.wfl`: Main entry point
-"#, name);
+"#,
+        name
+    );
     fs::write(project_dir.join("README.md"), readme_content)?;
-    
+
     if with_editor {
         #[cfg(feature = "editor")]
         {
@@ -119,19 +122,25 @@ auto_format = true
 enabled = false
 "#;
             fs::write(project_dir.join("wfl-editor.toml"), editor_config_content)?;
-            
-            println!("✅ Created new WFL project '{}' with editor configuration", name);
+
+            println!(
+                "✅ Created new WFL project '{}' with editor configuration",
+                name
+            );
         }
-        
+
         #[cfg(not(feature = "editor"))]
         {
-            println!("⚠️ Created new WFL project '{}' without editor configuration", name);
+            println!(
+                "⚠️ Created new WFL project '{}' without editor configuration",
+                name
+            );
             println!("note: re-compile WFL with `--features editor` to enable editor scaffolding");
         }
     } else {
         println!("✅ Created new WFL project '{}'", name);
     }
-    
+
     Ok(())
 }
 
@@ -155,7 +164,10 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
     }
 
     if args.len() >= 2 && args[1] == "--version" {
-        println!("WebFirst Language (WFL) version {}", wfl_core::version::VERSION);
+        println!(
+            "WebFirst Language (WFL) version {}",
+            wfl_core::version::VERSION
+        );
         return Ok(());
     }
 
@@ -164,10 +176,10 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
             eprintln!("Error: 'new' command requires a project name");
             process::exit(2);
         }
-        
+
         let project_name = &args[2];
         let with_editor = args.len() >= 4 && args[3] == "--with-editor";
-        
+
         return create_new_project(project_name, with_editor);
     }
 
@@ -763,45 +775,41 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
 #[cfg(feature = "editor")]
 fn launch_editor(file_path: &str) -> io::Result<()> {
     println!("Launching WFL editor...");
-    
+
     let editor_binary = "wfl-editor";
     let mut args = Vec::new();
-    
+
     if !file_path.is_empty() {
         args.push(file_path.to_string());
     }
-    
+
     #[cfg(target_family = "unix")]
     {
         use std::os::unix::process::CommandExt;
         use std::process::Command;
-        
-        let error = Command::new(editor_binary)
-            .args(&args)
-            .exec();
-        
+
+        let error = Command::new(editor_binary).args(&args).exec();
+
         eprintln!("Failed to launch editor: {}", error);
         process::exit(1);
     }
-    
+
     #[cfg(target_family = "windows")]
     {
         use std::process::Command;
-        
-        match Command::new(editor_binary)
-            .args(&args)
-            .spawn() {
-                Ok(_) => {
-                    println!("Editor launched successfully.");
-                    process::exit(0);
-                }
-                Err(e) => {
-                    eprintln!("Failed to launch editor: {}", e);
-                    process::exit(1);
-                }
+
+        match Command::new(editor_binary).args(&args).spawn() {
+            Ok(_) => {
+                println!("Editor launched successfully.");
+                process::exit(0);
             }
+            Err(e) => {
+                eprintln!("Failed to launch editor: {}", e);
+                process::exit(1);
+            }
+        }
     }
-    
+
     #[allow(unreachable_code)]
     Ok(())
 }

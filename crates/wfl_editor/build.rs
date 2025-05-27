@@ -10,7 +10,7 @@ fn main() {
     if is_headless_environment() {
         println!("cargo:warning=Headless environment detected. GUI features will be disabled.");
         println!("cargo:rustc-cfg=headless");
-        
+
         println!("cargo:rustc-cfg=feature=\"no_gui_deps\"");
         return;
     }

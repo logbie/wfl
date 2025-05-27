@@ -171,7 +171,7 @@ impl IoClient {
                 next_file_id: std::sync::Mutex::new(1),
             }
         }
-        
+
         #[cfg(not(feature = "network"))]
         {
             Self {
@@ -196,7 +196,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to send HTTP GET request: {}", e)),
         }
     }
-    
+
     #[cfg(not(feature = "network"))]
     #[allow(dead_code)]
     async fn http_get(&self, _url: &str) -> Result<String, String> {
@@ -220,7 +220,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to send HTTP POST request: {}", e)),
         }
     }
-    
+
     #[cfg(not(feature = "network"))]
     #[allow(dead_code)]
     async fn http_post(&self, _url: &str, _data: &str) -> Result<String, String> {
@@ -235,7 +235,7 @@ impl IoClient {
             let mut next_id = self.next_file_id.lock().await;
             #[cfg(not(feature = "sync"))]
             let mut next_id = self.next_file_id.lock().unwrap();
-            
+
             let id = format!("file{}", *next_id);
             *next_id += 1;
             id
@@ -264,7 +264,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to open file {}: {}", path, e)),
         }
     }
-    
+
     #[cfg(not(feature = "io"))]
     #[allow(dead_code)]
     async fn open_file(&self, _path: &str) -> Result<String, String> {
@@ -307,7 +307,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to read file: {}", e)),
         }
     }
-    
+
     #[cfg(not(feature = "io"))]
     #[allow(dead_code)]
     async fn read_file(&self, _handle_id: &str) -> Result<String, String> {
@@ -357,7 +357,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to seek in file: {}", e)),
         }
     }
-    
+
     #[cfg(not(feature = "io"))]
     #[allow(dead_code)]
     async fn write_file(&self, _handle_id: &str, _content: &str) -> Result<(), String> {
@@ -381,7 +381,7 @@ impl IoClient {
         file_handles.remove(handle_id);
         Ok(())
     }
-    
+
     #[cfg(not(feature = "io"))]
     #[allow(dead_code)]
     async fn close_file(&self, _handle_id: &str) -> Result<(), String> {
@@ -409,7 +409,7 @@ impl IoClient {
             Err(e) => Err(format!("Failed to seek to end of file: {}", e)),
         }
     }
-    
+
     #[cfg(not(feature = "io"))]
     #[allow(dead_code)]
     async fn append_file(&self, _handle_id: &str, _content: &str) -> Result<(), String> {
@@ -619,7 +619,7 @@ impl Interpreter {
                     .enable_all()
                     .build()
                     .unwrap();
-                
+
                 match runtime.block_on(self.interpret(program)) {
                     Ok(value) => Ok(value),
                     Err(errors) => {
@@ -637,14 +637,14 @@ impl Interpreter {
                 }
             }
         }
-        
+
         #[cfg(not(feature = "full"))]
         {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_time()
                 .build()
                 .unwrap();
-                
+
             match runtime.block_on(self.interpret(program)) {
                 Ok(value) => Ok(value),
                 Err(errors) => {
