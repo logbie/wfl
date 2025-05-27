@@ -378,6 +378,24 @@ impl Analyzer {
                     self.mark_used_variables(stmt, usages);
                 }
             }
+            Statement::RepeatWhileLoop {
+                condition, body, ..
+            } => {
+                self.mark_used_in_expression(condition, usages);
+
+                for stmt in body {
+                    self.mark_used_variables(stmt, usages);
+                }
+            }
+            Statement::RepeatUntilLoop {
+                condition, body, ..
+            } => {
+                self.mark_used_in_expression(condition, usages);
+
+                for stmt in body {
+                    self.mark_used_variables(stmt, usages);
+                }
+            }
             Statement::ForEachLoop {
                 item_name,
                 collection,
@@ -968,7 +986,7 @@ impl Analyzer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::parser::ast::Literal;
+    use crate::parser::ast::{Literal, Operator};
 
     #[test]
     fn test_unused_variable() {
@@ -1039,5 +1057,69 @@ mod tests {
         assert_eq!(diagnostics.len(), 1);
         assert!(diagnostics[0].message.contains("inconsistent"));
         assert_eq!(diagnostics[0].code, "ANALYZE-RETURN");
+    }
+    
+    #[test]
+    fn test_loop_variable_usage() {
+        // Test that variables used in different types of loop conditions are correctly marked as used
+        let program = Program {
+            statements: vec![
+                // Variable declaration
+                Statement::VariableDeclaration {
+                    name: "counter".to_string(),
+                    value: Expression::Literal(Literal::Integer(1), 1, 1),
+                    line: 1,
+                    column: 1,
+                },
+                // RepeatWhileLoop using the counter variable
+                Statement::RepeatWhileLoop {
+                    condition: Expression::BinaryOperation {
+                        left: Box::new(Expression::Variable("counter".to_string(), 2, 14)),
+                        operator: Operator::LessThanOrEqual,
+                        right: Box::new(Expression::Literal(Literal::Integer(5), 2, 36)),
+                        line: 2,
+                        column: 14,
+                    },
+                    body: vec![],
+                    line: 2,
+                    column: 1,
+                },
+            ],
+        };
+
+        let analyzer = Analyzer::new();
+        let file_id = 0;
+
+        let diagnostics = analyzer.check_unused_variables(&program, file_id);
+        
+        // Counter should be marked as used, so no diagnostics should be reported
+        assert_eq!(diagnostics.len(), 0, "Expected no unused variable diagnostics");
+        
+        // Test with RepeatUntilLoop
+        let program_until = Program {
+            statements: vec![
+                Statement::VariableDeclaration {
+                    name: "counter".to_string(),
+                    value: Expression::Literal(Literal::Integer(1), 1, 1),
+                    line: 1,
+                    column: 1,
+                },
+                Statement::RepeatUntilLoop {
+                    condition: Expression::BinaryOperation {
+                        left: Box::new(Expression::Variable("counter".to_string(), 2, 14)),
+                        operator: Operator::GreaterThan,
+                        right: Box::new(Expression::Literal(Literal::Integer(5), 2, 32)),
+                        line: 2,
+                        column: 14,
+                    },
+                    body: vec![],
+                    line: 2,
+                    column: 1,
+                },
+            ],
+        };
+        
+        let diagnostics_until = analyzer.check_unused_variables(&program_until, file_id);
+        assert_eq!(diagnostics_until.len(), 0, "Expected no unused variable diagnostics for RepeatUntilLoop");
     }
 }

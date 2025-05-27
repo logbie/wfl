@@ -159,3 +159,17 @@ store sum_for_each as 0
 for each num in numbers:
     change sum_for_each to sum_for_each plus num
 end for
+
+// 4.3 While Loop test
+store count1 as 1
+store sum_while as 0
+repeat while count1 is less than or equal to 5:
+    change sum_while to sum_while plus count1
+    change count1 to count1 plus 1
+end repeat
+// Expected sum_while = 15 (same as 1+...+5)
+check if sum_while is equal to 15:
+    log_message with "While loop test (1 to 5 sum): PASS"
+otherwise:
+    log_message with "While loop test (expected 15, got " with sum_while with "): FAIL"
+end check
