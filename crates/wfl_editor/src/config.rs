@@ -32,15 +32,23 @@ impl Default for EditorConfig {
 
 impl EditorConfig {
     pub fn load() -> Self {
-        if let Some(config) = Self::load_from_project() {
-            return config;
+        let mut config = if let Some(config) = Self::load_from_project() {
+            config
+        } else if let Some(config) = Self::load_from_user_config() {
+            config
+        } else {
+            Self::default()
+        };
+        
+        if let Ok(telemetry_env) = std::env::var("WFL_EDITOR_TELEMETRY") {
+            config.telemetry_enabled = match telemetry_env.as_str() {
+                "1" | "true" | "yes" | "on" => true,
+                "0" | "false" | "no" | "off" => false,
+                _ => config.telemetry_enabled,
+            };
         }
         
-        if let Some(config) = Self::load_from_user_config() {
-            return config;
-        }
-        
-        Self::default()
+        config
     }
     
     fn load_from_project() -> Option<Self> {
