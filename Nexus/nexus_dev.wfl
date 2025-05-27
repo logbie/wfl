@@ -68,7 +68,8 @@ store x as 5
 store y as 2
 store frac_result as x divided by y    // 5 / 2 = 2.5
 // Check by multiplying result by 2 to see if we get back 5
-check if frac_result times 2 is equal to x:
+store comparison_value as frac_result times 2
+check if comparison_value is equal to x:
     log_message with "Fractional division test: PASS"
 otherwise:
     log_message with "Fractional division test: FAIL (expected 2.5, got " with frac_result with ")"
