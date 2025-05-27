@@ -49,6 +49,22 @@ pub fn init_loggers(log_path: &Path, script_dir: &Path) {
 
 pub use interpreter::Interpreter;
 
+#[macro_export]
+macro_rules! exec_trace {
+    ($($arg:tt)*) => {
+        if cfg!(feature = "exec_trace") {
+            log::trace!($($arg)*);
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! exec_trace_always {
+    ($($arg:tt)*) => {
+        log::trace!($($arg)*);
+    };
+}
+
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
 }
