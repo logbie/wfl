@@ -19,3 +19,5 @@ wfl_editor = { path = "../wfl_editor", optional = true }
 [features]
 default = []
 editor = ["dep:wfl_editor"]
+dhat-heap = []
+dhat-ad-hoc = []

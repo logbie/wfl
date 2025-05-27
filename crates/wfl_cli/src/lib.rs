@@ -1,10 +1,9 @@
-use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use wfl_core::Interpreter;
-use wfl_core::analyzer::Analyzer;
+use wfl_core::analyzer::{Analyzer, StaticAnalyzer};
 use wfl_core::config;
 use wfl_core::debug_report;
 use wfl_core::diagnostics::DiagnosticReporter;
