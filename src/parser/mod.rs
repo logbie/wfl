@@ -561,13 +561,62 @@ impl<'a> Parser<'a> {
     }
 
     fn parse_expression(&mut self) -> Result<Expression, ParseError> {
-        self.parse_binary_expression(0) // Start with lowest precedence
+        // Parse the initial expression
+        let mut expr = self.parse_binary_expression(0)?;
+        // Check if there's an "is equal to" or "is not equal to" after the expression
+        if let Some(token_pos) = self.tokens.peek().cloned() {
+            if matches!(token_pos.token, Token::KeywordIs) {
+                self.tokens.next(); // Consume "is"
+
+                let is_not = if let Some(not_token) = self.tokens.peek().cloned() {
+                    if matches!(not_token.token, Token::KeywordNot) {
+                        self.tokens.next(); // Consume "not"
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Check for "equal" after "is" or "is not"
+                if let Some(equal_token) = self.tokens.peek().cloned() {
+                    if matches!(equal_token.token, Token::KeywordEqual) {
+                        self.tokens.next(); // Consume "equal"
+
+                        // Check for optional "to" after "equal"
+                        if let Some(to_token) = self.tokens.peek().cloned() {
+                            if matches!(to_token.token, Token::KeywordTo) {
+                                self.tokens.next(); // Consume "to"
+                            }
+                        }
+
+                        // Parse the right side of the equality comparison
+                        let right = self.parse_binary_expression(0)?;
+
+                        expr = Expression::BinaryOperation {
+                            left: Box::new(expr),
+                            operator: if is_not {
+                                Operator::NotEquals
+                            } else {
+                                Operator::Equals
+                            },
+                            right: Box::new(right),
+                            line: token_pos.line,
+                            column: token_pos.column,
+                        };
+                    }
+                }
+            }
+        }
+
+        Ok(expr)
     }
 
     fn parse_binary_expression(&mut self, precedence: u8) -> Result<Expression, ParseError> {
         let mut left = self.parse_primary_expression()?;
 
-        let left_line = if let Some(token) = self.tokens.peek() {
+        let _left_line = if let Some(token) = self.tokens.peek() {
             token.line
         } else {
             0
@@ -578,28 +627,30 @@ impl<'a> Parser<'a> {
             let line = token_pos.line;
             let column = token_pos.column;
 
-            // If we're on a new line or at a statement starter, stop parsing this expression
+            // If we're at a statement starter, stop parsing this expression
             // This is crucial for statements like "push" that don't have explicit terminators
-            if line > left_line || Parser::is_statement_starter(&token) {
+            if Parser::is_statement_starter(&token) {
                 break;
             }
+
+            // This is necessary for compound expressions like "x times 2 is equal to y"
 
             let op = match token {
                 Token::KeywordPlus => {
                     self.tokens.next(); // Consume "plus"
-                    Some((Operator::Plus, 1))
+                    Some((Operator::Plus, 5)) // Higher precedence than equality
                 }
                 Token::KeywordMinus => {
                     self.tokens.next(); // Consume "minus"
-                    Some((Operator::Minus, 1))
+                    Some((Operator::Minus, 5)) // Higher precedence than equality
                 }
                 Token::KeywordTimes => {
                     self.tokens.next(); // Consume "times"
-                    Some((Operator::Multiply, 2))
+                    Some((Operator::Multiply, 6)) // Higher precedence than addition/subtraction
                 }
                 Token::KeywordDividedBy => {
                     self.tokens.next(); // Consume "divided by"
-                    Some((Operator::Divide, 2))
+                    Some((Operator::Divide, 6)) // Higher precedence than addition/subtraction
                 }
                 Token::KeywordDivided => {
                     self.tokens.next(); // Consume "divided"
@@ -607,7 +658,7 @@ impl<'a> Parser<'a> {
                     // Still handle the legacy case where "divided" and "by" are separate tokens
                     self.expect_token(Token::KeywordBy, "Expected 'by' after 'divided'")?;
                     self.tokens.next(); // Consume "by"
-                    Some((Operator::Divide, 2))
+                    Some((Operator::Divide, 6)) // Higher precedence than addition/subtraction
                 }
                 Token::KeywordIs => {
                     self.tokens.next(); // Consume "is"
@@ -617,24 +668,45 @@ impl<'a> Parser<'a> {
                             Token::KeywordEqual => {
                                 self.tokens.next(); // Consume "equal"
 
+                                // Check for optional "to" after "equal"
                                 if let Some(to_token) = self.tokens.peek().cloned() {
                                     if matches!(to_token.token, Token::KeywordTo) {
                                         self.tokens.next(); // Consume "to"
-                                        Some((Operator::Equals, 0))
+                                    }
+                                }
+
+                                Some((Operator::Equals, 3))
+                            }
+                            Token::KeywordNot => {
+                                self.tokens.next(); // Consume "not"
+
+                                // Check for "equal" after "not"
+                                if let Some(equal_token) = self.tokens.peek().cloned() {
+                                    if matches!(equal_token.token, Token::KeywordEqual) {
+                                        self.tokens.next(); // Consume "equal"
+
+                                        // Check for optional "to" after "equal"
+                                        if let Some(to_token) = self.tokens.peek().cloned() {
+                                            if matches!(to_token.token, Token::KeywordTo) {
+                                                self.tokens.next(); // Consume "to"
+                                            }
+                                        }
+
+                                        Some((Operator::NotEquals, 3))
                                     } else {
-                                        Some((Operator::Equals, 0)) // "is equal" without "to" is valid too
+                                        return Err(ParseError::new(
+                                            "Expected 'equal' after 'is not'".into(),
+                                            line,
+                                            column,
+                                        ));
                                     }
                                 } else {
                                     return Err(ParseError::new(
-                                        "Unexpected end of input after 'is equal'".into(),
+                                        "Expected 'equal' after 'is not'".into(),
                                         line,
                                         column,
                                     ));
                                 }
-                            }
-                            Token::KeywordNot => {
-                                self.tokens.next(); // Consume "not"
-                                Some((Operator::NotEquals, 0))
                             }
                             Token::KeywordGreater => {
                                 self.tokens.next(); // Consume "greater"
@@ -1519,7 +1591,56 @@ impl<'a> Parser<'a> {
 
         self.expect_token(Token::KeywordIf, "Expected 'if' after 'check'")?;
 
-        let condition = self.parse_expression()?;
+        // Parse the left side of the condition
+        let mut condition = self.parse_binary_expression(0)?;
+
+        // Check for "is equal to" or "is not equal to" after the expression
+        if let Some(token_pos) = self.tokens.peek().cloned() {
+            if matches!(token_pos.token, Token::KeywordIs) {
+                self.tokens.next(); // Consume "is"
+
+                let is_not = if let Some(not_token) = self.tokens.peek().cloned() {
+                    if matches!(not_token.token, Token::KeywordNot) {
+                        self.tokens.next(); // Consume "not"
+                        true
+                    } else {
+                        false
+                    }
+                } else {
+                    false
+                };
+
+                // Check for "equal" after "is" or "is not"
+                if let Some(equal_token) = self.tokens.peek().cloned() {
+                    if matches!(equal_token.token, Token::KeywordEqual) {
+                        self.tokens.next(); // Consume "equal"
+
+                        // Check for optional "to" after "equal"
+                        if let Some(to_token) = self.tokens.peek().cloned() {
+                            if matches!(to_token.token, Token::KeywordTo) {
+                                self.tokens.next(); // Consume "to"
+                            }
+                        }
+
+                        // Parse the right side of the equality comparison
+                        let right = self.parse_expression()?;
+
+                        // Create a binary operation for the equality comparison
+                        condition = Expression::BinaryOperation {
+                            left: Box::new(condition),
+                            operator: if is_not {
+                                Operator::NotEquals
+                            } else {
+                                Operator::Equals
+                            },
+                            right: Box::new(right),
+                            line: token_pos.line,
+                            column: token_pos.column,
+                        };
+                    }
+                }
+            }
+        }
 
         if let Some(token) = self.tokens.peek() {
             if matches!(token.token, Token::Colon) {
