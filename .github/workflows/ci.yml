@@ -12,7 +12,7 @@ env:
 jobs:
   fmt:
     name: Check formatting
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -24,10 +24,10 @@ jobs:
         run: cargo fmt --all -- --check
 
   clippy-and-test:
-    name: Build, Test, Clippy
-    runs-on: ubuntu-latest
+    name: Build, Test, Clippy (Windows)
+    runs-on: windows-latest
     needs: fmt
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rs/toolchain@v1
@@ -35,13 +35,22 @@ jobs:
           toolchain: stable
           override: true
           components: rustfmt, clippy
+      - name: Cache Cargo registry + target dir
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-build
       - name: Build (Default CLI)
+        shell: pwsh
         run: cargo build --verbose
       - name: Build (Editor)
+        shell: pwsh
         run: cargo build --verbose --features editor
       - name: Run Tests (Default CLI)
+        shell: pwsh
         run: cargo test --verbose
       - name: Run Tests (Editor)
+        shell: pwsh
         run: cargo test --verbose --features editor
       - name: Run Clippy (All Features)
+        shell: pwsh
         run: cargo clippy --all-targets --all-features -- -D warnings

@@ -87,7 +87,8 @@ jobs:
         run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
 
       # ---------- Build & test ----------
-      - name: Build
+      - name: Build (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
           # Build main binary with features
           cargo build --release ${{ matrix.features }}
@@ -97,6 +98,18 @@ jobs:
             cargo build --release ${{ matrix.features }} --bin wfl-editor
           fi
         shell: bash
+        
+      - name: Build (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          # Build main binary with features
+          cargo build --release ${{ matrix.features }}
+          
+          # Build editor binary if needed
+          if ("${{ matrix.name }}" -eq "Editor") {
+            cargo build --release ${{ matrix.features }} --bin wfl-editor
+          }
 
       - name: Run tests
         run: cargo test --release ${{ matrix.features }}

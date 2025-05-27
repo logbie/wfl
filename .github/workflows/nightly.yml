@@ -114,38 +114,24 @@ jobs:
   # BUILD JOB (Matrix for CLI and Editor variants)
   # ------------------------------------------------------------
   build:
-    name: Build WFL ${{ matrix.name }} for ${{ matrix.os }}
+    name: Build WFL ${{ matrix.name }} for Windows
     needs: check-for-changes
     if: needs.check-for-changes.outputs.should_build == 'true'
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - name: CLI
-            os: windows-latest
             features: ""
             artifact_prefix: "wfl"
             target_size: "4MB"
             target: x86_64-pc-windows-msvc
           - name: Editor
-            os: windows-latest
             features: "--features editor"
             artifact_prefix: "wfl-editor"
             target_size: "12MB"
             target: x86_64-pc-windows-msvc
-          - name: CLI
-            os: macos-latest
-            features: ""
-            artifact_prefix: "wfl"
-            target_size: "4MB"
-            target: x86_64-apple-darwin
-          - name: Editor
-            os: macos-latest
-            features: "--features editor"
-            artifact_prefix: "wfl-editor"
-            target_size: "12MB"
-            target: x86_64-apple-darwin
     env:
       TARGET: ${{ matrix.target }}
       ARTIFACT_NAME: ${{ matrix.artifact_prefix }}-${{ needs.check-for-changes.outputs.version }}${{ matrix.name == 'Editor' && '+editor.0.1' || '' }}${{ matrix.os == 'windows-latest' && '.msi' || '' }}
@@ -162,11 +148,8 @@ jobs:
           override: true
           components: rustfmt, clippy
 
-      # ---------- macOS pkg-config setup ----------
-      - name: Install pkg-config (macOS)
-        if: matrix.os == 'macos-latest'
-        run: |
-          brew list pkg-config &>/dev/null || brew install pkg-config
+      # ---------- Windows-specific setup ----------
+      # No additional setup needed for Windows
 
       - name: Cache Cargo registry + target dir
         uses: Swatinem/rust-cache@v2
@@ -302,31 +285,9 @@ jobs:
             -p wfl
 
       # ---------- Create checksums ----------
-      - name: Create checksums (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        run: |
-          mkdir -p artifacts
-          cd target/${{ env.TARGET }}/release
-          
-          if [[ "${{ matrix.name }}" == "CLI" ]]; then
-            sha256sum wfl > ../../../artifacts/SHA256SUMS.txt
-          else
-            sha256sum wfl wfl-editor > ../../../artifacts/SHA256SUMS.txt
-          fi
-          cd ../../../
-          
-          # Sign checksums if GPG key is available
-          if [[ -n "$GPG_SIGNING_KEY" && -n "$GPG_PASSPHRASE" ]]; then
-            echo "$GPG_SIGNING_KEY" | base64 -d | gpg --import
-            echo "$GPG_PASSPHRASE" | gpg --passphrase-fd 0 --clearsign artifacts/SHA256SUMS.txt
-            mv artifacts/SHA256SUMS.txt.asc artifacts/SHA256SUMS.txt.asc
-          fi
-        env:
-          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+      # Only Windows checksums needed
 
       - name: Create checksums (Windows)
-        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path artifacts | Out-Null
@@ -373,19 +334,9 @@ jobs:
           }
 
       # ---------- Upload artifacts ----------
-      - name: Upload binaries (Linux/macOS)
-        if: matrix.os != 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: |
-            target/${{ env.TARGET }}/release/wfl
-            ${{ matrix.name == 'Editor' && 'target/${{ env.TARGET }}/release/wfl-editor' || '' }}
-            artifacts/SHA256SUMS.*
-          if-no-files-found: error
+      # Windows-only artifacts
           
       - name: Upload binaries (Windows)
-        if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
@@ -401,14 +352,15 @@ jobs:
     name: Create or Update Nightly Release
     needs: [check-for-changes, build]
     if: needs.check-for-changes.outputs.should_build == 'true'
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
       - name: Install GitHub CLI
-        run: sudo apt-get update && sudo apt-get install -y gh
+        run: |
+          choco install gh
 
       - name: Authenticate GitHub CLI
         run: echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
@@ -425,14 +377,11 @@ jobs:
           # Check for Windows MSI installers
           find artifacts -type f -name "*.msi" -exec ls -la {} \;
           
-          # Check for macOS binaries
-          find artifacts -type f -name "wfl" -o -name "wfl-editor" -exec ls -la {} \;
-          
           # Check for checksums
           find artifacts -type f -name "SHA256SUMS*" -exec ls -la {} \;
           
           # Verify we have at least some artifacts
-          if [ $(find artifacts -type f \( -name "*.msi" -o -name "wfl" -o -name "wfl-editor" \) | wc -l) -eq 0 ]; then
+          if [ $(find artifacts -type f -name "*.msi" | wc -l) -eq 0 ]; then
             echo "::error::No artifacts found in downloaded artifacts directory"
             exit 1
           fi
@@ -460,7 +409,7 @@ jobs:
           Commit:  ${{ github.sha }}" \
             --prerelease
 
-          # Upload all artifacts to the release
-          find artifacts -type f \( -name "*.msi" -o -name "wfl" -o -name "wfl-editor" -o -name "SHA256SUMS*" \) -exec gh release upload "$TAG" {} \;
+          # Upload Windows artifacts to the release
+          find artifacts -type f \( -name "*.msi" -o -name "SHA256SUMS*" \) -exec gh release upload "$TAG" {} \;
           
           echo "Release created successfully: $TAG with CLI and Editor variants"
