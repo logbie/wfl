@@ -4,6 +4,7 @@
 
 ### Programming Languages
 - **Rust**: Primary implementation language, chosen for safety, performance, and modern language features
+- **TypeScript**: Used for VSCode extension development
 - **WFL**: The language itself (used for testing and examples)
 
 ### Core Libraries
@@ -107,10 +108,29 @@
 - **Implementation**: Custom Language Server Protocol server
 - **Features**: Diagnostics, auto-completion, hover information
 
+### VSCode Extension
+- **Consolidated Architecture**: Merging of JavaScript and TypeScript implementations
+- **Technologies**:
+  - TypeScript for extension logic
+  - TextMate grammar for syntax highlighting
+  - VS Code's Language Client API for LSP integration
+  - Custom formatters that work with or without WFL installed
+- **Components**:
+  - TextMate grammar (`syntaxes/wfl.tmLanguage.json`)
+  - Language configuration (`language-configuration.json`)
+  - Independent formatter (`src/formatting/base-formatter.ts`)
+  - WFL CLI-based formatter (`src/formatting/wfl-formatter.ts`)
+  - LSP client integration (`src/extension.ts`)
+- **Build and Packaging**:
+  - npm for package management
+  - vsce for VS Code extension packaging
+  - Automatic detection of WFL tools for enhanced functionality
+
 ### Configuration System
 - `.wflcfg` files for project settings
 - Global and local configuration support
 - Validation with `--configCheck` and `--configFix` flags
+- Extension configuration options for formatting and tool integration
 
 ### Debugging Tools
 - Structured logging with verbosity levels

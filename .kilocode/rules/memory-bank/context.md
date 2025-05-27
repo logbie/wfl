@@ -4,27 +4,34 @@
 
 The WFL team is currently focused on:
 
-1. **Static Analyzer Improvements**:
+1. **VSCode Extension Consolidation** (May 2025):
+   - Merging two existing VSCode extension implementations (JavaScript and TypeScript)
+   - Creating a robust TextMate grammar for WFL syntax highlighting
+   - Implementing a dual-mode formatter that works both with and without WFL installed
+   - Enhancing IDE integration through LSP client support
+   - Building a seamless developer experience that adapts to available tools
+
+2. **Static Analyzer Improvements**:
    - Fixing issues with variable usage detection, particularly:
      - Variables used in action calls as arguments
      - Variables used in I/O operations
      - Parameters in action definitions used in wait/append statements
    - Improving unreachable code detection
 
-2. **Memory Optimization**:
+3. **Memory Optimization**:
    - Addressing memory leaks in closures using weak references for parent environments
    - Optimizing parser memory allocations to reduce heap churn
    - Improving file I/O with append-mode operations instead of read-modify-write
 
-3. **Nexus Test Suite Enhancement**:
+4. **Nexus Test Suite Enhancement**:
    - Expanding the Nexus integration test suite to cover more language features
    - Ensuring comprehensive testing of asynchronous operations
 
-4. **Configuration Management**:
+5. **Configuration Management**:
    - Implementation of configuration validation and auto-fix flags (`--configCheck` and `--configFix`)
    - Added in May 2025
 
-5. **Backward Compatibility**:
+6. **Backward Compatibility**:
    - Adapting the interpreter and static analyzer to work with existing WFL files
    - Ensuring language evolution doesn't break existing code
    - Improving error recovery mechanisms in the parser
@@ -45,6 +52,16 @@ This principle has led to several recent improvements:
 - Improved type checker to handle file handling and I/O operations consistently
 
 ## Recent Changes
+
+### VSCode Extension Consolidation (May 2025)
+- Designing a unified VSCode extension that merges existing JavaScript and TypeScript implementations
+- Implementing a comprehensive TextMate grammar for WFL syntax highlighting
+- Creating a dual-mode formatter that works both with and without WFL installed:
+  - Built-in formatter for independent operation
+  - WFL CLI-based formatter for enhanced operation
+- Adding LSP client integration that gracefully handles WFL availability
+- Improving developer experience with adaptive configuration options
+- Preparing for publication to the VS Code Marketplace
 
 ### Parser Stability Enhancement (May 2025)
 - Fixed critical infinite loop issue with comprehensive end token handling
@@ -80,20 +97,26 @@ This principle has led to several recent improvements:
 
 ## Next Steps
 
-1. **Bytecode Compiler Implementation**:
+1. **VSCode Extension Release**:
+   - Complete consolidation of the two extension implementations
+   - Finalize TextMate grammar and formatter implementations
+   - Publish to VS Code Marketplace
+   - Create documentation and examples for users
+
+2. **Bytecode Compiler Implementation**:
    - Design and implement bytecode instructions
    - Add optimization passes
    - Implement constant folding and dead code elimination
 
-2. **Virtual Machine Development**:
+3. **Virtual Machine Development**:
    - Design register-based VM
    - Implement JIT compilation support
    - Add performance optimizations
 
-3. **Full Concurrency Support**:
+4. **Full Concurrency Support**:
    - Implement true parallel execution for `wait for ... and ...`
    - Add resource management for concurrent operations
 
-4. **Enhanced File I/O API**:
+5. **Enhanced File I/O API**:
    - Add dedicated `create file` syntax
    - Implement more granular file permissions and modes
