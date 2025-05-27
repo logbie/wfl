@@ -1,0 +1,21 @@
+[package]
+name = "wfl_cli"
+version = "0.1.0"
+edition = "2024"
+description = "Command-line interface for the WebFirst Language (WFL)"
+license = "Apache-2.0"
+authors = ["Logbie LLC <info@logbie.com>"]
+
+[dependencies]
+wfl_core = { path = "../wfl_core", version = "0.1.0" }
+rustyline = "12.0.0"
+log = "0.4.20"
+simplelog = "0.12.1"
+tokio = { version = "1.35.1", features = ["full"] }
+
+# Optional dependencies for editor feature
+wfl_editor = { path = "../wfl_editor", optional = true }
+
+[features]
+default = []
+editor = ["dep:wfl_editor"]
