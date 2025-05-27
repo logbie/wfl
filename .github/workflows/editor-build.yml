@@ -88,7 +88,15 @@ jobs:
 
       # ---------- Build & test ----------
       - name: Build
-        run: cargo build --release ${{ matrix.features }}
+        run: |
+          # Build main binary with features
+          cargo build --release ${{ matrix.features }}
+          
+          # Build editor binary if needed
+          if [[ "${{ matrix.name }}" == "Editor" ]]; then
+            cargo build --release ${{ matrix.features }} --bin wfl-editor
+          fi
+        shell: bash
 
       - name: Run tests
         run: cargo test --release ${{ matrix.features }}
