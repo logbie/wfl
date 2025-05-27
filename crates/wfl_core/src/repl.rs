@@ -351,10 +351,10 @@ pub async fn run_repl() -> RustylineResult<()> {
             "wfl> "
         };
         match rl.readline(prompt) {
-            Ok(line) => {
-                rl.add_history_entry(&line)?;
+            Ok(line_str) => {
+                rl.add_history_entry(&line_str)?;
 
-                match repl_state.process_line(&line).await {
+                match repl_state.process_line(&line_str).await {
                     Ok(Some(output)) => println!("{}", output),
                     Ok(None) => {} // No output needed
                     Err(error) => println!("Error: {}", error),
