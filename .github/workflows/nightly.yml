@@ -206,11 +206,17 @@ jobs:
       - name: Build WFL and LSP
         run: |
           cargo build --release --locked --target ${{ env.TARGET }} ${{ matrix.features }} --bin wfl
-          cargo build --release --locked --target ${{ env.TARGET }} -p wfl-lsp --bin wfl-lsp
           
           # Build editor binary if needed
           if [[ "${{ matrix.name }}" == "Editor" ]]; then
             cargo build --release --locked --target ${{ env.TARGET }} ${{ matrix.features }} --bin wfl-editor
+          fi
+          
+          # Build LSP binary if it exists in the workspace
+          if [[ -d "crates/wfl_lsp" ]]; then
+            cargo build --release --locked --target ${{ env.TARGET }} -p wfl_lsp --bin wfl-lsp
+          elif [[ -d "wfl-lsp" ]]; then
+            cargo build --release --locked --target ${{ env.TARGET }} -p wfl-lsp --bin wfl-lsp
           fi
         shell: bash
 
