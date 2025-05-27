@@ -2,11 +2,11 @@ use dashmap::DashMap;
 use tower_lsp::jsonrpc::Result;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
-use wfl::analyzer::Analyzer;
-use wfl::diagnostics::{DiagnosticReporter, WflDiagnostic};
-use wfl::lexer::lex_wfl_with_positions;
-use wfl::parser::Parser;
-use wfl::typechecker::TypeChecker;
+use wfl_core::analyzer::Analyzer;
+use wfl_core::diagnostics::{DiagnosticReporter, WflDiagnostic};
+use wfl_core::lexer::lex_wfl_with_positions;
+use wfl_core::parser::Parser;
+use wfl_core::typechecker::TypeChecker;
 
 #[derive(Debug)]
 pub struct WflLanguageServer {
@@ -73,10 +73,10 @@ impl WflLanguageServer {
 
     fn convert_to_lsp_diagnostic(&self, wfl_diag: &WflDiagnostic) -> Diagnostic {
         let severity = match wfl_diag.severity {
-            wfl::diagnostics::Severity::Error => Some(DiagnosticSeverity::ERROR),
-            wfl::diagnostics::Severity::Warning => Some(DiagnosticSeverity::WARNING),
-            wfl::diagnostics::Severity::Note => Some(DiagnosticSeverity::INFORMATION),
-            wfl::diagnostics::Severity::Help => Some(DiagnosticSeverity::HINT),
+            wfl_core::diagnostics::Severity::Error => Some(DiagnosticSeverity::ERROR),
+            wfl_core::diagnostics::Severity::Warning => Some(DiagnosticSeverity::WARNING),
+            wfl_core::diagnostics::Severity::Note => Some(DiagnosticSeverity::INFORMATION),
+            wfl_core::diagnostics::Severity::Help => Some(DiagnosticSeverity::HINT),
         };
 
         let mut related_information = None;
