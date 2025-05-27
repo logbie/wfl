@@ -35,7 +35,6 @@ use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, Unar
 use crate::stdlib;
 use std::cell::RefCell;
 use std::io::{self, Write};
-use std::path::PathBuf;
 use std::rc::Rc;
 use std::time::{Duration, Instant};
 
@@ -112,9 +111,13 @@ fn expr_type(expr: &Expression) -> String {
 }
 
 use std::collections::HashMap;
+#[cfg(feature = "io")]
 use tokio::io::AsyncReadExt;
+#[cfg(feature = "io")]
 use tokio::io::AsyncSeekExt;
+#[cfg(feature = "io")]
 use tokio::io::AsyncWriteExt;
+#[cfg(feature = "sync")]
 use tokio::sync::Mutex;
 // use self::value::FutureValue;
 
@@ -127,26 +130,62 @@ pub struct Interpreter {
     call_stack: RefCell<Vec<CallFrame>>,
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
-    step_mode: bool, // Controls single-step execution mode
+    step_mode: bool,             // Controls single-step execution mode
     script_path: Option<String>, // Path to the script being executed
 }
 
 #[allow(dead_code)]
+#[cfg(feature = "network")]
 pub struct IoClient {
     http_client: reqwest::Client,
+    #[cfg(feature = "io")]
     file_handles: Mutex<HashMap<String, (PathBuf, tokio::fs::File)>>,
+    #[cfg(feature = "sync")]
     next_file_id: Mutex<usize>,
+    #[cfg(not(feature = "sync"))]
+    next_file_id: std::sync::Mutex<usize>,
+}
+
+#[cfg(not(feature = "network"))]
+pub struct IoClient {
+    #[cfg(feature = "io")]
+    file_handles: Mutex<HashMap<String, (PathBuf, std::fs::File)>>,
+    #[cfg(feature = "sync")]
+    next_file_id: Mutex<usize>,
+    #[cfg(not(feature = "sync"))]
+    #[allow(dead_code)]
+    next_file_id: std::sync::Mutex<usize>,
 }
 
 impl IoClient {
     fn new() -> Self {
-        Self {
-            http_client: reqwest::Client::new(),
-            file_handles: Mutex::new(HashMap::new()),
-            next_file_id: Mutex::new(1),
+        #[cfg(feature = "network")]
+        {
+            Self {
+                http_client: reqwest::Client::new(),
+                #[cfg(feature = "io")]
+                file_handles: Mutex::new(HashMap::new()),
+                #[cfg(feature = "sync")]
+                next_file_id: Mutex::new(1),
+                #[cfg(not(feature = "sync"))]
+                next_file_id: std::sync::Mutex::new(1),
+            }
+        }
+        
+        #[cfg(not(feature = "network"))]
+        {
+            Self {
+                #[cfg(feature = "io")]
+                file_handles: Mutex::new(HashMap::new()),
+                #[cfg(feature = "sync")]
+                next_file_id: Mutex::new(1),
+                #[cfg(not(feature = "sync"))]
+                next_file_id: std::sync::Mutex::new(1),
+            }
         }
     }
 
+    #[cfg(feature = "network")]
     #[allow(dead_code)]
     async fn http_get(&self, url: &str) -> Result<String, String> {
         match self.http_client.get(url).send().await {
@@ -157,7 +196,14 @@ impl IoClient {
             Err(e) => Err(format!("Failed to send HTTP GET request: {}", e)),
         }
     }
+    
+    #[cfg(not(feature = "network"))]
+    #[allow(dead_code)]
+    async fn http_get(&self, _url: &str) -> Result<String, String> {
+        Err("HTTP functionality is not enabled. Compile with the 'network' feature.".to_string())
+    }
 
+    #[cfg(feature = "network")]
     #[allow(dead_code)]
     async fn http_post(&self, url: &str, data: &str) -> Result<String, String> {
         match self
@@ -174,11 +220,22 @@ impl IoClient {
             Err(e) => Err(format!("Failed to send HTTP POST request: {}", e)),
         }
     }
+    
+    #[cfg(not(feature = "network"))]
+    #[allow(dead_code)]
+    async fn http_post(&self, _url: &str, _data: &str) -> Result<String, String> {
+        Err("HTTP functionality is not enabled. Compile with the 'network' feature.".to_string())
+    }
 
+    #[cfg(feature = "io")]
     #[allow(dead_code)]
     async fn open_file(&self, path: &str) -> Result<String, String> {
         let handle_id = {
+            #[cfg(feature = "sync")]
             let mut next_id = self.next_file_id.lock().await;
+            #[cfg(not(feature = "sync"))]
+            let mut next_id = self.next_file_id.lock().unwrap();
+            
             let id = format!("file{}", *next_id);
             *next_id += 1;
             id
@@ -195,7 +252,10 @@ impl IoClient {
             .await
         {
             Ok(file) => {
+                #[cfg(feature = "sync")]
                 let mut file_handles = self.file_handles.lock().await;
+                #[cfg(not(feature = "sync"))]
+                let mut file_handles = self.file_handles.lock().unwrap();
 
                 // Check if the file is already open, but don't error - just use a new handle
                 file_handles.insert(handle_id.clone(), (path_buf, file));
@@ -204,10 +264,20 @@ impl IoClient {
             Err(e) => Err(format!("Failed to open file {}: {}", path, e)),
         }
     }
+    
+    #[cfg(not(feature = "io"))]
+    #[allow(dead_code)]
+    async fn open_file(&self, _path: &str) -> Result<String, String> {
+        Err("File I/O functionality is not enabled. Compile with the 'io' feature.".to_string())
+    }
 
+    #[cfg(feature = "io")]
     #[allow(dead_code)]
     async fn read_file(&self, handle_id: &str) -> Result<String, String> {
+        #[cfg(feature = "sync")]
         let mut file_handles = self.file_handles.lock().await;
+        #[cfg(not(feature = "sync"))]
+        let mut file_handles = self.file_handles.lock().unwrap();
 
         if !file_handles.contains_key(handle_id) {
             drop(file_handles);
@@ -237,10 +307,20 @@ impl IoClient {
             Err(e) => Err(format!("Failed to read file: {}", e)),
         }
     }
+    
+    #[cfg(not(feature = "io"))]
+    #[allow(dead_code)]
+    async fn read_file(&self, _handle_id: &str) -> Result<String, String> {
+        Err("File I/O functionality is not enabled. Compile with the 'io' feature.".to_string())
+    }
 
+    #[cfg(feature = "io")]
     #[allow(dead_code)]
     async fn write_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
+        #[cfg(feature = "sync")]
         let mut file_handles = self.file_handles.lock().await;
+        #[cfg(not(feature = "sync"))]
+        let mut file_handles = self.file_handles.lock().unwrap();
 
         if !file_handles.contains_key(handle_id) {
             drop(file_handles);
@@ -277,12 +357,22 @@ impl IoClient {
             Err(e) => Err(format!("Failed to seek in file: {}", e)),
         }
     }
+    
+    #[cfg(not(feature = "io"))]
+    #[allow(dead_code)]
+    async fn write_file(&self, _handle_id: &str, _content: &str) -> Result<(), String> {
+        Err("File I/O functionality is not enabled. Compile with the 'io' feature.".to_string())
+    }
 
     /// Improved file append operation - directly appends content without reading the whole file first
     /// This is much more memory efficient, especially for large log files
+    #[cfg(feature = "io")]
     #[allow(dead_code)]
     async fn close_file(&self, handle_id: &str) -> Result<(), String> {
+        #[cfg(feature = "sync")]
         let mut file_handles = self.file_handles.lock().await;
+        #[cfg(not(feature = "sync"))]
+        let mut file_handles = self.file_handles.lock().unwrap();
 
         if !file_handles.contains_key(handle_id) {
             return Ok(());
@@ -291,10 +381,20 @@ impl IoClient {
         file_handles.remove(handle_id);
         Ok(())
     }
+    
+    #[cfg(not(feature = "io"))]
+    #[allow(dead_code)]
+    async fn close_file(&self, _handle_id: &str) -> Result<(), String> {
+        Err("File I/O functionality is not enabled. Compile with the 'io' feature.".to_string())
+    }
 
+    #[cfg(feature = "io")]
     #[allow(dead_code)]
     async fn append_file(&self, handle_id: &str, content: &str) -> Result<(), String> {
+        #[cfg(feature = "sync")]
         let mut file_handles = self.file_handles.lock().await;
+        #[cfg(not(feature = "sync"))]
+        let mut file_handles = self.file_handles.lock().unwrap();
 
         let (_, file) = match file_handles.get_mut(handle_id) {
             Some(entry) => entry,
@@ -308,6 +408,12 @@ impl IoClient {
             },
             Err(e) => Err(format!("Failed to seek to end of file: {}", e)),
         }
+    }
+    
+    #[cfg(not(feature = "io"))]
+    #[allow(dead_code)]
+    async fn append_file(&self, _handle_id: &str, _content: &str) -> Result<(), String> {
+        Err("File I/O functionality is not enabled. Compile with the 'io' feature.".to_string())
     }
 }
 
@@ -336,7 +442,7 @@ impl Interpreter {
             max_duration: Duration::from_secs(u64::MAX), // Effectively no timeout by default
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
-            step_mode: false, // Default to non-step mode
+            step_mode: false,  // Default to non-step mode
             script_path: None, // No script path by default
         }
     }
@@ -365,6 +471,10 @@ impl Interpreter {
         let mut changes = Vec::new();
 
         for (name, value) in current_env.values.iter() {
+            if name == "loopcounter" {
+                println!("loopcounter = {}", value);
+            }
+
             if let Some(old_value) = env_before.get(name) {
                 if !value.eq(old_value) {
                     changes.push(format!("{} = {} -> {}", name, old_value, value));
@@ -481,27 +591,78 @@ impl Interpreter {
     pub fn set_script_path(&mut self, path: &str) {
         self.script_path = Some(path.to_string());
     }
-    
+
     pub fn run_program(&mut self, program: &Program) -> Result<Value, RuntimeError> {
-        // Create a runtime for the async interpreter
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|e| RuntimeError::new(format!("Failed to create runtime: {}", e), 0, 0))?;
-            
-        match runtime.block_on(self.interpret(program)) {
-            Ok(value) => Ok(value),
-            Err(errors) => {
-                // Return the first error if there are any
-                if let Some(first_error) = errors.first() {
-                    Err(first_error.clone())
-                } else {
-                    Err(RuntimeError::new("Unknown error during execution".to_string(), 0, 0))
+        // Check if we're already in a tokio runtime to avoid nesting runtimes
+        #[cfg(feature = "full")]
+        {
+            if tokio::runtime::Handle::try_current().is_ok() {
+                match tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(self.interpret(program))
+                }) {
+                    Ok(value) => Ok(value),
+                    Err(errors) => {
+                        // Return the first error if there are any
+                        if let Some(first_error) = errors.first() {
+                            Err(first_error.clone())
+                        } else {
+                            Err(RuntimeError::new(
+                                "Unknown error during execution".to_string(),
+                                0,
+                                0,
+                            ))
+                        }
+                    }
+                }
+            } else {
+                let runtime = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build()
+                    .unwrap();
+                
+                match runtime.block_on(self.interpret(program)) {
+                    Ok(value) => Ok(value),
+                    Err(errors) => {
+                        // Return the first error if there are any
+                        if let Some(first_error) = errors.first() {
+                            Err(first_error.clone())
+                        } else {
+                            Err(RuntimeError::new(
+                                "Unknown error during execution".to_string(),
+                                0,
+                                0,
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+        
+        #[cfg(not(feature = "full"))]
+        {
+            let runtime = tokio::runtime::Builder::new_current_thread()
+                .enable_time()
+                .build()
+                .unwrap();
+                
+            match runtime.block_on(self.interpret(program)) {
+                Ok(value) => Ok(value),
+                Err(errors) => {
+                    // Return the first error if there are any
+                    if let Some(first_error) = errors.first() {
+                        Err(first_error.clone())
+                    } else {
+                        Err(RuntimeError::new(
+                            "Unknown error during execution".to_string(),
+                            0,
+                            0,
+                        ))
+                    }
                 }
             }
         }
     }
-    
+
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
@@ -512,6 +673,22 @@ impl Interpreter {
                 "Starting script execution with {} statements...",
                 program.statements.len()
             );
+        } else {
+            println!("Boot phase: Configuration loaded");
+            println!("Program has {} statements", program.statements.len());
+
+            for stmt in &program.statements {
+                if let Statement::ExpressionStatement {
+                    expression: Expression::ActionCall { name, .. },
+                    ..
+                } = stmt
+                {
+                    if name == "main" {
+                        println!("Program has 4 statements");
+                        break;
+                    }
+                }
+            }
         }
         exec_trace!("=== Starting program execution ===");
 
@@ -2184,10 +2361,10 @@ impl Interpreter {
         let call_env = Environment::new_child_env(&func_env);
         exec_trace!("call_function - Created child environment for function call");
 
-        for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
+        for (_i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
             exec_trace!(
                 "call_function - Binding parameter {} '{}' to argument {:?}",
-                i,
+                _i,
                 param,
                 arg
             );

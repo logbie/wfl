@@ -26,10 +26,19 @@ wfl_core = { path = "crates/wfl_core", default-features = false }
 
 [features]
 default = ["cli"]  # editor deliberately opt-in to keep CLI binary tiny
-cli     = ["wfl_cli"]
-editor  = ["wfl_editor", "wfl_editor/gui"]  # GUI is optional for platforms without winit support
-dhat-heap = ["dhat"]    # if you are doing heap profiling
-dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
+cli     = ["wfl_cli", "dep:log", "dep:simplelog", "dep:tokio", "wfl_core/repl"]
+# Editor feature enables the editor but without GUI in headless environments
+editor  = ["wfl_editor", "wfl_editor/gui", "dep:log", "dep:simplelog", "dep:tokio", "wfl_core/repl"]
+# Editor-full feature enables the full GUI editor, but only works in non-headless environments
+editor-full = ["editor", "wfl_editor/gui-full"]
+# Optional features
+database = ["wfl_core/database"]
+network = ["wfl_core/network"]
+io = ["wfl_core/io"]
+sync = ["wfl_core/sync"]
+full = ["database", "network", "io", "sync", "wfl_core/full"]
+dhat-heap = ["dhat", "wfl_core/dhat-heap"]    # if you are doing heap profiling
+dhat-ad-hoc = ["dhat", "wfl_core/dhat-ad-hoc"]  # if you are doing ad hoc profiling
 
 [package.metadata.deb]
 assets = [
@@ -46,13 +55,12 @@ maintainer-scripts = "debian/"
 conf-files = ["/etc/wfl/wfl.cfg"]
 
 [dependencies]
-wfl_core = { path = "crates/wfl_core", version = "0.1.0" }
-wfl_cli = { path = "crates/wfl_cli", version = "0.1.0", optional = true }
-wfl_editor = { path = "crates/wfl_editor", version = "0.1.0", optional = true }
-rustyline = "12.0.0"
-log = "0.4.20"
-simplelog = "0.12.1"
-tokio = { version = "1.35.1", features = ["full", "macros"] }
+wfl_core = { path = "crates/wfl_core", version = "0.1.0", default-features = false }
+wfl_cli = { path = "crates/wfl_cli", version = "0.1.0", optional = true, default-features = false }
+wfl_editor = { path = "crates/wfl_editor", version = "0.1.0", optional = true, default-features = false }
+log = { version = "0.4.20", optional = true }
+simplelog = { version = "0.12.1", optional = true }
+tokio = { version = "1.35.1", features = ["rt"], optional = true }
 dhat = { version = "0.3.0", optional = true }
 
 [dev-dependencies]
@@ -65,4 +73,8 @@ name = "parser_bench"
 harness = false
 
 [profile.release]
-debug = true
+debug = false
+lto = true
+codegen-units = 1
+opt-level = "z"
+strip = true

@@ -11,7 +11,9 @@ use crate::parser::{
 use crate::typechecker::TypeChecker;
 use codespan_reporting::term;
 use codespan_reporting::term::termcolor::Buffer;
+#[cfg(feature = "repl")]
 use rustyline::error::ReadlineError;
+#[cfg(feature = "repl")]
 use rustyline::{DefaultEditor, Result as RustylineResult};
 use std::io::{self, Write};
 
@@ -332,6 +334,7 @@ impl ReplState {
     }
 }
 
+#[cfg(feature = "repl")]
 pub async fn run_repl() -> RustylineResult<()> {
     #[cfg(feature = "dhat-heap")]
     let _profiler = dhat::Profiler::new_heap();
@@ -351,10 +354,11 @@ pub async fn run_repl() -> RustylineResult<()> {
             "wfl> "
         };
         match rl.readline(prompt) {
-            Ok(line_str) => {
-                rl.add_history_entry(&line_str)?;
+            Ok(line) => {
+                let line_owned = line.to_string();
+                rl.add_history_entry(&line_owned)?;
 
-                match repl_state.process_line(&line_str).await {
+                match repl_state.process_line(&line_owned).await {
                     Ok(Some(output)) => println!("{}", output),
                     Ok(None) => {} // No output needed
                     Err(error) => println!("Error: {}", error),
@@ -376,6 +380,11 @@ pub async fn run_repl() -> RustylineResult<()> {
     }
 
     Ok(())
+}
+
+#[cfg(not(feature = "repl"))]
+pub async fn run_repl() -> Result<(), String> {
+    Err("REPL functionality is not enabled in this build".to_string())
 }
 
 #[cfg(test)]

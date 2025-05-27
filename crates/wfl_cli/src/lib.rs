@@ -182,7 +182,7 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
     let mut edit_mode = false;
     let mut lex_dump = false;
     let mut ast_dump = false;
-    let mut editor_mode = false;
+    let _editor_mode = false;
     let mut file_path = String::new();
 
     let mut i = 1;

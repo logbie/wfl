@@ -76,7 +76,7 @@ impl WflDiagnostic {
 
         diagnostic
     }
-    
+
     pub fn is_error(&self) -> bool {
         self.severity == Severity::Error
     }

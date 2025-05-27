@@ -126,7 +126,7 @@ impl TypeChecker {
             Err(self.errors.clone())
         }
     }
-    
+
     pub fn check_program(&mut self, program: &Program) -> Result<(), Vec<TypeError>> {
         self.check_types(program)
     }

@@ -11,7 +11,7 @@ use std::io::Write as IoWrite;
 use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
-pub use execution::{start_execution_report, end_execution_report};
+pub use execution::{end_execution_report, start_execution_report};
 
 pub struct SafeDebug<'a> {
     value: &'a Value,

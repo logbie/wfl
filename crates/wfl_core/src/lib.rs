@@ -49,11 +49,12 @@ pub fn init_loggers(log_path: &Path, script_dir: &Path) {
 
 pub use interpreter::Interpreter;
 
+// The exec_trace_always macro is already exported at the crate root via #[macro_export]
+
+#[cfg(not(debug_assertions))]
 #[macro_export]
 macro_rules! exec_trace_always {
-    ($($arg:tt)*) => {
-        log::trace!($($arg)*);
-    };
+    ($($arg:tt)*) => {};
 }
 
 pub fn add(left: u64, right: u64) -> u64 {

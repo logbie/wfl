@@ -7,17 +7,22 @@ license = "Apache-2.0"
 authors = ["Logbie LLC <info@logbie.com>"]
 
 [dependencies]
-wfl_core = { path = "../wfl_core", version = "0.1.0" }
-rustyline = "12.0.0"
+wfl_core = { path = "../wfl_core", version = "0.1.0", default-features = false }
+rustyline = { version = "12.0.0", optional = true }
 log = "0.4.20"
-simplelog = "0.12.1"
-tokio = { version = "1.35.1", features = ["full"] }
+simplelog = { version = "0.12.1", optional = true }
+tokio = { version = "1.35.1", features = ["rt"], optional = true }
 
 # Optional dependencies for editor feature
-wfl_editor = { path = "../wfl_editor", optional = true }
+wfl_editor = { path = "../wfl_editor", optional = true, default-features = false }
 
 [features]
-default = []
-editor = ["dep:wfl_editor"]
-dhat-heap = []
-dhat-ad-hoc = []
+default = ["repl", "logging"]
+repl = ["dep:rustyline", "dep:tokio"]
+logging = ["dep:simplelog"]
+editor = ["dep:wfl_editor", "wfl_editor/gui"]
+dhat-heap = ["wfl_core/dhat-heap"]
+dhat-ad-hoc = ["wfl_core/dhat-ad-hoc"]
+
+[dev-dependencies]
+tempfile = "3.19.1"

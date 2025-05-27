@@ -1,0 +1,13 @@
+# WFL build artifacts
+*.wfl.lex.txt
+*.wfl.ast.txt
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS specific files
+.DS_Store
+Thumbs.db
