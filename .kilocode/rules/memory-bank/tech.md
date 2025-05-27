@@ -92,6 +92,16 @@
 
 ## Development Tools
 
+### CLI Developer Tools
+- **--lex**: Dump lexer tokens to `<name>.lex.txt` - Great for debugging tokenization and encoding issues
+- **--ast**: Dump AST to `<name>.ast.txt` - Useful for visualizing program structure and verifying parser correctness
+- **--lint**: Style and structural code quality checks
+- **--fix**: Auto-apply linter suggestions (can be combined with --in-place or --diff)
+- **--analyze**: Static semantic analysis to detect unused variables, unreachable code, etc.
+- **--step**: Interactive step-by-step execution for debugging
+- **--configCheck**: Validate `.wflcfg` files for correctness
+- **--configFix**: Auto-repair common configuration issues
+
 ### LSP Server
 - **Purpose**: IDE integration
 - **Implementation**: Custom Language Server Protocol server
@@ -106,3 +116,11 @@
 - Structured logging with verbosity levels
 - Automatic debug reports on errors
 - Interactive step-by-step execution
+
+### Python Utility Tools
+- **bump_version.py**: Script for managing version numbers across the codebase
+- **launch_msi_build.py**: Utility for creating Windows MSI installers
+- **rust_loc_counter.py**: Statistics tool for measuring code size and complexity
+- **wfl_config_checker.py**: External configuration validation tool
+- **wfl_md_combiner.py**: Documentation processor for combining markdown files
+- **test_bump_version.py**: Test suite for the version management system
