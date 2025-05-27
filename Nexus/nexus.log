@@ -1,2 +1,9 @@
 === Nexus WFL Integration Test Suite ===
 Starting Nexus WFL Integration Test Suite...
+Starting Arithmetic Tests...
+Addition test: PASS
+Subtraction test: PASS
+Multiplication test: PASS
+Division test: PASS
+Fractional division test: PASS
+Arithmetic Tests completed.
