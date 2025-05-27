@@ -111,17 +111,45 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
   # ------------------------------------------------------------
-  # BUILD JOB (Windows only)
+  # BUILD JOB (Matrix for CLI and Editor variants)
   # ------------------------------------------------------------
   build:
-    name: Build WFL for Windows
+    name: Build WFL ${{ matrix.name }} for ${{ matrix.os }}
     needs: check-for-changes
     if: needs.check-for-changes.outputs.should_build == 'true'
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CLI
+            os: windows-latest
+            features: ""
+            artifact_prefix: "wfl"
+            target_size: "4MB"
+            target: x86_64-pc-windows-msvc
+          - name: Editor
+            os: windows-latest
+            features: "--features editor"
+            artifact_prefix: "wfl-editor"
+            target_size: "12MB"
+            target: x86_64-pc-windows-msvc
+          - name: CLI
+            os: macos-latest
+            features: ""
+            artifact_prefix: "wfl"
+            target_size: "4MB"
+            target: x86_64-apple-darwin
+          - name: Editor
+            os: macos-latest
+            features: "--features editor"
+            artifact_prefix: "wfl-editor"
+            target_size: "12MB"
+            target: x86_64-apple-darwin
     env:
-      TARGET: x86_64-pc-windows-msvc
-      ARTIFACT_NAME: wfl-${{ needs.check-for-changes.outputs.version }}.msi
-      ARTIFACT_PATH: wfl-*.msi
+      TARGET: ${{ matrix.target }}
+      ARTIFACT_NAME: ${{ matrix.artifact_prefix }}-${{ needs.check-for-changes.outputs.version }}${{ matrix.name == 'Editor' && '+editor.0.1' || '' }}${{ matrix.os == 'windows-latest' && '.msi' || '' }}
+      ARTIFACT_PATH: ${{ matrix.artifact_prefix }}-*${{ matrix.os == 'windows-latest' && '.msi' || '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -134,10 +162,16 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      # ---------- macOS pkg-config setup ----------
+      - name: Install pkg-config (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew list pkg-config &>/dev/null || brew install pkg-config
+
       - name: Cache Cargo registry + target dir
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: ${{ env.TARGET }}
+          shared-key: ${{ matrix.os }}-${{ matrix.name }}
 
       # ---------- Platform‑specific packaging helpers ----------
       - name: Install packaging tools
@@ -171,11 +205,17 @@ jobs:
       # ---------- Build & test ----------
       - name: Build WFL and LSP
         run: |
-          cargo build --release --locked --target ${{ env.TARGET }} --bin wfl
+          cargo build --release --locked --target ${{ env.TARGET }} ${{ matrix.features }} --bin wfl
           cargo build --release --locked --target ${{ env.TARGET }} -p wfl-lsp --bin wfl-lsp
+          
+          # Build editor binary if needed
+          if [[ "${{ matrix.name }}" == "Editor" ]]; then
+            cargo build --release --locked --target ${{ env.TARGET }} ${{ matrix.features }} --bin wfl-editor
+          fi
+        shell: bash
 
       - name: Run tests
-        run: cargo test --release --locked --target ${{ env.TARGET }}
+        run: cargo test --release --locked --target ${{ env.TARGET }} ${{ matrix.features }}
 
       # ---------- Build VS Code Extension ----------
       - name: Setup Node.js
@@ -255,16 +295,55 @@ jobs:
             --output "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi" `
             -p wfl
 
-      # ---------- Verify MSI Created Successfully ----------
-      - name: Verify installer was created
+      # ---------- Create checksums ----------
+      - name: Create checksums (Linux/macOS)
+        if: matrix.os != 'windows-latest'
         run: |
-          $msiPath = "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi"
-          if (-not (Test-Path $msiPath)) {
-            Write-Host "::error::MSI installer not found at expected path: $msiPath"
-            exit 1
+          mkdir -p artifacts
+          cd target/${{ env.TARGET }}/release
+          
+          if [[ "${{ matrix.name }}" == "CLI" ]]; then
+            sha256sum wfl > ../../../artifacts/SHA256SUMS.txt
+          else
+            sha256sum wfl wfl-editor > ../../../artifacts/SHA256SUMS.txt
+          fi
+          cd ../../../
+          
+          # Sign checksums if GPG key is available
+          if [[ -n "$GPG_SIGNING_KEY" && -n "$GPG_PASSPHRASE" ]]; then
+            echo "$GPG_SIGNING_KEY" | base64 -d | gpg --import
+            echo "$GPG_PASSPHRASE" | gpg --passphrase-fd 0 --clearsign artifacts/SHA256SUMS.txt
+            mv artifacts/SHA256SUMS.txt.asc artifacts/SHA256SUMS.txt.asc
+          fi
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Create checksums (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          
+          if ("${{ matrix.name }}" -eq "CLI") {
+            $msiPath = "target/${{ env.TARGET }}/release/wfl-${{ needs.check-for-changes.outputs.version }}.msi"
+            if (-not (Test-Path $msiPath)) {
+              Write-Host "::error::MSI installer not found at expected path: $msiPath"
+              exit 1
+            }
+            $msiInfo = Get-Item $msiPath
+            Write-Host "MSI created successfully: $($msiInfo.Name), Size: $($msiInfo.Length) bytes"
+            Get-FileHash -Algorithm SHA256 $msiPath | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path.Split('\')[-1])" } | Out-File -Encoding utf8 -FilePath artifacts/SHA256SUMS.txt
+          } else {
+            $msiPath = "target/${{ env.TARGET }}/release/wfl-editor-${{ needs.check-for-changes.outputs.version }}+editor.0.1.msi"
+            if (-not (Test-Path $msiPath)) {
+              Write-Host "::error::Editor MSI installer not found at expected path: $msiPath"
+              exit 1
+            }
+            $msiInfo = Get-Item $msiPath
+            Write-Host "Editor MSI created successfully: $($msiInfo.Name), Size: $($msiInfo.Length) bytes"
+            Get-FileHash -Algorithm SHA256 $msiPath | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path.Split('\')[-1])" } | Out-File -Encoding utf8 -FilePath artifacts/SHA256SUMS.txt
           }
-          $msiInfo = Get-Item $msiPath
-          Write-Host "MSI created successfully: $($msiInfo.Name), Size: $($msiInfo.Length) bytes"
 
       # ---------- Smoke tests ----------
       - name: Smoke test installer
@@ -288,10 +367,25 @@ jobs:
           }
 
       # ---------- Upload artifacts ----------
-      - uses: actions/upload-artifact@v4
+      - name: Upload binaries (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_NAME }}
-          path: target/${{ env.TARGET }}/release/${{ env.ARTIFACT_PATH }}
+          path: |
+            target/${{ env.TARGET }}/release/wfl
+            ${{ matrix.name == 'Editor' && 'target/${{ env.TARGET }}/release/wfl-editor' || '' }}
+            artifacts/SHA256SUMS.*
+          if-no-files-found: error
+          
+      - name: Upload binaries (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: |
+            target/${{ env.TARGET }}/release/${{ env.ARTIFACT_PATH }}
+            artifacts/SHA256SUMS.*
           if-no-files-found: error
 
   # ------------------------------------------------------------
@@ -321,10 +415,19 @@ jobs:
       - name: Verify artifacts
         run: |
           echo "Verifying downloaded artifacts..."
+          
+          # Check for Windows MSI installers
           find artifacts -type f -name "*.msi" -exec ls -la {} \;
           
-          if [ $(find artifacts -type f -name "*.msi" | wc -l) -eq 0 ]; then
-            echo "::error::No MSI artifacts found in downloaded artifacts directory"
+          # Check for macOS binaries
+          find artifacts -type f -name "wfl" -o -name "wfl-editor" -exec ls -la {} \;
+          
+          # Check for checksums
+          find artifacts -type f -name "SHA256SUMS*" -exec ls -la {} \;
+          
+          # Verify we have at least some artifacts
+          if [ $(find artifacts -type f \( -name "*.msi" -o -name "wfl" -o -name "wfl-editor" \) | wc -l) -eq 0 ]; then
+            echo "::error::No artifacts found in downloaded artifacts directory"
             exit 1
           fi
 
@@ -351,6 +454,7 @@ jobs:
           Commit:  ${{ github.sha }}" \
             --prerelease
 
-          find artifacts -type f -name "*.msi" -exec gh release upload "$TAG" {} \;
+          # Upload all artifacts to the release
+          find artifacts -type f \( -name "*.msi" -o -name "wfl" -o -name "wfl-editor" -o -name "SHA256SUMS*" \) -exec gh release upload "$TAG" {} \;
           
-          echo "Release created successfully: $TAG"
+          echo "Release created successfully: $TAG with CLI and Editor variants"
