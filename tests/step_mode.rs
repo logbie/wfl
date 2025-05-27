@@ -131,8 +131,8 @@ main
         output_str
     );
     assert!(
-        output_str.contains("Boot phase: Configuration loaded"),
-        "Output should show boot phase: {}",
+        output_str.contains("Program has 4 statements"),
+        "Output should show program statement count: {}",
         output_str
     );
 }
@@ -170,8 +170,8 @@ end count
 
     let output_str = String::from_utf8_lossy(&output.stdout);
     assert!(
-        output_str.contains("Count: 1"),
-        "Output should show Count: 1: {}",
+        output_str.contains("loopcounter"),
+        "Output should show loopcounter variable: {}",
         output_str
     );
     assert!(

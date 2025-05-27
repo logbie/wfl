@@ -8,39 +8,6 @@ WFL is a programming language designed to be readable and intuitive, using natur
 
 WFL features a syntax that resembles English sentences, indentation-based structure, and modern programming concepts like containers (classes), actions (functions), and collections. The language is designed to be approachable for beginners while still being powerful enough for real-world applications.
 
-## Installation Options
-
-WFL offers two installation options to suit different needs:
-
-| Feature | CLI-only (Default) | CLI + Editor |
-|---------|-------------------|--------------|
-| Binary Size | ~2.5 MB | ~12 MB |
-| Compiler & Runtime | ✅ | ✅ |
-| REPL | ✅ | ✅ |
-| LSP Server | ✅ | ✅ |
-| Integrated Editor | ❌ | ✅ |
-| Git Integration | ❌ | ✅ |
-| Syntax Highlighting | ❌ | ✅ |
-| Live Diagnostics | ❌ | ✅ |
-
-### Building WFL
-
-```bash
-# Default CLI-only build (small binary, no GUI dependencies)
-cargo build --release
-
-# Full IDE build with integrated editor
-cargo build --release --features editor
-```
-
-### Integrated Editor
-
-The WFL editor provides a modern, integrated development environment with syntax highlighting, live diagnostics, and Git integration.
-
-![WFL Editor Screenshot](https://github.com/logbie/wfl/raw/main/docs/images/editor-screenshot.png)
-
-*Note: Screenshot will be added in a future update*
-
 ## Project Status
 
 The WFL compiler is currently in active development with most core components complete and stable. Here's the current status:
@@ -129,12 +96,8 @@ The combination of AI assistance with human oversight has allowed for rapid deve
    ```
 
 2. Build the project:
-   ```bash
-   # Default CLI-only build
+   ```
    cargo build --release
-   
-   # Or build with integrated editor
-   cargo build --release --features editor
    ```
 
 ### Usage
@@ -149,25 +112,6 @@ Or, after building:
 
 ```
 ./target/release/wfl path/to/your/program.wfl
-```
-
-To launch the integrated editor (if built with `--features editor`):
-
-```
-./target/release/wfl editor [path/to/file.wfl]
-```
-
-### Creating a New Project with Editor
-
-```bash
-# Create a new project with editor scaffolding
-wfl new myproject --with-editor
-
-# Navigate to the project
-cd myproject
-
-# Launch the editor
-wfl editor
 ```
 
 ### Development Tools

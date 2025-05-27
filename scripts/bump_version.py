@@ -9,14 +9,11 @@ import argparse
 
 # File paths
 BUILD_META_FILE = ".build_meta.json"
-VERSION_FILE = "crates/wfl_core/src/version.rs"
+VERSION_FILE = "src/version.rs"
 CARGO_TOML = "Cargo.toml"
-EDITOR_CARGO_TOML = "crates/wfl_editor/Cargo.toml"
 WIX_TOML = "wix.toml"
 VSCODE_EXTENSION_DIRS = ["vscode-extension", "vscode-wfl", "editors/vscode-wfl"]
 MODIFIED_FILES = []
-
-EDITOR_VERSION_SUFFIX = "+editor.0.1"
 
 def parse_args():
     """Parse command line arguments."""
@@ -24,7 +21,6 @@ def parse_args():
     parser.add_argument("--skip-bump", action="store_true", help="Skip incrementing the build number")
     parser.add_argument("--update-all", action="store_true", help="Update all version files")
     parser.add_argument("--update-wix-only", action="store_true", help="Only update wix.toml")
-    parser.add_argument("--update-editor-only", action="store_true", help="Only update editor version files")
     parser.add_argument("--skip-git", action="store_true", help="Skip git commit")
     parser.add_argument("--verbose", action="store_true", help="Show detailed output")
     return parser.parse_args()
@@ -105,30 +101,6 @@ def update_cargo_toml(version):
         f.write(new_content)
     
     MODIFIED_FILES.append(CARGO_TOML)
-    return True
-
-def update_editor_cargo_toml(version):
-    """Update version in editor Cargo.toml with editor suffix."""
-    if not os.path.exists(EDITOR_CARGO_TOML):
-        print(f"Warning: {EDITOR_CARGO_TOML} not found, skipping")
-        return False
-    
-    print(f"Updating {EDITOR_CARGO_TOML} with editor suffix...")
-    
-    with open(EDITOR_CARGO_TOML, "r") as f:
-        content = f.read()
-    
-    # Convert version to semver format with editor suffix for Cargo.toml
-    editor_version = f"{version}.0{EDITOR_VERSION_SUFFIX}"
-    
-    # Update package version
-    new_content = re.sub(r'(version = )"(\d+\.\d+\.\d+.*?)"', f'\\1"{editor_version}"', content, count=1)
-    
-    # Write updated content
-    with open(EDITOR_CARGO_TOML, "w") as f:
-        f.write(new_content)
-    
-    MODIFIED_FILES.append(EDITOR_CARGO_TOML)
     return True
 
 def update_wix_toml(version):
@@ -225,25 +197,15 @@ def main():
         print(f"Updated wix.toml with version {version}")
         return 0
     
-    if args.update_editor_only:
-        # Just get current version and update editor files
-        meta, version = get_current_version()
-        update_editor_cargo_toml(version)
-        print(f"Updated editor files with version {version}{EDITOR_VERSION_SUFFIX}")
-        return 0
-    
     # Bump the version in main files
     meta, version = bump_version(args.skip_bump)
     
     # Update additional files based on arguments
     if args.update_all:
         update_cargo_toml(version)
-        update_editor_cargo_toml(version)  # Always update editor with core
         update_vscode_extensions(version)
         update_wix_toml(version)
-        print(f"Updated all version references:")
-        print(f"  - Core: {version}")
-        print(f"  - Editor: {version}{EDITOR_VERSION_SUFFIX}")
+        print(f"Updated all version references to {version}")
     
     # Commit changes if needed
     if not args.skip_git:
