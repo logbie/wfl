@@ -76,6 +76,10 @@ impl WflDiagnostic {
 
         diagnostic
     }
+    
+    pub fn is_error(&self) -> bool {
+        self.severity == Severity::Error
+    }
 
     pub fn error(message: impl Into<String>) -> Self {
         WflDiagnostic {

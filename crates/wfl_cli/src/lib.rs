@@ -4,18 +4,18 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process;
 use wfl_core::Interpreter;
-use wfl_core::analyzer::{Analyzer, StaticAnalyzer};
+use wfl_core::analyzer::Analyzer;
 use wfl_core::config;
 use wfl_core::debug_report;
 use wfl_core::diagnostics::DiagnosticReporter;
-use wfl_core::fixer::{CodeFixer, FixerOutputMode};
+use wfl_core::fixer::CodeFixer;
 use wfl_core::lexer::lex_wfl_with_positions;
 use wfl_core::linter::Linter;
 use wfl_core::parser::Parser;
 use wfl_core::repl;
 use wfl_core::typechecker::TypeChecker;
 use wfl_core::wfl_config;
-use wfl_core::{error, exec_trace, info};
+use wfl_core::{error, exec_trace};
 
 pub fn print_help() {
     println!("WebFirst Language (WFL) Compiler and Interpreter");
