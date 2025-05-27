@@ -28,6 +28,8 @@ wfl_core = { path = "crates/wfl_core", default-features = false }
 default = ["cli"]  # editor deliberately opt-in to keep CLI binary tiny
 cli     = ["wfl_cli"]
 editor  = ["wfl_editor"]
+dhat-heap = ["dhat"]    # if you are doing heap profiling
+dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 
 [package.metadata.deb]
 assets = [
@@ -48,10 +50,6 @@ wfl_core = { path = "crates/wfl_core", version = "0.1.0" }
 rustyline = "12.0.0"
 log = "0.4.20"
 simplelog = "0.12.1"
-
-[features]
-dhat-heap = ["dhat"]    # if you are doing heap profiling
-dhat-ad-hoc = ["dhat"]  # if you are doing ad hoc profiling
 
 [dev-dependencies]
 tempfile = "3.19.1"
