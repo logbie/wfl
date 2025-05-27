@@ -665,10 +665,10 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
     let tokens_with_pos = lex_wfl_with_positions(&input);
     match Parser::new(&tokens_with_pos).parse() {
         Ok(program) => {
-            let mut analyzer = StaticAnalyzer::new();
+            let mut analyzer = Analyzer::new();
             let mut reporter = DiagnosticReporter::new();
             let file_id = reporter.add_file(&file_path, &input);
-            let diagnostics = analyzer.analyze(&program, file_id);
+            let diagnostics = analyzer.analyze_static(&program, file_id);
 
             let mut has_errors = false;
             if !diagnostics.is_empty() {
@@ -715,14 +715,11 @@ pub async fn run_cli(args: Vec<String>) -> io::Result<()> {
                 process::exit(2);
             }
 
-            let output_mode = if config.execution_logging {
+            if config.execution_logging {
                 let report_msg = format!("Execution report for {}", file_path);
                 debug_report::start_execution_report(&report_msg);
                 exec_trace!("Starting execution of {}", file_path);
-                FixerOutputMode::Verbose
-            } else {
-                FixerOutputMode::Silent
-            };
+            }
 
             let mut interpreter = Interpreter::new();
             interpreter.set_script_path(&file_path);

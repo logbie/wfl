@@ -128,6 +128,7 @@ pub struct Interpreter {
     #[allow(dead_code)]
     io_client: Rc<IoClient>,
     step_mode: bool, // Controls single-step execution mode
+    script_path: Option<String>, // Path to the script being executed
 }
 
 #[allow(dead_code)]
@@ -336,6 +337,7 @@ impl Interpreter {
             call_stack: RefCell::new(Vec::new()),
             io_client: Rc::new(IoClient::new()),
             step_mode: false, // Default to non-step mode
+            script_path: None, // No script path by default
         }
     }
 
@@ -476,6 +478,30 @@ impl Interpreter {
         Ok(Value::Null)
     }
 
+    pub fn set_script_path(&mut self, path: &str) {
+        self.script_path = Some(path.to_string());
+    }
+    
+    pub fn run_program(&mut self, program: &Program) -> Result<Value, RuntimeError> {
+        // Create a runtime for the async interpreter
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| RuntimeError::new(format!("Failed to create runtime: {}", e), 0, 0))?;
+            
+        match runtime.block_on(self.interpret(program)) {
+            Ok(value) => Ok(value),
+            Err(errors) => {
+                // Return the first error if there are any
+                if let Some(first_error) = errors.first() {
+                    Err(first_error.clone())
+                } else {
+                    Err(RuntimeError::new("Unknown error during execution".to_string(), 0, 0))
+                }
+            }
+        }
+    }
+    
     pub async fn interpret(&mut self, program: &Program) -> Result<Value, Vec<RuntimeError>> {
         self.assert_invariants();
         self.call_stack.borrow_mut().clear();
