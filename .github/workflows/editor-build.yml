@@ -1,0 +1,206 @@
+name: Editor Build
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: Build ${{ matrix.name }} (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: CLI
+            os: ubuntu-latest
+            features: ""
+            artifact: "wfl"
+            target_size: "4MB"
+          - name: Editor
+            os: ubuntu-latest
+            features: "--features editor"
+            artifact: "wfl + wfl-editor"
+            target_size: "12MB"
+          - name: CLI
+            os: windows-latest
+            features: ""
+            artifact: "wfl"
+            target_size: "4MB"
+          - name: Editor
+            os: windows-latest
+            features: "--features editor"
+            artifact: "wfl + wfl-editor"
+            target_size: "12MB"
+          - name: CLI
+            os: macos-latest
+            features: ""
+            artifact: "wfl"
+            target_size: "4MB"
+          - name: Editor
+            os: macos-latest
+            features: "--features editor"
+            artifact: "wfl + wfl-editor"
+            target_size: "12MB"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # ---------- Rust toolchain ----------
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      # ---------- macOS pkg-config setup ----------
+      - name: Install pkg-config (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          brew list pkg-config &>/dev/null || brew install pkg-config
+
+      # ---------- Cache ----------
+      - name: Cache Cargo registry + target dir
+        uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: ${{ matrix.os }}-${{ matrix.name }}
+
+      # ---------- Linting & Format Checking ----------
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run clippy
+        run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+
+      # ---------- Build & test ----------
+      - name: Build
+        run: cargo build --release ${{ matrix.features }}
+
+      - name: Run tests
+        run: cargo test --release ${{ matrix.features }}
+
+      # ---------- Size check ----------
+      - name: Check binary size (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          echo "Checking binary size for ${{ matrix.name }} build"
+          if [[ "${{ matrix.name }}" == "CLI" ]]; then
+            ls -lh target/release/wfl
+            size=$(du -h target/release/wfl | cut -f1)
+            echo "CLI binary size: $size (target: ${{ matrix.target_size }})"
+          else
+            ls -lh target/release/wfl target/release/wfl-editor
+            cli_size=$(du -h target/release/wfl | cut -f1)
+            editor_size=$(du -h target/release/wfl-editor | cut -f1)
+            echo "CLI binary size: $cli_size, Editor binary size: $editor_size (target: ${{ matrix.target_size }})"
+          fi
+
+      - name: Check binary size (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          Write-Host "Checking binary size for ${{ matrix.name }} build"
+          if ("${{ matrix.name }}" -eq "CLI") {
+            Get-Item target/release/wfl.exe | Select-Object Name, @{Name="Size(MB)";Expression={"{0:N2}" -f ($_.Length / 1MB)}}
+            $size = "{0:N2}" -f ((Get-Item target/release/wfl.exe).Length / 1MB)
+            Write-Host "CLI binary size: ${size}MB (target: ${{ matrix.target_size }})"
+          } else {
+            Get-Item target/release/wfl.exe, target/release/wfl-editor.exe | Select-Object Name, @{Name="Size(MB)";Expression={"{0:N2}" -f ($_.Length / 1MB)}}
+            $cliSize = "{0:N2}" -f ((Get-Item target/release/wfl.exe).Length / 1MB)
+            $editorSize = "{0:N2}" -f ((Get-Item target/release/wfl-editor.exe).Length / 1MB)
+            Write-Host "CLI binary size: ${cliSize}MB, Editor binary size: ${editorSize}MB (target: ${{ matrix.target_size }})"
+          }
+
+      # ---------- Create artifacts ----------
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Create checksums (Linux/macOS)
+        if: matrix.os != 'windows-latest'
+        run: |
+          cd target/release
+          if [[ "${{ matrix.name }}" == "CLI" ]]; then
+            sha256sum wfl > ../../artifacts/SHA256SUMS.txt
+          else
+            sha256sum wfl wfl-editor > ../../artifacts/SHA256SUMS.txt
+          fi
+          cd ../..
+          
+          # Sign checksums if GPG key is available
+          if [[ -n "$GPG_SIGNING_KEY" && -n "$GPG_PASSPHRASE" ]]; then
+            echo "$GPG_SIGNING_KEY" | base64 -d | gpg --import
+            echo "$GPG_PASSPHRASE" | gpg --passphrase-fd 0 --clearsign artifacts/SHA256SUMS.txt
+            mv artifacts/SHA256SUMS.txt.asc artifacts/SHA256SUMS.txt.asc
+          fi
+        env:
+          GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Create checksums (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cd target/release
+          if ("${{ matrix.name }}" -eq "CLI") {
+            Get-FileHash -Algorithm SHA256 wfl.exe | ForEach-Object { "$($_.Hash.ToLower())  wfl.exe" } | Out-File -Encoding utf8 -FilePath ../../artifacts/SHA256SUMS.txt
+          } else {
+            Get-FileHash -Algorithm SHA256 wfl.exe, wfl-editor.exe | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path.Split('\')[-1])" } | Out-File -Encoding utf8 -FilePath ../../artifacts/SHA256SUMS.txt
+          }
+
+      # ---------- Upload artifacts ----------
+      - name: Upload CLI binary (Linux/macOS)
+        if: matrix.name == 'CLI' && matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wfl-${{ matrix.os }}
+          path: target/release/wfl
+          if-no-files-found: error
+
+      - name: Upload Editor binaries (Linux/macOS)
+        if: matrix.name == 'Editor' && matrix.os != 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wfl-editor-${{ matrix.os }}
+          path: |
+            target/release/wfl
+            target/release/wfl-editor
+          if-no-files-found: error
+
+      - name: Upload CLI binary (Windows)
+        if: matrix.name == 'CLI' && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wfl-${{ matrix.os }}
+          path: target/release/wfl.exe
+          if-no-files-found: error
+
+      - name: Upload Editor binaries (Windows)
+        if: matrix.name == 'Editor' && matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: wfl-editor-${{ matrix.os }}
+          path: |
+            target/release/wfl.exe
+            target/release/wfl-editor.exe
+          if-no-files-found: error
+
+      - name: Upload checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums-${{ matrix.name }}-${{ matrix.os }}
+          path: artifacts/SHA256SUMS.*
+          if-no-files-found: error
