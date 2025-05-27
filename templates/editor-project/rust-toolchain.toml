@@ -1,0 +1,4 @@
+[toolchain]
+channel = "1.76.0"  # Minimum Supported Rust Version (MSRV) for WFL
+components = ["rustfmt", "clippy"]
+profile = "minimal"

@@ -1,0 +1,23 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# WFL editor cache
+/wfl-editor-cache/
+/dist/
+
+# Editor-specific files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# WFL output files
+*.wfl.lex.txt
+*.wfl.ast.txt
+*.wfl.ir.txt
+
+# Logs
+*.log
