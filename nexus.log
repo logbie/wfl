@@ -15,3 +15,10 @@ Single-line if/then/otherwise test: PASS
 Control Flow (If/Else) Tests completed.
 Starting Loop Tests...
 Count loop test (1 to 5 sum): PASS
+While loop test (1 to 5 sum): PASS
+Debug: Adding odd number 1 to total_odds
+Debug: Skipping even number 2
+Debug: Adding odd number 3 to total_odds
+Debug: Skipping even number 4
+Debug: Adding odd number 5 to total_odds
+Loop continue/skip test (sum of odds 1-5): PASS
