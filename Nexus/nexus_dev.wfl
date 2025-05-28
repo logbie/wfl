@@ -199,3 +199,68 @@ check if total_odds is equal to 9:
 otherwise:
     log_message with "Loop continue/skip test (expected 9, got " with total_odds with "): FAIL"
 end check
+
+// 4.5 Repeat-Until Loop test (do-while equivalent)
+store count3 as 1
+store sum_repeat as 0
+repeat:
+    change sum_repeat to sum_repeat plus count3
+    change count3 to count3 plus 1
+until count3 is greater than 5
+end repeat
+// Loop executes until count3 > 5, so it runs for count3=1..5, sum_repeat = 15
+check if sum_repeat is equal to 15:
+    log_message with "Repeat-until loop test (1 to 5 sum): PASS"
+otherwise:
+    log_message with "Repeat-until loop test (expected 15, got " with sum_repeat with "): FAIL"
+end check
+
+// 4.6 Forever Loop test (infinite loop with break)
+store k as 0
+repeat forever:
+    change k to k plus 1
+    check if k is equal to 5:
+        break    // break out of the forever loop when k == 5
+    end check
+end repeat
+check if k is equal to 5:
+    log_message with "Forever loop with break test: PASS"
+otherwise:
+    log_message with "Forever loop with break test: FAIL (k = " with k with ")"
+end check
+
+// 4.7 Nested Loop Break vs Exit test
+store break_outer_counter as 0
+count from 1 to 3:
+    count from 1 to 3:
+        check if count is equal to 2:
+            break    // breaks inner loop only
+        end check
+    end count
+    change break_outer_counter to break_outer_counter plus 1
+end count
+// After using 'break', outer loop should still complete all 3 iterations
+check if break_outer_counter is equal to 3:
+    log_message with "Nested loop 'break' test: PASS"
+otherwise:
+    log_message with "Nested loop 'break' test: FAIL (outer iterations = " with break_outer_counter with ")"
+end check
+
+store exit_outer_counter as 0
+count from 1 to 3:
+    count from 1 to 3:
+        check if count is equal to 2:
+            exit loop   // exit the outer loop entirely
+        end check
+    end count
+    // Only increment outer counter if loop wasn't exited
+    change exit_outer_counter to exit_outer_counter plus 1
+end count
+// 'exit loop' should break out of the outer loop on the first iteration when inner count == 2
+check if exit_outer_counter is equal to 0:
+    log_message with "Nested loop 'exit' test: PASS"
+otherwise:
+    log_message with "Nested loop 'exit' test: FAIL (outer iterations = " with exit_outer_counter with ")"
+end check
+
+log_message with "Loop Tests completed."
