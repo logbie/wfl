@@ -264,3 +264,19 @@ otherwise:
 end check
 
 log_message with "Loop Tests completed."
+
+///////////////////////////////////////////////////////////////////////////
+// 5. Action (Function) Definition and Call Tests
+///////////////////////////////////////////////////////////////////////////
+log_message with "Starting Action/Function Tests..."
+
+// Define actions to test various features
+
+// 5.1 No-parameter action (side effect)
+define action called greet:
+    // Simply display a greeting (side-effect)
+    display "Hello, World from WFL!"
+end action
+
+// Call the greet action
+greet

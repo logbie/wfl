@@ -22,3 +22,9 @@ Debug: Adding odd number 3 to total_odds
 Debug: Skipping even number 4
 Debug: Adding odd number 5 to total_odds
 Loop continue/skip test (sum of odds 1-5): PASS
+Repeat-until loop test (1 to 5 sum): PASS
+Forever loop with break test: PASS
+Nested loop 'break' test: PASS
+Nested loop 'exit' test: PASS
+Loop Tests completed.
+Starting Action/Function Tests...
