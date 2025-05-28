@@ -1,1 +1,8 @@
-16:07:53.4241697 [INFO] WFL execution logging initialized at 2025-05-28 11:07:53 - ./Nexus\wfl_exec.log
+16:22:16.6563286 [INFO] WFL execution logging initialized at 2025-05-28 11:22:16 - Nexus\wfl_exec.log
+16:22:16.6571194 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function greet
+16:22:16.6572696 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function greet
+16:22:16.6574491 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: greet_person("John")
+16:22:16.6575103 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2182] EXEC: Declaration: 'name' = "John"
+16:22:16.6575592 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function greet_person
+16:22:16.6577027 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function greet_person
+16:22:16.6577529 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: greet_person = null

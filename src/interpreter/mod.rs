@@ -783,6 +783,19 @@ impl Interpreter {
                 line: _line,
                 column: _column,
             } => {
+                // Check if this is a bare action call (just the action name without parentheses)
+                if let Expression::Variable(name, var_line, var_column) = expression {
+                    // Check if the variable refers to an action
+                    if let Some(Value::Function(func)) = env.borrow().get(name) {
+                        // It's an action, so execute it as a call with no arguments
+                        #[cfg(debug_assertions)]
+                        exec_trace!("Executing bare action call: {}", name);
+                        return self.call_function(&func, vec![], *var_line, *var_column).await
+                            .map(|value| (value, ControlFlow::None));
+                    }
+                }
+                
+                // Regular expression evaluation
                 let value = self
                     .evaluate_expression(expression, Rc::clone(&env))
                     .await?;
