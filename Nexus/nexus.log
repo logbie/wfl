@@ -17,3 +17,4 @@ Starting Loop Tests...
 Count loop test (1 to 5 sum): PASS
 While loop test (1 to 5 sum): PASS
 Loop continue/skip test (expected 9, got 0): FAIL
+Starting Nexus WFL Integration Test Suite...\n

@@ -106,8 +106,34 @@ impl StaticAnalyzer for Analyzer {
     fn analyze_static(&mut self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
 
+        // Collect all action parameters to filter out errors related to them
+        let mut action_parameters = HashSet::new();
+        for statement in &program.statements {
+            if let Statement::ActionDefinition { parameters, .. } = statement {
+                for param in parameters {
+                    // Handle space-separated parameter names (e.g., "label expected actual")
+                    for part in param.name.split_whitespace() {
+                        action_parameters.insert(part.to_string());
+                    }
+                }
+            }
+        }
+
         if let Err(errors) = self.analyze(program) {
             for error in errors {
+                // Skip errors about undefined variables that are actually action parameters
+                if error.message.starts_with("Variable '") && error.message.ends_with("' is not defined") {
+                    // Extract the variable name from the error message
+                    let var_name = error.message
+                        .trim_start_matches("Variable '")
+                        .trim_end_matches("' is not defined");
+                    
+                    // Skip this error if the variable is an action parameter
+                    if action_parameters.contains(var_name) {
+                        continue;
+                    }
+                }
+                
                 diagnostics.push(WflDiagnostic::new(
                     Severity::Error,
                     error.message.clone(),
@@ -134,7 +160,20 @@ impl StaticAnalyzer for Analyzer {
     fn check_unused_variables(&self, program: &Program, file_id: usize) -> Vec<WflDiagnostic> {
         let mut diagnostics = Vec::new();
         let mut variable_usages = HashMap::new();
+        let mut action_parameters = HashMap::new();
 
+        // First, collect all action parameters separately
+        for statement in &program.statements {
+            if let Statement::ActionDefinition { name, parameters, .. } = statement {
+                let mut param_names = HashSet::new();
+                for param in parameters {
+                    param_names.insert(param.name.clone());
+                }
+                action_parameters.insert(name.clone(), param_names);
+            }
+        }
+
+        // Then collect all variable declarations
         for statement in &program.statements {
             self.collect_variable_declarations(statement, &mut variable_usages);
         }
@@ -150,6 +189,32 @@ impl StaticAnalyzer for Analyzer {
         // In the second pass, mark all used variables in other statements
         for statement in &program.statements {
             self.mark_used_variables(statement, &mut variable_usages);
+        }
+
+        // Special handling for action parameters - mark them as used
+        for statement in &program.statements {
+            // Look for ExpressionStatement that might contain ActionCall
+            if let Statement::ExpressionStatement { expression, .. } = statement {
+                if let Expression::ActionCall { name, arguments, .. } = expression {
+                    // If this is an action call, mark all parameters of that action as used
+                    if let Some(params) = action_parameters.get(name) {
+                        for param_name in params {
+                            if let Some(usage) = variable_usages.get_mut(param_name) {
+                                usage.used = true;
+                            }
+                        }
+                    }
+                    
+                    // Also mark all arguments as used
+                    for arg in arguments {
+                        if let Expression::Variable(var_name, ..) = &arg.value {
+                            if let Some(usage) = variable_usages.get_mut(var_name) {
+                                usage.used = true;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         for (name, usage) in variable_usages {
@@ -292,20 +357,36 @@ impl Analyzer {
             Statement::ActionDefinition {
                 parameters, body, ..
             } => {
+                // Create a new scope for the action
+                let mut action_scope = HashMap::new();
+                
+                // Add all parameters to the action scope and mark them as used by default
                 for param in parameters {
-                    usages.insert(
-                        param.name.clone(),
-                        VariableUsage {
-                            name: param.name.clone(),
-                            defined_at: (0, 0), // We don't have line/column for parameters yet
-                            used: false,
-                        },
-                    );
+                    // Handle space-separated parameter names (e.g., "label expected actual")
+                    for part in param.name.split_whitespace() {
+                        action_scope.insert(
+                            part.to_string(),
+                            VariableUsage {
+                                name: part.to_string(),
+                                defined_at: (0, 0), // We don't have line/column for parameters yet
+                                used: true, // Mark parameters as used by default - they're part of the function signature
+                            },
+                        );
+                    }
                 }
-
+                
+                // Collect variable declarations in the action body
                 for stmt in body {
-                    self.collect_variable_declarations(stmt, usages);
+                    self.collect_variable_declarations(stmt, &mut action_scope);
                 }
+                
+                // Merge the action scope with the global scope
+                for (name, usage) in action_scope {
+                    usages.insert(name, usage);
+                }
+                
+                // Skip the normal body processing since we've already done it
+                return;
             }
             Statement::IfStatement {
                 then_block,
@@ -458,7 +539,31 @@ impl Analyzer {
                 self.mark_used_in_expression(file, usages);
             }
             Statement::WaitForStatement { inner, .. } => {
+                // Mark variables used in the inner statement
                 self.mark_used_variables(inner, usages);
+                
+                // Special handling for wait statements with I/O operations
+                match &**inner {
+                    Statement::OpenFileStatement { path, variable_name, .. } => {
+                        self.mark_used_in_expression(path, usages);
+                        // Mark the variable_name as used
+                        if let Some(usage) = usages.get_mut(variable_name) {
+                            usage.used = true;
+                        }
+                    },
+                    Statement::ReadFileStatement { path, variable_name, .. } => {
+                        self.mark_used_in_expression(path, usages);
+                        // Mark the variable_name as used
+                        if let Some(usage) = usages.get_mut(variable_name) {
+                            usage.used = true;
+                        }
+                    },
+                    Statement::WriteFileStatement { file, content, .. } => {
+                        self.mark_used_in_expression(file, usages);
+                        self.mark_used_in_expression(content, usages);
+                    },
+                    _ => {}
+                }
             }
             _ => {}
         }
@@ -494,11 +599,34 @@ impl Analyzer {
                 }
             }
             Expression::ActionCall {
+                name,
                 arguments,
                 ..
             } => {
+                // Mark the action name as used
+                if let Some(usage) = usages.get_mut(name) {
+                    usage.used = true;
+                }
+                
+                // Mark all arguments as used
                 for arg in arguments {
+                    // If the argument has a name, mark it as used
+                    if let Some(arg_name) = &arg.name {
+                        if let Some(usage) = usages.get_mut(arg_name) {
+                            usage.used = true;
+                        }
+                    }
+                    
+                    // Mark variables used in the argument value
                     self.mark_used_in_expression(&arg.value, usages);
+                    
+                    // Special case: If the argument is a variable, mark it as used
+                    // This handles cases like `the_action` in `assert_throws`
+                    if let Expression::Variable(var_name, ..) = &arg.value {
+                        if let Some(usage) = usages.get_mut(var_name) {
+                            usage.used = true;
+                        }
+                    }
                 }
             }
             Expression::MemberAccess { object, .. } => {
@@ -513,6 +641,20 @@ impl Analyzer {
             Expression::Concatenation { left, right, .. } => {
                 self.mark_used_in_expression(left, usages);
                 self.mark_used_in_expression(right, usages);
+                
+                // Special handling for variables in concatenation expressions
+                // This handles cases like "store updatedLog as currentLog with message_text with "\n""
+                if let Expression::Variable(var_name, ..) = &**left {
+                    if let Some(usage) = usages.get_mut(var_name) {
+                        usage.used = true;
+                    }
+                }
+                
+                if let Expression::Variable(var_name, ..) = &**right {
+                    if let Some(usage) = usages.get_mut(var_name) {
+                        usage.used = true;
+                    }
+                }
             }
             Expression::PatternMatch { text, pattern, .. }
             | Expression::PatternFind { text, pattern, .. }
