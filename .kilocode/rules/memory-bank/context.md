@@ -85,6 +85,11 @@ This principle has led to several recent improvements:
 - Automated installers for Windows (MSI), Linux (deb/tar.gz), and macOS (pkg)
 - Skip-if-unchanged logic to avoid unnecessary builds
 
+### Development Workflow Clarification (June 2025)
+- Updated documentation to clarify that developers should use `cargo run -- [flags]` instead of `wfl [flags]` during development
+- This ensures developers are testing their current code changes rather than the installed version of WFL
+- Added examples in technical documentation for common development commands
+
 ## Current Challenges
 
 1. **Async Operations**:

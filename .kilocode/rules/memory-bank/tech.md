@@ -27,8 +27,9 @@
 1. Clone the repository: `git clone https://github.com/logbie/wfl.git`
 2. Install Rust (latest stable): `rustup update stable`
 3. Build the project: `cargo build`
-4. Run tests: `cargo test`
-5. Install VSCode extension: `scripts/install_vscode_extension.ps1`
+4. Run the project: `cargo run -- [flags] [file]` (use this instead of `wfl` during development)
+5. Run tests: `cargo test`
+6. Install VSCode extension: `scripts/install_vscode_extension.ps1`
 
 ## Build System
 
@@ -102,6 +103,10 @@
 - **--step**: Interactive step-by-step execution for debugging
 - **--configCheck**: Validate `.wflcfg` files for correctness
 - **--configFix**: Auto-repair common configuration issues
+
+**Note**: During development, use `cargo run -- [flags]` instead of just `wfl [flags]`. For example:
+- `cargo run -- --lex script.wfl` instead of `wfl --lex script.wfl`
+- `cargo run -- --analyze script.wfl` instead of `wfl --analyze script.wfl`
 
 ### LSP Server
 - **Purpose**: IDE integration
