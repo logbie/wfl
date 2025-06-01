@@ -13,3 +13,17 @@
 - Status: SUCCESS
 - Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.30.msi`
 
+
+## MSI Build - 12:40:07
+
+- Version: 2025.30
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.30.msi`
+
+
+## MSI Build - 12:51:47
+
+- Version: 2025.30
+- Status: SUCCESS
+- Output: `target/x86_64-pc-windows-msvc/release/wfl-2025.30.msi`
+

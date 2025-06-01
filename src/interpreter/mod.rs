@@ -2171,7 +2171,7 @@ impl Interpreter {
         let call_env = Environment::new_child_env(&func_env);
         exec_trace!("call_function - Created child environment for function call");
 
-        for (_i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
+        for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
             exec_trace!(
                 "call_function - Binding parameter {} '{}' to argument {:?}",
                 i,

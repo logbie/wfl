@@ -25,7 +25,7 @@ fn print_help() {
     println!();
     println!("FLAGS:");
     println!("    --help             Prints this help information");
-    println!("    --version          Prints the version information");
+    println!("    --version, -v      Prints the version information");
     println!("    --lint             Run the linter on the specified file");
     println!("    --lint --fix       Apply auto-fixes after linting");
     println!("        --in-place     Overwrite the file in place");
@@ -74,9 +74,12 @@ async fn main() -> io::Result<()> {
         return Ok(());
     }
 
-    if args.len() >= 2 && args[1] == "--version" {
-        println!("WebFirst Language (WFL) version {}", wfl::version::VERSION);
-        return Ok(());
+    // Check for version flag anywhere in the arguments
+    for arg in &args[1..] {
+        if arg == "--version" || arg == "-v" {
+            println!("WebFirst Language (WFL) version {}", wfl::version::VERSION);
+            return Ok(());
+        }
     }
 
     let mut lint_mode = false;
@@ -232,6 +235,10 @@ async fn main() -> io::Result<()> {
                 }
                 step_mode = true;
                 i += 1;
+            }
+            "--version" | "-v" => {
+                println!("WebFirst Language (WFL) version {}", wfl::version::VERSION);
+                return Ok(());
             }
             _ => {
                 if file_path.is_empty() {
