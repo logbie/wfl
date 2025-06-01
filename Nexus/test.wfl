@@ -1,9 +1,44 @@
-// 5.1 No-parameter action (side effect)
-define action called greet:
-    // Simply display a greeting (side-effect)
-    display "Hello, World from WFL!"
+///////////////////////////////////////////////////////////////////////////
+// 5. Action (Function) Definition and Call Tests – with file logging
+///////////////////////////////////////////////////////////////////////////
+
+// ---------------------------------------------------------------------
+// 5.0  Logging helper (MUST come first)
+// ---------------------------------------------------------------------
+// Open the log file (will be truncated/created anew)
+open file at "nexus.log" as logHandle
+
+// Helper: Append a message line to the log file (read current content, add message, write back)
+define action called log_message needs message_text:
+    // Read current log content
+    wait for open file at "nexus.log" and read content as currentLog
+    // Append new message (with newline) to current content
+    store updatedLog as currentLog with message_text with "\n"
+    // Write updated content back to log file
+    wait for write content updatedLog into logHandle
 end action
 
-// Call the greet action
-display "Calling greet action..."
-greet // This should display "Hello, World from WFL!"
+// Log the start of the test suite
+log_message with "Starting Nexus WFL Integration Test Suite..."
+
+// ---------------------------------------------------------------------
+// 5.A  Tiny assertion helpers
+// ---------------------------------------------------------------------
+define action called assert_equal needs label expected actual:
+    check if expected is equal to actual:
+        log_message with label with ": PASS"
+    otherwise:
+        log_message with label with ": FAIL (expected " with expected with ", got " with actual with ")"
+    end check
+end action
+
+define action called assert_throws needs label the_action:
+    try:
+        the_action
+        log_message with label with ": FAIL (no error thrown)"
+    when error:
+        log_message with label with ": PASS (caught " with error with ")"
+    end try
+end action
+
+

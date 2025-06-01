@@ -1,57 +1,7 @@
-16:43:17.6744694 [INFO] WFL execution logging initialized at 2025-05-24 11:43:17 - wfl_exec.log
-16:43:17.6745896 [DEBUG] (1) wfl: [src\main.rs:622] EXEC: Parsing and executing script...
-16:43:17.6746581 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1481] EXEC: Parsing action definition
-16:43:17.6747005 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1484] EXEC: Expecting 'action' after 'define'
-16:43:17.6747649 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1487] EXEC: Expecting 'called' after 'action'
-16:43:17.674804 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1490] EXEC: Expecting identifier after 'called'
-16:43:17.6748436 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1493] EXEC: Found action name: test_action
-16:43:17.6748814 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:1519] EXEC: Action name parsed: test_action
-16:43:17.6749524 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:41] EXEC: Consuming orphaned 'end action' at line 15
-16:43:17.6749906 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:47] EXEC: Consuming orphaned 'end check' at line 16
-16:43:17.6750281 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:59] EXEC: Consuming orphaned 'end count' at line 17
-16:43:17.6750656 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:53] EXEC: Consuming orphaned 'end for' at line 18
-16:43:17.6751033 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:83] EXEC: Consuming orphaned 'end while' at line 19
-16:43:17.6751407 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:65] EXEC: Consuming orphaned 'end repeat' at line 20
-16:43:17.6751785 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:71] EXEC: Consuming orphaned 'end try' at line 21
-16:43:17.6752161 [DEBUG] (1) wfl::parser: [src\parser\mod.rs:77] EXEC: Consuming orphaned 'end loop' at line 22
-16:43:17.6752541 [DEBUG] (1) wfl: [src\main.rs:626] EXEC: AST: [large output suppressed]
-16:43:17.6752938 [DEBUG] (1) wfl: [src\main.rs:627] EXEC: Program has 3 statements
-16:43:17.6754431 [DEBUG] (1) wfl: [src\main.rs:638] EXEC: Semantic analysis passed.
-16:43:17.6755703 [DEBUG] (1) wfl: [src\main.rs:647] EXEC: Type checking completed.
-16:43:17.6756143 [DEBUG] (1) wfl: [src\main.rs:649] EXEC: Script directory: ""
-16:43:17.6756509 [DEBUG] (1) wfl: [src\main.rs:650] EXEC: Timeout seconds: 60
-16:43:17.6756872 [DEBUG] (1) wfl: [src\main.rs:653] EXEC: Starting execution of script: test_end_simple.wfl
-16:43:17.6760245 [DEBUG] (1) wfl: [src\main.rs:669] EXEC: Program contains 3 statements
-16:43:17.676077 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:461] EXEC: Starting script execution with 3 statements...
-16:43:17.6761156 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:466] EXEC: === Starting program execution ===
-16:43:17.6761537 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 1/3...
-16:43:17.6761903 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 1/3
-16:43:17.6762361 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: ActionDefinition 'test_action'
-16:43:17.6763099 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 1/3 completed successfully
-16:43:17.6763466 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 2/3...
-16:43:17.6763831 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 2/3
-16:43:17.6764196 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: IfStatement
-16:43:17.6764601 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC: Evaluating expression: BooleanLiteral true
-16:43:17.6765107 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:641] EXEC: Control flow: if condition = true
-16:43:17.6765534 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:647] EXEC:   ┌─ Block entry: if branch
-16:43:17.6765925 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1363] EXEC:   Executing block of 1 statements
-16:43:17.6766526 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:     Executing statement: DisplayStatement
-16:43:17.6767255 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC:     Evaluating expression: StringLiteral "in check"
-16:43:17.6768985 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:650] EXEC:   └─ Block exit: if branch
-16:43:17.6769629 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 2/3 completed successfully
-16:43:17.6770028 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:474] EXEC: Executing statement 3/3...
-16:43:17.6770398 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:480] EXEC: Executing statement 3/3
-16:43:17.6770777 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC: Executing statement: CountLoop
-16:43:17.6771208 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC: Evaluating expression: IntegerLiteral 1
-16:43:17.6771602 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC: Evaluating expression: IntegerLiteral 3
-16:43:17.6772085 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1363] EXEC: Executing block of 1 statements
-16:43:17.677246 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:   Executing statement: DisplayStatement
-16:43:17.6772864 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC:   Evaluating expression: Variable 'count'
-16:43:17.677431 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1363] EXEC: Executing block of 1 statements
-16:43:17.6774695 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:   Executing statement: DisplayStatement
-16:43:17.6775078 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC:   Evaluating expression: Variable 'count'
-16:43:17.6777039 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1363] EXEC: Executing block of 1 statements
-16:43:17.6777536 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:560] EXEC:   Executing statement: DisplayStatement
-16:43:17.6777932 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1382] EXEC:   Evaluating expression: Variable 'count'
-16:43:17.6779364 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:501] EXEC: Statement 3/3 completed successfully
-16:43:17.6779942 [DEBUG] (1) wfl: [src\main.rs:677] EXEC: Execution completed successfully. Result: null
+17:10:37.1681352 [INFO] WFL execution logging initialized at 2025-06-01 12:10:37 - wfl_exec.log
+17:10:37.1701773 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
+17:10:37.1702404 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2182] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
+17:10:37.1702883 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function log_message
+17:10:37.1706734 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'updatedLog' = "square(-3): PASSStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\n"
+17:10:37.1709275 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function log_message
+17:10:37.1709834 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: log_message = null

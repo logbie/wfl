@@ -1880,12 +1880,12 @@ impl<'a> Parser<'a> {
             if matches!(token.token, Token::KeywordNeeds)
                 || matches!(token.token, Token::KeywordWith)
             {
-                let keyword = if matches!(token.token, Token::KeywordNeeds) {
+                let _keyword = if matches!(token.token, Token::KeywordNeeds) {
                     "needs"
                 } else {
                     "with"
                 };
-                exec_trace!("Found '{}' keyword, parsing parameters", keyword);
+                exec_trace!("Found '{}' keyword, parsing parameters", _keyword);
                 self.tokens.next(); // Consume "needs" or "with"
 
                 while let Some(token) = self.tokens.peek().cloned() {

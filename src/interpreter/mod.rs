@@ -819,7 +819,7 @@ impl Interpreter {
                 *self.current_count.borrow_mut() = None;
                 *self.in_count_loop.borrow_mut() = false;
 
-                crate::exec_trace_always!("Count loop: resetting state before evaluation");
+                crate::exec_trace!("Count loop: resetting state before evaluation");
 
                 let start_val = self.evaluate_expression(start, Rc::clone(&env)).await?;
                 let end_val = self.evaluate_expression(end, Rc::clone(&env)).await?;
@@ -2171,7 +2171,7 @@ impl Interpreter {
         let call_env = Environment::new_child_env(&func_env);
         exec_trace!("call_function - Created child environment for function call");
 
-        for (i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
+        for (_i, (param, arg)) in func.params.iter().zip(args.clone()).enumerate() {
             exec_trace!(
                 "call_function - Binding parameter {} '{}' to argument {:?}",
                 i,
