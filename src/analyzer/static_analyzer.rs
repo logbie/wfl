@@ -203,12 +203,14 @@ impl StaticAnalyzer for Analyzer {
         // Special handling for action parameters - mark them as used
         for statement in &program.statements {
             // Look for ExpressionStatement that might contain ActionCall
-            if let Statement::ExpressionStatement { 
-                expression: Expression::ActionCall {
-                    name, arguments, ..
-                }, 
-                .. 
-            } = statement {
+            if let Statement::ExpressionStatement {
+                expression:
+                    Expression::ActionCall {
+                        name, arguments, ..
+                    },
+                ..
+            } = statement
+            {
                 // If this is an action call, mark all parameters of that action as used
                 if let Some(params) = action_parameters.get(name) {
                     for param_name in params {
