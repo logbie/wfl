@@ -101,7 +101,7 @@ impl TypeChecker {
             errors: Vec::new(),
         }
     }
-    
+
     /// Create a new TypeChecker with an existing Analyzer
     /// This allows sharing action parameters between the analyzer and type checker
     pub fn with_analyzer(analyzer: Analyzer) -> Self {
@@ -110,7 +110,7 @@ impl TypeChecker {
             errors: Vec::new(),
         }
     }
-    
+
     /// Get the action parameters from the analyzer
     pub fn get_action_parameters(&self) -> &std::collections::HashSet<String> {
         self.analyzer.get_action_parameters()

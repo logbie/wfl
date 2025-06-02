@@ -746,7 +746,6 @@ impl Interpreter {
                 column,
             } => {
                 let param_names: Vec<String> = parameters.iter().map(|p| p.name.clone()).collect();
-    
 
                 let function = FunctionValue {
                     name: Some(name.clone()),
@@ -791,11 +790,13 @@ impl Interpreter {
                         // It's an action, so execute it as a call with no arguments
                         #[cfg(debug_assertions)]
                         exec_trace!("Executing bare action call: {}", name);
-                        return self.call_function(&func, vec![], *var_line, *var_column).await
+                        return self
+                            .call_function(&func, vec![], *var_line, *var_column)
+                            .await
                             .map(|value| (value, ControlFlow::None));
                     }
                 }
-                
+
                 // Regular expression evaluation
                 let value = self
                     .evaluate_expression(expression, Rc::clone(&env))
@@ -1918,7 +1919,10 @@ impl Interpreter {
                         }
 
                         #[cfg(debug_assertions)]
-                        let func_name = func.name.clone().unwrap_or_else(|| "<anonymous>".to_string());
+                        let func_name = func
+                            .name
+                            .clone()
+                            .unwrap_or_else(|| "<anonymous>".to_string());
 
                         #[cfg(debug_assertions)]
                         exec_function_call!(&func_name, &arg_values);
@@ -2133,7 +2137,6 @@ impl Interpreter {
             .unwrap_or_else(|| "<anonymous>".to_string());
 
         if args.len() != func.params.len() {
-
             return Err(RuntimeError::new(
                 format!(
                     "Expected {} arguments but got {}",
@@ -2171,7 +2174,7 @@ impl Interpreter {
                 param,
                 arg
             );
-            
+
             #[cfg(debug_assertions)]
             exec_var_declare!(param, &arg);
             call_env.borrow_mut().define(param, arg.clone());

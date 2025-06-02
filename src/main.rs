@@ -649,32 +649,38 @@ async fn main() -> io::Result<()> {
                 if let Err(errors) = tc.check_types(&program) {
                     // Filter out errors for action parameters
                     let action_params = tc.get_action_parameters();
-                    let filtered_errors: Vec<_> = errors.into_iter()
+                    let filtered_errors: Vec<_> = errors
+                        .into_iter()
                         .filter(|e| {
                             // Check if this is an undefined variable error for an action parameter
-                            if e.message.starts_with("Variable '") && e.message.ends_with("' is not defined") {
-                                let var_name = e.message
+                            if e.message.starts_with("Variable '")
+                                && e.message.ends_with("' is not defined")
+                            {
+                                let var_name = e
+                                    .message
                                     .trim_start_matches("Variable '")
                                     .trim_end_matches("' is not defined");
-                                
+
                                 // Skip this error if the variable is an action parameter
                                 if action_params.contains(var_name) {
                                     return false;
                                 }
                             }
-                            
+
                             // Filter out "Symbol already defined" errors at line 0, column 0
                             // These are likely from imported files or standard library definitions
-                            if e.message.starts_with("Symbol '") &&
-                               e.message.contains("' is already defined in this scope") &&
-                               e.line == 0 && e.column == 0 {
+                            if e.message.starts_with("Symbol '")
+                                && e.message.contains("' is already defined in this scope")
+                                && e.line == 0
+                                && e.column == 0
+                            {
                                 return false;
                             }
-                            
+
                             true
                         })
                         .collect();
-                    
+
                     if !filtered_errors.is_empty() {
                         eprintln!("Type checking warnings:");
                         for e in &filtered_errors {
