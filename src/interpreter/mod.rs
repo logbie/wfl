@@ -746,6 +746,7 @@ impl Interpreter {
                 column,
             } => {
                 let param_names: Vec<String> = parameters.iter().map(|p| p.name.clone()).collect();
+    
 
                 let function = FunctionValue {
                     name: Some(name.clone()),
@@ -1906,46 +1907,37 @@ impl Interpreter {
                     RuntimeError::new(format!("Undefined action '{}'", name), *line, *column)
                 })?;
 
-                if !matches!(function_val, Value::Function(_)) {
-                    return Err(RuntimeError::new(
+                match function_val {
+                    Value::Function(func) => {
+                        let mut arg_values = Vec::new();
+                        for arg in arguments.iter() {
+                            arg_values.push(
+                                self.evaluate_expression(&arg.value, Rc::clone(&env))
+                                    .await?,
+                            );
+                        }
+
+                        #[cfg(debug_assertions)]
+                        let func_name = func.name.clone().unwrap_or_else(|| "<anonymous>".to_string());
+
+                        #[cfg(debug_assertions)]
+                        exec_function_call!(&func_name, &arg_values);
+
+                        let result = self.call_function(&func, arg_values, *line, *column).await;
+
+                        #[cfg(debug_assertions)]
+                        if let Ok(ref val) = result {
+                            exec_function_return!(&func_name, val);
+                        }
+
+                        result
+                    }
+                    _ => Err(RuntimeError::new(
                         format!("'{}' is not callable", name),
                         *line,
                         *column,
-                    ));
+                    )),
                 }
-
-                let mut arg_values = Vec::new();
-                for arg in arguments.iter() {
-                    arg_values.push(
-                        self.evaluate_expression(&arg.value, Rc::clone(&env))
-                            .await?,
-                    );
-                }
-
-                #[cfg(debug_assertions)]
-                let func_name = match &function_val {
-                    Value::Function(f) => {
-                        f.name.clone().unwrap_or_else(|| "<anonymous>".to_string())
-                    }
-                    _ => format!("{:?}", function_val),
-                };
-
-                #[cfg(debug_assertions)]
-                exec_function_call!(&func_name, &arg_values);
-
-                let result = match &function_val {
-                    Value::Function(func) => {
-                        self.call_function(func, arg_values, *line, *column).await
-                    }
-                    _ => unreachable!(), // We already checked this above
-                };
-
-                #[cfg(debug_assertions)]
-                if let Ok(ref val) = result {
-                    exec_function_return!(&func_name, val);
-                }
-
-                result
             }
 
             Expression::MemberAccess {
@@ -2141,6 +2133,7 @@ impl Interpreter {
             .unwrap_or_else(|| "<anonymous>".to_string());
 
         if args.len() != func.params.len() {
+
             return Err(RuntimeError::new(
                 format!(
                     "Expected {} arguments but got {}",
@@ -2179,12 +2172,9 @@ impl Interpreter {
                 arg
             );
             
-            // Split parameter name on whitespace and bind each part to the same argument
-            for part in param.split_whitespace() {
-                #[cfg(debug_assertions)]
-                exec_var_declare!(part, &arg);
-                call_env.borrow_mut().define(part, arg.clone());
-            }
+            #[cfg(debug_assertions)]
+            exec_var_declare!(param, &arg);
+            call_env.borrow_mut().define(param, arg.clone());
         }
 
         let frame = CallFrame::new(
