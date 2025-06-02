@@ -9,9 +9,8 @@ define action called log_message needs message_text:
     // Read current log content
     wait for open file at "nexus.log" and read content as currentLog
     // Append new message with proper newline to current content
-    store newlineChar as "
+    store updatedLog as currentLog with message_text with "
 "
-    store updatedLog as currentLog with message_text with newlineChar
     // Write updated content back to log file
     wait for write content updatedLog into logHandle
 end action
