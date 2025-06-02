@@ -41,4 +41,49 @@ define action called assert_throws needs label the_action:
     end try
 end action
 
+///////////////////////////////////////////////////////////////////////////
+// 5. Action (Function) Definition and Call Tests
+///////////////////////////////////////////////////////////////////////////
+log_message with "Starting Action/Function Tests..."
 
+// Define actions to test various features
+
+// 5.1 No-parameter action (side effect)
+define action called greet_test_action:
+    // Simply display a greeting (side-effect)
+    // For testing, we can't easily assert console output here,
+    // but we can ensure it runs without error.
+    // If it needed to be asserted, it would write to a test-specific log or variable.
+    display "Hello, World from WFL greet_test_action!"
+end action
+
+// 5.2 Single-parameter action with return
+define action called square_test_action needs value:
+    give back value times value
+end action
+
+// 5.3 Multi-parameter action with return
+define action called add_test_action needs p and q:
+    give back p plus q
+end action
+
+// 5.4 Recursive action (factorial)
+define action called factorial_test_action needs n:
+    check if n is equal to 0:
+        give back 1
+    otherwise:
+        // Recursive call
+        store n_minus_1 as n minus 1
+        store recursive_result as perform factorial_test_action with n_minus_1
+        give back n times recursive_result
+    end check
+end action
+
+// 5.5 Action that triggers an error (for error handling test)
+define action called faulty_test_action:
+    // This action will cause a division by zero error
+    store u as 1
+    store v as 0
+    store w as u divided by v  // runtime error (division by zero)
+    give back w
+end action
