@@ -8,8 +8,10 @@ open file at "nexus.log" as logHandle
 define action called log_message needs message_text:
     // Read current log content
     wait for open file at "nexus.log" and read content as currentLog
-    // Append new message (with newline) to current content
-    store updatedLog as currentLog with message_text with "\n"
+    // Append new message with proper newline to current content
+    store newlineChar as "
+"
+    store updatedLog as currentLog with message_text with newlineChar
     // Write updated content back to log file
     wait for write content updatedLog into logHandle
 end action
@@ -20,9 +22,11 @@ log_message with "Starting Nexus WFL Integration Test Suite..."
 // 5.A  Tiny assertion helpers
 define action called assert_equal needs label and expected and actual:
     check if expected is equal to actual:
-        log_message with label with ": PASS"
+        store passMsg as label with ": PASS"
+        log_message with passMsg
     otherwise:
-        log_message with label with ": FAIL (expected " with expected with ", got " with actual with ")"
+        store failMsg as label with ": FAIL (expected " with expected with ", got " with actual with ")"
+        log_message with failMsg
     end check
 end action
 
