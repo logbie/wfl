@@ -404,11 +404,8 @@ impl<'a> Parser<'a> {
                 ));
             };
 
-            let empty_list = Expression::Literal(
-                Literal::List(Vec::new()),
-                token_pos.line,
-                token_pos.column,
-            );
+            let empty_list =
+                Expression::Literal(Literal::List(Vec::new()), token_pos.line, token_pos.column);
 
             return Ok(Statement::VariableDeclaration {
                 name: list_name,
@@ -1893,6 +1890,7 @@ impl<'a> Parser<'a> {
                     let param_name = if let Token::Identifier(id) = &token.token {
                         exec_trace!("Found parameter: {}", id);
                         self.tokens.next();
+
                         id.clone()
                     } else {
                         exec_trace!("Not an identifier, breaking parameter parsing");
@@ -2558,7 +2556,7 @@ impl<'a> Parser<'a> {
                 None
             };
 
-            let arg_value = self.parse_expression()?;
+            let arg_value = self.parse_primary_expression()?;
 
             arguments.push(Argument {
                 name: arg_name,
@@ -2566,12 +2564,9 @@ impl<'a> Parser<'a> {
             });
 
             if let Some(token) = self.tokens.peek().cloned() {
-                if let Token::Identifier(id) = &token.token {
-                    if id.to_lowercase() == "and" {
-                        self.tokens.next(); // Consume "and"
-                    } else {
-                        break;
-                    }
+                if matches!(token.token, Token::KeywordAnd) {
+                    self.tokens.next(); // Consume "and"
+                    continue; // Continue parsing next argument
                 } else {
                     break;
                 }

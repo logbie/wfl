@@ -118,25 +118,28 @@ impl StaticAnalyzer for Analyzer {
                 }
             }
         }
-        
+
         // Store action parameters in the analyzer for use by the type checker
         self.action_parameters = action_parameters.clone();
 
         if let Err(errors) = self.analyze(program) {
             for error in errors {
                 // Skip errors about undefined variables that are actually action parameters
-                if error.message.starts_with("Variable '") && error.message.ends_with("' is not defined") {
+                if error.message.starts_with("Variable '")
+                    && error.message.ends_with("' is not defined")
+                {
                     // Extract the variable name from the error message
-                    let var_name = error.message
+                    let var_name = error
+                        .message
                         .trim_start_matches("Variable '")
                         .trim_end_matches("' is not defined");
-                    
+
                     // Skip this error if the variable is an action parameter
                     if action_parameters.contains(var_name) {
                         continue;
                     }
                 }
-                
+
                 diagnostics.push(WflDiagnostic::new(
                     Severity::Error,
                     error.message.clone(),
@@ -167,7 +170,10 @@ impl StaticAnalyzer for Analyzer {
 
         // First, collect all action parameters separately
         for statement in &program.statements {
-            if let Statement::ActionDefinition { name, parameters, .. } = statement {
+            if let Statement::ActionDefinition {
+                name, parameters, ..
+            } = statement
+            {
                 let mut param_names = HashSet::new();
                 for param in parameters {
                     param_names.insert(param.name.clone());
@@ -197,23 +203,28 @@ impl StaticAnalyzer for Analyzer {
         // Special handling for action parameters - mark them as used
         for statement in &program.statements {
             // Look for ExpressionStatement that might contain ActionCall
-            if let Statement::ExpressionStatement { expression, .. } = statement {
-                if let Expression::ActionCall { name, arguments, .. } = expression {
-                    // If this is an action call, mark all parameters of that action as used
-                    if let Some(params) = action_parameters.get(name) {
-                        for param_name in params {
-                            if let Some(usage) = variable_usages.get_mut(param_name) {
-                                usage.used = true;
-                            }
+            if let Statement::ExpressionStatement {
+                expression:
+                    Expression::ActionCall {
+                        name, arguments, ..
+                    },
+                ..
+            } = statement
+            {
+                // If this is an action call, mark all parameters of that action as used
+                if let Some(params) = action_parameters.get(name) {
+                    for param_name in params {
+                        if let Some(usage) = variable_usages.get_mut(param_name) {
+                            usage.used = true;
                         }
                     }
-                    
-                    // Also mark all arguments as used
-                    for arg in arguments {
-                        if let Expression::Variable(var_name, ..) = &arg.value {
-                            if let Some(usage) = variable_usages.get_mut(var_name) {
-                                usage.used = true;
-                            }
+                }
+
+                // Also mark all arguments as used
+                for arg in arguments {
+                    if let Expression::Variable(var_name, ..) = &arg.value {
+                        if let Some(usage) = variable_usages.get_mut(var_name) {
+                            usage.used = true;
                         }
                     }
                 }
@@ -366,7 +377,7 @@ impl Analyzer {
             } => {
                 // Create a new scope for the action
                 let mut action_scope = HashMap::new();
-                
+
                 // Add all parameters to the action scope and mark them as used by default
                 for param in parameters {
                     // Handle space-separated parameter names (e.g., "label expected actual")
@@ -381,19 +392,18 @@ impl Analyzer {
                         );
                     }
                 }
-                
+
                 // Collect variable declarations in the action body
                 for stmt in body {
                     self.collect_variable_declarations(stmt, &mut action_scope);
                 }
-                
+
                 // Merge the action scope with the global scope
                 for (name, usage) in action_scope {
                     usages.insert(name, usage);
                 }
-                
+
                 // Skip the normal body processing since we've already done it
-                return;
             }
             Statement::IfStatement {
                 then_block,
@@ -530,13 +540,21 @@ impl Analyzer {
                 self.mark_used_in_expression(content, usages);
                 self.mark_used_in_expression(file, usages);
             }
-            Statement::OpenFileStatement { path, variable_name, .. } => {
+            Statement::OpenFileStatement {
+                path,
+                variable_name,
+                ..
+            } => {
                 self.mark_used_in_expression(path, usages);
                 if let Some(usage) = usages.get_mut(variable_name) {
                     usage.used = true;
                 }
             }
-            Statement::ReadFileStatement { path, variable_name, .. } => {
+            Statement::ReadFileStatement {
+                path,
+                variable_name,
+                ..
+            } => {
                 self.mark_used_in_expression(path, usages);
                 if let Some(usage) = usages.get_mut(variable_name) {
                     usage.used = true;
@@ -548,27 +566,35 @@ impl Analyzer {
             Statement::WaitForStatement { inner, .. } => {
                 // Mark variables used in the inner statement
                 self.mark_used_variables(inner, usages);
-                
+
                 // Special handling for wait statements with I/O operations
                 match &**inner {
-                    Statement::OpenFileStatement { path, variable_name, .. } => {
+                    Statement::OpenFileStatement {
+                        path,
+                        variable_name,
+                        ..
+                    } => {
                         self.mark_used_in_expression(path, usages);
                         // Mark the variable_name as used
                         if let Some(usage) = usages.get_mut(variable_name) {
                             usage.used = true;
                         }
-                    },
-                    Statement::ReadFileStatement { path, variable_name, .. } => {
+                    }
+                    Statement::ReadFileStatement {
+                        path,
+                        variable_name,
+                        ..
+                    } => {
                         self.mark_used_in_expression(path, usages);
                         // Mark the variable_name as used
                         if let Some(usage) = usages.get_mut(variable_name) {
                             usage.used = true;
                         }
-                    },
+                    }
                     Statement::WriteFileStatement { file, content, .. } => {
                         self.mark_used_in_expression(file, usages);
                         self.mark_used_in_expression(content, usages);
-                    },
+                    }
                     _ => {}
                 }
             }
@@ -606,15 +632,13 @@ impl Analyzer {
                 }
             }
             Expression::ActionCall {
-                name,
-                arguments,
-                ..
+                name, arguments, ..
             } => {
                 // Mark the action name as used
                 if let Some(usage) = usages.get_mut(name) {
                     usage.used = true;
                 }
-                
+
                 // Mark all arguments as used
                 for arg in arguments {
                     // If the argument has a name, mark it as used
@@ -623,10 +647,10 @@ impl Analyzer {
                             usage.used = true;
                         }
                     }
-                    
+
                     // Mark variables used in the argument value
                     self.mark_used_in_expression(&arg.value, usages);
-                    
+
                     // Special case: If the argument is a variable, mark it as used
                     // This handles cases like `the_action` in `assert_throws`
                     if let Expression::Variable(var_name, ..) = &arg.value {
@@ -648,7 +672,7 @@ impl Analyzer {
             Expression::Concatenation { left, right, .. } => {
                 self.mark_used_in_expression(left, usages);
                 self.mark_used_in_expression(right, usages);
-                
+
                 // Special handling for variables in concatenation expressions
                 // This handles cases like "store updatedLog as currentLog with message_text with "\n""
                 if let Expression::Variable(var_name, ..) = &**left {
@@ -656,7 +680,7 @@ impl Analyzer {
                         usage.used = true;
                     }
                 }
-                
+
                 if let Expression::Variable(var_name, ..) = &**right {
                     if let Some(usage) = usages.get_mut(var_name) {
                         usage.used = true;
@@ -1207,7 +1231,7 @@ mod tests {
         assert!(diagnostics[0].message.contains("inconsistent"));
         assert_eq!(diagnostics[0].code, "ANALYZE-RETURN");
     }
-    
+
     #[test]
     fn test_loop_variable_usage() {
         // Test that variables used in different types of loop conditions are correctly marked as used
@@ -1240,10 +1264,14 @@ mod tests {
         let file_id = 0;
 
         let diagnostics = analyzer.check_unused_variables(&program, file_id);
-        
+
         // Counter should be marked as used, so no diagnostics should be reported
-        assert_eq!(diagnostics.len(), 0, "Expected no unused variable diagnostics");
-        
+        assert_eq!(
+            diagnostics.len(),
+            0,
+            "Expected no unused variable diagnostics"
+        );
+
         // Test with RepeatUntilLoop
         let program_until = Program {
             statements: vec![
@@ -1267,8 +1295,12 @@ mod tests {
                 },
             ],
         };
-        
+
         let diagnostics_until = analyzer.check_unused_variables(&program_until, file_id);
-        assert_eq!(diagnostics_until.len(), 0, "Expected no unused variable diagnostics for RepeatUntilLoop");
+        assert_eq!(
+            diagnostics_until.len(),
+            0,
+            "Expected no unused variable diagnostics for RepeatUntilLoop"
+        );
     }
 }

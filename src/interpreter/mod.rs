@@ -790,11 +790,13 @@ impl Interpreter {
                         // It's an action, so execute it as a call with no arguments
                         #[cfg(debug_assertions)]
                         exec_trace!("Executing bare action call: {}", name);
-                        return self.call_function(&func, vec![], *var_line, *var_column).await
+                        return self
+                            .call_function(&func, vec![], *var_line, *var_column)
+                            .await
                             .map(|value| (value, ControlFlow::None));
                     }
                 }
-                
+
                 // Regular expression evaluation
                 let value = self
                     .evaluate_expression(expression, Rc::clone(&env))
@@ -1906,46 +1908,40 @@ impl Interpreter {
                     RuntimeError::new(format!("Undefined action '{}'", name), *line, *column)
                 })?;
 
-                if !matches!(function_val, Value::Function(_)) {
-                    return Err(RuntimeError::new(
+                match function_val {
+                    Value::Function(func) => {
+                        let mut arg_values = Vec::new();
+                        for arg in arguments.iter() {
+                            arg_values.push(
+                                self.evaluate_expression(&arg.value, Rc::clone(&env))
+                                    .await?,
+                            );
+                        }
+
+                        #[cfg(debug_assertions)]
+                        let func_name = func
+                            .name
+                            .clone()
+                            .unwrap_or_else(|| "<anonymous>".to_string());
+
+                        #[cfg(debug_assertions)]
+                        exec_function_call!(&func_name, &arg_values);
+
+                        let result = self.call_function(&func, arg_values, *line, *column).await;
+
+                        #[cfg(debug_assertions)]
+                        if let Ok(ref val) = result {
+                            exec_function_return!(&func_name, val);
+                        }
+
+                        result
+                    }
+                    _ => Err(RuntimeError::new(
                         format!("'{}' is not callable", name),
                         *line,
                         *column,
-                    ));
+                    )),
                 }
-
-                let mut arg_values = Vec::new();
-                for arg in arguments.iter() {
-                    arg_values.push(
-                        self.evaluate_expression(&arg.value, Rc::clone(&env))
-                            .await?,
-                    );
-                }
-
-                #[cfg(debug_assertions)]
-                let func_name = match &function_val {
-                    Value::Function(f) => {
-                        f.name.clone().unwrap_or_else(|| "<anonymous>".to_string())
-                    }
-                    _ => format!("{:?}", function_val),
-                };
-
-                #[cfg(debug_assertions)]
-                exec_function_call!(&func_name, &arg_values);
-
-                let result = match &function_val {
-                    Value::Function(func) => {
-                        self.call_function(func, arg_values, *line, *column).await
-                    }
-                    _ => unreachable!(), // We already checked this above
-                };
-
-                #[cfg(debug_assertions)]
-                if let Ok(ref val) = result {
-                    exec_function_return!(&func_name, val);
-                }
-
-                result
             }
 
             Expression::MemberAccess {
@@ -2178,13 +2174,10 @@ impl Interpreter {
                 param,
                 arg
             );
-            
-            // Split parameter name on whitespace and bind each part to the same argument
-            for part in param.split_whitespace() {
-                #[cfg(debug_assertions)]
-                exec_var_declare!(part, &arg);
-                call_env.borrow_mut().define(part, arg.clone());
-            }
+
+            #[cfg(debug_assertions)]
+            exec_var_declare!(param, &arg);
+            call_env.borrow_mut().define(param, arg.clone());
         }
 
         let frame = CallFrame::new(
