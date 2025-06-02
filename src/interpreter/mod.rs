@@ -2178,9 +2178,13 @@ impl Interpreter {
                 param,
                 arg
             );
-            #[cfg(debug_assertions)]
-            exec_var_declare!(param, &arg);
-            call_env.borrow_mut().define(param, arg);
+            
+            // Split parameter name on whitespace and bind each part to the same argument
+            for part in param.split_whitespace() {
+                #[cfg(debug_assertions)]
+                exec_var_declare!(part, &arg);
+                call_env.borrow_mut().define(part, arg.clone());
+            }
         }
 
         let frame = CallFrame::new(

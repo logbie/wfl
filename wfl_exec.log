@@ -1,7 +1,9 @@
-17:10:37.1681352 [INFO] WFL execution logging initialized at 2025-06-01 12:10:37 - wfl_exec.log
-17:10:37.1701773 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
-17:10:37.1702404 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2182] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
-17:10:37.1702883 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function log_message
-17:10:37.1706734 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'updatedLog' = "square(-3): PASSStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\n"
-17:10:37.1709275 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function log_message
-17:10:37.1709834 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: log_message = null
+08:11:55.7169241 [INFO] WFL execution logging initialized at 2025-06-02 03:11:55 - wfl_exec.log
+08:11:55.7175458 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: test_mixed("This is a single argument")
+08:11:55.7176086 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2185] EXEC: Declaration: 'label' = "This is a single argument"
+08:11:55.7176563 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2185] EXEC: Declaration: 'expected' = "This is a single argument"
+08:11:55.717701 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2185] EXEC: Declaration: 'actual' = "This is a single argument"
+08:11:55.7177501 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2201] EXEC: ┌─ Block entry: function test_mixed
+08:11:55.7180194 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2211] EXEC:   └─ Block exit: function test_mixed
+08:11:55.7180763 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: test_mixed = null
+08:11:55.7181591 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: test_with_and(true)

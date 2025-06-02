@@ -1,19 +1,19 @@
 === WFL Debug Report ===
-Script: Nexus/test.wfl
-Time: 2025-06-01 12:04:12
+Script: ./Nexus/test.wfl
+Time: 2025-06-02 02:29:31
 
 === Error Summary ===
-Runtime error at line 100, column 22: Expected 2 arguments but got 1
+Runtime error at line 28, column 14: Undefined variable 'expected'
 
 === Stack Trace ===
-In main script at line 100, column 22
+In main script at line 28, column 14
 
 === Source Code ===
-   98: store arg1 as 10
-   99: store arg2 as 15
->> 100: store add_result1 as add with arg1 and arg2
-   101: check if add_result1 is equal to 25:
-   102:     log_message with "add(10,15): PASS"
+   26: // ---------------------------------------------------------------------
+   27: define action called assert_equal needs label expected actual:
+>> 28:     check if expected is equal to actual:
+   29:         log_message with label with ": PASS"
+   30:     otherwise:
 
 === Local Variables ===
 (No local variables in global scope)

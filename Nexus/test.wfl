@@ -94,3 +94,10 @@ end action
 // Test greet_test_action (no return value, just side effect)
 log_message with "Test: greet_test_action execution"
 greet_test_action // Direct call
+
+// Test square_test_action
+store sq_input as 4
+store sq_expected as 16
+store sq_actual as square_test_action with sq_input // Direct call, store result
+assert_equal with "Action test (square 4 -> 16)" and sq_expected and sq_actual
+

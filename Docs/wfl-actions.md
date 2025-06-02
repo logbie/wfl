@@ -30,7 +30,7 @@ Notice how natural this reads – it's like giving a command in plain English.
 
 ## Actions with Parameters
 
-Most actions need to work with different values each time they're called. **Parameters** allow you to pass information into an action. In WFL, parameters are defined using the `with` keyword:
+Most actions need to work with different values each time they're called. **Parameters** allow you to pass information into an action. In WFL, parameters can be defined using either the `with` or `needs` keyword:
 
 ```wfl
 define action say hello with name:
@@ -45,6 +45,12 @@ say hello with "Alice"  // Displays: Hello, Alice!
 say hello with "Bob"    // Displays: Hello, Bob!
 ```
 
+### Parameter Definition Syntaxes
+
+WFL supports two different syntaxes for defining parameters, each with different binding behaviors:
+
+#### 1. "and"-separated Parameters
+
 You can define multiple parameters by separating them with `and`:
 
 ```wfl
@@ -56,11 +62,48 @@ end action
 calculate rectangle area with 5 and 3  // Displays: The area is 15
 ```
 
-The syntax for calling actions with multiple parameters is very natural: `action name with [value1] and [value2] and [value3]...`. It reads almost like a sentence.
+With this syntax:
+- Each parameter is treated as a separate parameter requiring its own argument
+- When calling the action, you must provide an argument for each parameter
+- If you provide fewer arguments than parameters, it will produce an error
+
+The syntax for calling actions with "and"-separated parameters is very natural: `action name with [value1] and [value2] and [value3]...`. It reads almost like a sentence.
+
+#### 2. Space-separated Parameters
+
+WFL also supports a more natural language-like syntax where parameters are separated by spaces:
+
+```wfl
+define action called test_assertion needs label expected actual:
+    display "Testing: " with label
+    if expected equals actual:
+        display "✓ Test passed"
+    else:
+        display "✗ Test failed: expected " with expected with " but got " with actual
+    end if
+end action
+```
+
+With this syntax:
+- All parameters are bound to the same argument when called with a single argument
+- This allows for more natural language-like parameter names
+- It's particularly useful for testing frameworks and assertion functions
+
+For example, you can call the above action with either a single argument or multiple arguments:
+
+```wfl
+// Call with a single argument - all parameters receive the same value
+test_assertion with "This is a single argument"
+
+// Call with multiple arguments - each parameter gets its own value
+test_assertion with "String length test" and 5 and length of "hello"
+```
+
+This flexibility allows you to create more expressive and readable code that matches your specific needs.
 
 ### Optional Parameters with Default Values
 
-Sometimes you want parameters to be optional, with sensible defaults if not provided. WFL supports this with the `default` keyword:
+Sometimes you want parameters to be optional, with sensible defaults if not provided. WFL supports this with the `default` keyword, which works with both parameter syntaxes:
 
 ```wfl
 define action greet user with name and greeting default "Hello":
@@ -72,6 +115,21 @@ greet user with "Bob"                 // Displays: Hello, Bob!
 ```
 
 In this example, `greeting` is an optional parameter with a default value of "Hello". If not provided when calling the action, the default value is used.
+
+### Choosing the Right Parameter Syntax
+
+When deciding which parameter syntax to use, consider:
+
+1. **"and"-separated parameters** are best when:
+   - Each parameter represents a distinct input that should have its own value
+   - You want to enforce that each parameter receives its own argument
+   - The parameters represent different concepts or data types
+
+2. **Space-separated parameters** are best when:
+   - You want to create a natural language-like interface
+   - The parameters form a logical group that might be passed as a single value
+   - You're creating testing or assertion functions where all parameters might receive the same value
+   - You want flexibility in how the action can be called
 
 ## Returning Values from Actions
 

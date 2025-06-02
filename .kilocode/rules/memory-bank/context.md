@@ -55,6 +55,16 @@ This principle has led to several recent improvements:
 
 ## Recent Changes
 
+### Parameter Binding Enhancement (June 2025)
+- Investigated and resolved a runtime error related to parameter binding in the WFL interpreter
+- Documented the two different parameter definition syntaxes supported by the language:
+  - Space-separated parameters (e.g., `needs param1 param2 param3`): When called with a single argument, all parameters receive the same value
+  - "and"-separated parameters (e.g., `needs param1 and param2 and param3`): Each parameter requires its own argument
+- Updated `Docs/wfl-actions.md` with comprehensive explanations of both syntaxes and their binding behaviors
+- Added examples demonstrating the appropriate use cases for each syntax
+- Improved interpreter robustness when handling different parameter definition styles
+- Enhanced backward compatibility by supporting both parameter syntaxes without requiring code changes
+
 ### Static Analyzer and Type Checker Fixes (June 2025)
 - Fixed type checking warnings for variables used in action parameters
 - Fixed type checking warnings for duplicate symbol definitions across imported files
