@@ -57,6 +57,7 @@ define action called greet_test_action:
     display "Hello, World from WFL greet_test_action!"
 end action
 
+
 // 5.2 Single-parameter action with return
 define action called square_test_action needs value:
     give back value times value
@@ -74,7 +75,7 @@ define action called factorial_test_action needs n:
     otherwise:
         // Recursive call
         store n_minus_1 as n minus 1
-        store recursive_result as perform factorial_test_action with n_minus_1
+        store recursive_result as factorial_test_action with n_minus_1
         give back n times recursive_result
     end check
 end action
@@ -87,3 +88,9 @@ define action called faulty_test_action:
     store w as u divided by v  // runtime error (division by zero)
     give back w
 end action
+
+// Call actions and verify results using assert helpers
+
+// Test greet_test_action (no return value, just side effect)
+log_message with "Test: greet_test_action execution"
+greet_test_action // Direct call
