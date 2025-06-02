@@ -101,6 +101,20 @@ impl TypeChecker {
             errors: Vec::new(),
         }
     }
+    
+    /// Create a new TypeChecker with an existing Analyzer
+    /// This allows sharing action parameters between the analyzer and type checker
+    pub fn with_analyzer(analyzer: Analyzer) -> Self {
+        TypeChecker {
+            analyzer,
+            errors: Vec::new(),
+        }
+    }
+    
+    /// Get the action parameters from the analyzer
+    pub fn get_action_parameters(&self) -> &std::collections::HashSet<String> {
+        self.analyzer.get_action_parameters()
+    }
 
     pub fn check_types(&mut self, program: &Program) -> Result<(), Vec<TypeError>> {
         if let Err(semantic_errors) = self.analyzer.analyze(program) {
@@ -710,7 +724,21 @@ impl TypeChecker {
                         Type::Unknown
                     }
                 } else {
-                    Type::Error
+                    // Check if this is an action parameter before reporting it as undefined
+                    if self.analyzer.get_action_parameters().contains(name) {
+                        // It's an action parameter, so don't report an error
+                        Type::Unknown
+                    } else {
+                        // Add an error for undefined variable
+                        self.type_error(
+                            format!("Variable '{}' is not defined", name),
+                            None,
+                            None,
+                            *line,
+                            *column,
+                        );
+                        Type::Error
+                    }
                 }
             }
             Expression::BinaryOperation {
@@ -1282,14 +1310,20 @@ impl TypeChecker {
                 let symbol_opt = self.analyzer.get_symbol(name);
 
                 if symbol_opt.is_none() {
-                    self.type_error(
-                        format!("Undefined action '{}'", name),
-                        None,
-                        None,
-                        *line,
-                        *column,
-                    );
-                    return Type::Error;
+                    // Check if this is an action parameter before reporting it as undefined
+                    if self.analyzer.get_action_parameters().contains(name) {
+                        // It's an action parameter, so don't report an error
+                        return Type::Unknown;
+                    } else {
+                        self.type_error(
+                            format!("Undefined action '{}'", name),
+                            None,
+                            None,
+                            *line,
+                            *column,
+                        );
+                        return Type::Error;
+                    }
                 }
 
                 let symbol = symbol_opt.unwrap();

@@ -105,6 +105,7 @@ impl std::error::Error for SemanticError {}
 pub struct Analyzer {
     current_scope: Scope,
     errors: Vec<SemanticError>,
+    action_parameters: std::collections::HashSet<String>,
 }
 
 impl Default for Analyzer {
@@ -200,6 +201,7 @@ impl Analyzer {
         Analyzer {
             current_scope: global_scope,
             errors: Vec::new(),
+            action_parameters: std::collections::HashSet::new(),
         }
     }
 

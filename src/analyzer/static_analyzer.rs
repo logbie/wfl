@@ -118,6 +118,9 @@ impl StaticAnalyzer for Analyzer {
                 }
             }
         }
+        
+        // Store action parameters in the analyzer for use by the type checker
+        self.action_parameters = action_parameters.clone();
 
         if let Err(errors) = self.analyze(program) {
             for error in errors {
@@ -335,6 +338,10 @@ impl StaticAnalyzer for Analyzer {
 }
 
 impl Analyzer {
+    // Add a field to store action parameters for type checking
+    pub fn get_action_parameters(&self) -> &HashSet<String> {
+        &self.action_parameters
+    }
     #[allow(clippy::only_used_in_recursion)]
     fn collect_variable_declarations(
         &self,

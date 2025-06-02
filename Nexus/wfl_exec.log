@@ -1,26 +1,7 @@
-18:30:11.1862134 [INFO] WFL execution logging initialized at 2025-06-01 13:30:11 - wfl_exec.log
-18:30:11.2002241 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
-18:30:11.2004248 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2182] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
-18:30:11.2005674 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function log_message
-18:30:11.201297 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'updatedLog' = "=== Nexus WFL Integration Test Suite ===
-Starting Nexus WFL Integration Test Suite...
-Starting Arithmetic Tests...
-Addition test: PASS
-Subtraction test: PASS
-Multiplication test: PASS
-Division test: PASS
-Fractional division test: PASS
-Arithmetic Tests completed.
-Starting Control Flow (If/Else) Tests...
-If condition TRUE branch test: PASS
-If condition FALSE branch test: PASS
-If (no else) true-case test: PASS
-Single-line if/then/otherwise test: PASS
-Control Flow (If/Else) Tests completed.
-Starting Loop Tests...
-Count loop test (1 to 5 sum): PASS
-While loop test (1 to 5 sum): PASS
-Loop continue/skip test (expected 9, got 0): FAIL
-Starting Nexus WFL Integration Test Suite...\n"
-18:30:11.2017624 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function log_message
-18:30:11.2018216 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: log_message = null
+04:00:40.646746 [INFO] WFL execution logging initialized at 2025-06-01 23:00:40 - ./Nexus\wfl_exec.log
+04:00:40.6477791 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1934] EXEC: Function call: log_message("Starting Nexus WFL Integration Test Suite...")
+04:00:40.6478583 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2182] EXEC: Declaration: 'message_text' = "Starting Nexus WFL Integration Test Suite..."
+04:00:40.6479096 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2197] EXEC: ┌─ Block entry: function log_message
+04:00:40.6486357 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:658] EXEC:     Declaration: 'updatedLog' = "square(-3): PASSStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\nStarting Nexus WFL Integration Test Suite...\n"
+04:00:40.6488564 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:2207] EXEC:   └─ Block exit: function log_message
+04:00:40.6489576 [DEBUG] (1) wfl::interpreter: [C:\logbie\wfl\src\interpreter\mod.rs:1945] EXEC: Function return: log_message = null

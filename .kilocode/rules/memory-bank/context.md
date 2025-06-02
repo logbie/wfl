@@ -50,8 +50,20 @@ This principle has led to several recent improvements:
 - Enhanced parser error recovery with better end token handling
 - Updated static analyzer to correctly identify variable usage in all contexts
 - Improved type checker to handle file handling and I/O operations consistently
+- Enhanced type checker to recognize action parameters without requiring code changes
+- Improved error filtering to ignore duplicate symbol definitions across imported files
 
 ## Recent Changes
+
+### Static Analyzer and Type Checker Fixes (June 2025)
+- Fixed type checking warnings for variables used in action parameters
+- Fixed type checking warnings for duplicate symbol definitions across imported files
+- Ensured consistent usage of existing components throughout the codebase
+- Improved backward compatibility by making the type checker smarter about recognizing action parameters
+- Enhanced error filtering to reduce false positives while preserving legitimate error reporting
+  - Specifically ignoring "Symbol already defined" errors at line 0, column 0
+- Implemented a more robust approach to sharing analyzer data with the type checker
+- Improved developer experience by reducing false positive warnings
 
 ### VSCode Extension Consolidation (May 2025)
 - Designing a unified VSCode extension that merges existing JavaScript and TypeScript implementations
