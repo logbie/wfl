@@ -203,26 +203,26 @@ impl StaticAnalyzer for Analyzer {
         // Special handling for action parameters - mark them as used
         for statement in &program.statements {
             // Look for ExpressionStatement that might contain ActionCall
-            if let Statement::ExpressionStatement { expression, .. } = statement {
-                if let Expression::ActionCall {
+            if let Statement::ExpressionStatement { 
+                expression: Expression::ActionCall {
                     name, arguments, ..
-                } = expression
-                {
-                    // If this is an action call, mark all parameters of that action as used
-                    if let Some(params) = action_parameters.get(name) {
-                        for param_name in params {
-                            if let Some(usage) = variable_usages.get_mut(param_name) {
-                                usage.used = true;
-                            }
+                }, 
+                .. 
+            } = statement {
+                // If this is an action call, mark all parameters of that action as used
+                if let Some(params) = action_parameters.get(name) {
+                    for param_name in params {
+                        if let Some(usage) = variable_usages.get_mut(param_name) {
+                            usage.used = true;
                         }
                     }
+                }
 
-                    // Also mark all arguments as used
-                    for arg in arguments {
-                        if let Expression::Variable(var_name, ..) = &arg.value {
-                            if let Some(usage) = variable_usages.get_mut(var_name) {
-                                usage.used = true;
-                            }
+                // Also mark all arguments as used
+                for arg in arguments {
+                    if let Expression::Variable(var_name, ..) = &arg.value {
+                        if let Some(usage) = variable_usages.get_mut(var_name) {
+                            usage.used = true;
                         }
                     }
                 }
@@ -402,7 +402,6 @@ impl Analyzer {
                 }
 
                 // Skip the normal body processing since we've already done it
-                return;
             }
             Statement::IfStatement {
                 then_block,
