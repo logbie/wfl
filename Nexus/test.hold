@@ -1,0 +1,142 @@
+// ---------------------------------------------------------------------
+// 5.0  Logging helper (MUST come first, assumed to be defined as in the prompt)
+// ---------------------------------------------------------------------
+// Open the log file (will be truncated/created anew)
+// Assuming logHandle is globally available or reopened by log_message
+open file at "nexus.log" as logHandle // Re-confirming handle for clarity
+
+define action called log_message needs message_text:
+    // Read current log content
+    wait for open file at "nexus.log" and read content as currentLog
+    // Append new message (with newline) to current content
+    store updatedLog as currentLog with message_text with "\n"
+    // Write updated content back to log file
+    wait for write content updatedLog into logHandle
+end action
+
+// ---------------------------------------------------------------------
+// 5.A  Tiny assertion helpers (assumed to be defined as in the prompt)
+// ---------------------------------------------------------------------
+define action called assert_equal needs label expected actual:
+    check if expected is equal to actual:
+        log_message with label with ": PASS"
+    otherwise:
+        log_message with label with ": FAIL (expected " with expected with ", got " with actual with ")"
+    end check
+end action
+
+define action called assert_throws needs label the_action:
+    try:
+        perform the_action // Assuming 'the_action' is an action name or a variable holding an action
+        log_message with label with ": FAIL (no error thrown)"
+    when error:
+        log_message with label with ": PASS (caught '" with error with "')"
+    end try
+end action
+
+///////////////////////////////////////////////////////////////////////////
+// 5. Action (Function) Definition and Call Tests
+///////////////////////////////////////////////////////////////////////////
+log_message with "Starting Action/Function Tests..."
+
+// Define actions to test various features
+
+// 5.1 No-parameter action (side effect)
+define action called greet_test_action:
+    // Simply display a greeting (side-effect)
+    // For testing, we can't easily assert console output here,
+    // but we can ensure it runs without error.
+    // If it needed to be asserted, it would write to a test-specific log or variable.
+    display "Hello, World from WFL greet_test_action!"
+end action
+
+// 5.2 Single-parameter action with return
+define action called square_test_action needs value:
+    give back value times value
+end action
+
+// 5.3 Multi-parameter action with return
+define action called add_test_action needs p and q:
+    give back p plus q
+end action
+
+// 5.4 Recursive action (factorial)
+define action called factorial_test_action needs n:
+    check if n is equal to 0:
+        give back 1
+    otherwise:
+        // Recursive call
+        store n_minus_1 as n minus 1
+        store recursive_result as perform factorial_test_action with n_minus_1
+        give back n times recursive_result
+    end check
+end action
+
+// 5.5 Action that triggers an error (for error handling test)
+define action called faulty_test_action:
+    // This action will cause a division by zero error
+    store u as 1
+    store v as 0
+    store w as u divided by v  // runtime error (division by zero)
+    give back w
+end action
+
+// Call actions and verify results using assert helpers
+
+// Test greet_test_action (no return value, just side effect)
+// We'll just perform it to ensure it doesn't crash.
+// Logging its execution is the main test here.
+log_message with "Test: greet_test_action execution"
+perform greet_test_action
+
+// Test square_test_action
+store sq_input as 4
+store sq_expected as 16
+store sq_actual as perform square_test_action with sq_input
+perform assert_equal with "Action test (square 4 -> 16)" and sq_expected and sq_actual
+
+store sq_input_neg as -5
+store sq_expected_neg as 25
+store sq_actual_neg as perform square_test_action with sq_input_neg
+perform assert_equal with "Action test (square -5 -> 25)" and sq_expected_neg and sq_actual_neg
+
+// Test add_test_action
+store add_input_p1 as 10
+store add_input_q1 as 15
+store add_expected1 as 25
+store add_actual1 as perform add_test_action with add_input_p1 and add_input_q1
+perform assert_equal with "Action test (add 10+15 -> 25)" and add_expected1 and add_actual1
+
+store add_input_p2 as -5
+store add_input_q2 as 3
+store add_expected2 as -2
+store add_actual2 as perform add_test_action with add_input_p2 and add_input_q2
+perform assert_equal with "Action test (add -5+3 -> -2)" and add_expected2 and add_actual2
+
+// Test recursive factorial_test_action
+store fact_input1 as 5
+store fact_expected1 as 120
+store fact_actual1 as perform factorial_test_action with fact_input1
+perform assert_equal with "Action test (factorial 5 -> 120)" and fact_expected1 and fact_actual1
+
+store fact_input2 as 0
+store fact_expected2 as 1
+store fact_actual2 as perform factorial_test_action with fact_input2
+perform assert_equal with "Action test (factorial 0 -> 1)" and fact_expected2 and fact_actual2
+
+store fact_input3 as 1
+store fact_expected3 as 1
+store fact_actual3 as perform factorial_test_action with fact_input3
+perform assert_equal with "Action test (factorial 1 -> 1)" and fact_expected3 and fact_actual3
+
+// Test error handling with faulty_test_action
+perform assert_throws with "Action test (faulty_test_action)" and faulty_test_action
+
+log_message with "Action/Function Tests completed."
+
+// Close the main log file if it was explicitly kept open by log_message
+// or ensure log_message handles its own file operations completely.
+// Based on log_message definition, it reopens and writes, so no explicit close here is needed
+// unless logHandle was meant to be kept open across calls.
+// For safety, if logHandle from the top was intended to be persistent:
+// wait for close logHandle
