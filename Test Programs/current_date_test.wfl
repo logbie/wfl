@@ -1,4 +1,5 @@
 // Current Date Test
 
-// Test current_date function
-display "Current date: " with current_date
+// Test today function (current_date is not available)
+store current_date_value as today
+display "Current date: " with current_date_value

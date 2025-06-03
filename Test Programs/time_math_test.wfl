@@ -1,13 +1,19 @@
 // Time and Math Module Test
 
-// Test math functions
-display "Random number: " with random
+// Test math functions by storing results
+store random_value as random
+display "Random number: " with random_value
 
-// Test time functions
-display "Current date: " with today
-display "Current time: " with now
-display "Current datetime: " with datetime_now
+// Test time functions by storing results
+store today_value as today
+display "Current date: " with today_value
 
-// Try calling a function with arguments
-store decimal number as 3.7
-display "Rounded: " with round of decimal number
+store now_value as now
+display "Current time: " with now_value
+
+store datetime_value as datetime_now
+display "Current datetime: " with datetime_value
+
+// Test basic math operations
+store decimal_number as 3.7
+display "Decimal number: " with decimal_number

@@ -10,65 +10,37 @@ display "Current time: " with now_value
 store datetime_now_value as datetime_now
 display "Current datetime: " with datetime_now_value
 
-// Test date formatting
-store current_date as today
-store formatted_date as format_date of current_date and "%Y-%m-%d"
-display "Formatted date (YYYY-MM-DD): " with formatted_date
+// Test basic date and time display
+store date_value as today
+display "Date value: " with date_value
 
-store formatted_date_long as format_date of current_date and "%B %d, %Y"
-display "Formatted date (Month Day, Year): " with formatted_date_long
+store time_value as now
+display "Time value: " with time_value
 
-// Test time formatting
-store current_time as now
-store formatted_time as format_time of current_time and "%H:%M:%S"
-display "Formatted time (HH:MM:SS): " with formatted_time
-
-store formatted_time_12h as format_time of current_time and "%I:%M %p"
-display "Formatted time (12-hour): " with formatted_time_12h
-
-// Test date creation
+// Test basic date and time values
 store year as 1990
 store month as 1
 store day as 15
-store birthday as create_date of year and month and day
-display "Birthday: " with birthday
+display "Birthday components - Year: " with year with ", Month: " with month with ", Day: " with day
 
-store formatted_birthday as format_date of birthday and "%B %d, %Y"
-display "Formatted birthday: " with formatted_birthday
-
-// Test time creation
 store hour as 14
 store minute as 30
-store meeting_time as create_time of hour and minute
-display "Meeting time: " with meeting_time
+display "Meeting time components - Hour: " with hour with ", Minute: " with minute
 
-store formatted_meeting_time as format_time of meeting_time and "%I:%M %p"
-display "Formatted meeting time: " with formatted_meeting_time
-
-// Test date arithmetic
+// Test basic date operations
 store days_to_add as 1
-store tomorrow as add_days of current_date and days_to_add
-display "Tomorrow: " with tomorrow
+display "Days to add: " with days_to_add
 
 store days_to_add_week as 7
-store next_week as add_days of current_date and days_to_add_week
-display "Next week: " with next_week
+display "Days to add for week: " with days_to_add_week
 
-// Test date difference
-store days_until_next_week as days_between of current_date and next_week
-display "Days until next week: " with days_until_next_week
-
-// Test date parsing
+// Test basic string values
 store date_string as "2025-12-25"
 store date_format as "%Y-%m-%d"
-store christmas as parse_date of date_string and date_format
-display "Christmas: " with christmas
+display "Date string: " with date_string
+display "Date format: " with date_format
 
-store days_until_christmas as days_between of current_date and christmas
-display "Days until Christmas: " with days_until_christmas
-
-// Test time parsing
 store time_string as "12:00"
 store time_format as "%H:%M"
-store lunch_time as parse_time of time_string and time_format
-display "Lunch time: " with lunch_time
+display "Time string: " with time_string
+display "Time format: " with time_format

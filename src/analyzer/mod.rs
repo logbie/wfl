@@ -198,6 +198,162 @@ impl Analyzer {
         };
         let _ = global_scope.define(loop_symbol);
 
+        let today_symbol = Symbol {
+            name: "today".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![],
+                return_type: Some(Type::Custom("Date".to_string())),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![],
+                return_type: Box::new(Type::Custom("Date".to_string())),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(today_symbol);
+
+        let now_symbol = Symbol {
+            name: "now".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![],
+                return_type: Some(Type::Custom("Time".to_string())),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![],
+                return_type: Box::new(Type::Custom("Time".to_string())),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(now_symbol);
+
+        let datetime_now_symbol = Symbol {
+            name: "datetime_now".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![],
+                return_type: Some(Type::Custom("DateTime".to_string())),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![],
+                return_type: Box::new(Type::Custom("DateTime".to_string())),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(datetime_now_symbol);
+
+        let create_date_symbol = Symbol {
+            name: "create_date".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![
+                    Parameter {
+                        name: "year".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                    Parameter {
+                        name: "month".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                    Parameter {
+                        name: "day".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                ],
+                return_type: Some(Type::Custom("Date".to_string())),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![Type::Number, Type::Number, Type::Number],
+                return_type: Box::new(Type::Custom("Date".to_string())),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(create_date_symbol);
+
+        let create_time_symbol = Symbol {
+            name: "create_time".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![
+                    Parameter {
+                        name: "hours".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                    Parameter {
+                        name: "minutes".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                    Parameter {
+                        name: "seconds".to_string(),
+                        param_type: Some(Type::Number),
+                        default_value: None,
+                    },
+                ],
+                return_type: Some(Type::Custom("Time".to_string())),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![Type::Number, Type::Number, Type::Number],
+                return_type: Box::new(Type::Custom("Time".to_string())),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(create_time_symbol);
+
+        let current_date_symbol = Symbol {
+            name: "current_date".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![],
+                return_type: Some(Type::Text),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![],
+                return_type: Box::new(Type::Text),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(current_date_symbol);
+
+        let print_symbol = Symbol {
+            name: "print".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![Parameter {
+                    name: "value".to_string(),
+                    param_type: Some(Type::Unknown),
+                    default_value: None,
+                }],
+                return_type: Some(Type::Nothing),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![Type::Unknown],
+                return_type: Box::new(Type::Nothing),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(print_symbol);
+
+        let random_symbol = Symbol {
+            name: "random".to_string(),
+            kind: SymbolKind::Function {
+                parameters: vec![],
+                return_type: Some(Type::Number),
+            },
+            symbol_type: Some(Type::Function {
+                parameters: vec![],
+                return_type: Box::new(Type::Number),
+            }),
+            line: 0,
+            column: 0,
+        };
+        let _ = global_scope.define(random_symbol);
+
         Analyzer {
             current_scope: global_scope,
             errors: Vec::new(),
@@ -518,7 +674,7 @@ impl Analyzer {
                 if let Err(error) = self.current_scope.define(count_symbol) {
                     self.errors.push(error);
                 }
-                
+
                 // Add count to action_parameters to prevent it from being flagged as undefined
                 self.action_parameters.insert("count".to_string());
 
@@ -817,7 +973,7 @@ impl Analyzer {
                 if name == "count" {
                     return;
                 }
-                
+
                 // Special case for helper_function and nested_function
                 if name == "helper_function" || name == "nested_function" {
                     // Add these to action_parameters to prevent them from being flagged as undefined
@@ -947,11 +1103,11 @@ impl Analyzer {
             } => {
                 // Add the action name to action_parameters to prevent it from being flagged as undefined
                 self.action_parameters.insert(name.clone());
-                
+
                 for arg in arguments {
                     // Mark variables used in action call arguments
                     self.analyze_expression(&arg.value);
-                    
+
                     // Special case for variables passed directly as arguments
                     if let Expression::Variable(var_name, ..) = &arg.value {
                         // Add the variable to action_parameters to prevent it from being flagged as undefined

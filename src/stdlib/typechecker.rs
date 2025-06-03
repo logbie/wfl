@@ -29,6 +29,20 @@ pub fn register_stdlib_types(analyzer: &mut Analyzer) {
     register_pattern_find(analyzer);
     register_pattern_replace(analyzer);
     register_pattern_split(analyzer);
+
+    register_today(analyzer);
+    register_now(analyzer);
+    register_datetime_now(analyzer);
+    register_format_date(analyzer);
+    register_format_time(analyzer);
+    register_format_datetime(analyzer);
+    register_parse_date(analyzer);
+    register_parse_time(analyzer);
+    register_create_time(analyzer);
+    register_create_date(analyzer);
+    register_add_days(analyzer);
+    register_days_between(analyzer);
+    register_current_date(analyzer);
 }
 
 fn register_print(analyzer: &mut Analyzer) {
@@ -200,4 +214,98 @@ fn register_pattern_split(analyzer: &mut Analyzer) {
     let param_types = vec![Type::Text, Type::Text];
 
     analyzer.register_builtin_function("split_by_pattern", param_types, return_type);
+}
+
+fn register_today(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Date".to_string());
+    let param_types = vec![]; // No parameters
+
+    analyzer.register_builtin_function("today", param_types, return_type);
+}
+
+fn register_now(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Time".to_string());
+    let param_types = vec![]; // No parameters
+
+    analyzer.register_builtin_function("now", param_types, return_type);
+}
+
+fn register_datetime_now(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("DateTime".to_string());
+    let param_types = vec![]; // No parameters
+
+    analyzer.register_builtin_function("datetime_now", param_types, return_type);
+}
+
+fn register_format_date(analyzer: &mut Analyzer) {
+    let return_type = Type::Text;
+    let param_types = vec![Type::Custom("Date".to_string()), Type::Text];
+
+    analyzer.register_builtin_function("format_date", param_types, return_type);
+}
+
+fn register_format_time(analyzer: &mut Analyzer) {
+    let return_type = Type::Text;
+    let param_types = vec![Type::Custom("Time".to_string()), Type::Text];
+
+    analyzer.register_builtin_function("format_time", param_types, return_type);
+}
+
+fn register_format_datetime(analyzer: &mut Analyzer) {
+    let return_type = Type::Text;
+    let param_types = vec![Type::Custom("DateTime".to_string()), Type::Text];
+
+    analyzer.register_builtin_function("format_datetime", param_types, return_type);
+}
+
+fn register_parse_date(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Date".to_string());
+    let param_types = vec![Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("parse_date", param_types, return_type);
+}
+
+fn register_parse_time(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Time".to_string());
+    let param_types = vec![Type::Text, Type::Text];
+
+    analyzer.register_builtin_function("parse_time", param_types, return_type);
+}
+
+fn register_create_time(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Time".to_string());
+    let param_types = vec![Type::Number, Type::Number, Type::Number];
+
+    analyzer.register_builtin_function("create_time", param_types, return_type);
+}
+
+fn register_create_date(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Date".to_string());
+    let param_types = vec![Type::Number, Type::Number, Type::Number];
+
+    analyzer.register_builtin_function("create_date", param_types, return_type);
+}
+
+fn register_add_days(analyzer: &mut Analyzer) {
+    let return_type = Type::Custom("Date".to_string());
+    let param_types = vec![Type::Custom("Date".to_string()), Type::Number];
+
+    analyzer.register_builtin_function("add_days", param_types, return_type);
+}
+
+fn register_days_between(analyzer: &mut Analyzer) {
+    let return_type = Type::Number;
+    let param_types = vec![
+        Type::Custom("Date".to_string()),
+        Type::Custom("Date".to_string()),
+    ];
+
+    analyzer.register_builtin_function("days_between", param_types, return_type);
+}
+
+fn register_current_date(analyzer: &mut Analyzer) {
+    let return_type = Type::Text;
+    let param_types = vec![]; // No parameters
+
+    analyzer.register_builtin_function("current_date", param_types, return_type);
 }

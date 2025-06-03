@@ -13,8 +13,9 @@ display ""
 display "Testing Math Module Functions"
 display "-------------------------"
 
-// Test random function
-display "Random number: " with random
+// Test random function by storing its result
+store random_value as random
+display "Random number: " with random_value
 
 display ""
 display "Simple Standard Library Tests Completed!"

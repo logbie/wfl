@@ -1,0 +1,16 @@
+=== WFL Debug Report ===
+Script: ./Test Programs/error_examples/runtime_error.wfl
+Time: 2025-06-03 10:48:01
+
+=== Error Summary ===
+Runtime error at line 2, column 12: Division by zero
+
+=== Stack Trace ===
+In main script at line 2, column 12
+
+=== Source Code ===
+   1: store x as 0
+>> 2: display 10 divided by x
+
+=== Local Variables ===
+(No local variables in global scope)

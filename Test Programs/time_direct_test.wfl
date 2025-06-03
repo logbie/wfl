@@ -1,6 +1,11 @@
 // Time Module Direct Test
 
-// Test current date and time functions directly
-display "Today: " with today
-display "Now: " with now
-display "Datetime now: " with datetime_now
+// Test current date and time functions by storing them first
+store today_result as today
+display "Today: " with today_result
+
+store now_result as now
+display "Now: " with now_result
+
+store datetime_result as datetime_now
+display "Datetime now: " with datetime_result
