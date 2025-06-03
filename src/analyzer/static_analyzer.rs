@@ -754,6 +754,14 @@ impl Analyzer {
                             Statement::HttpGetStatement { line, .. } => *line,
                             Statement::HttpPostStatement { line, .. } => *line,
                             Statement::PushStatement { line, .. } => *line,
+                            // Container-related statements
+                            Statement::ContainerDefinition { line, .. } => *line,
+                            Statement::ContainerInstantiation { line, .. } => *line,
+                            Statement::InterfaceDefinition { line, .. } => *line,
+                            Statement::EventDefinition { line, .. } => *line,
+                            Statement::EventTrigger { line, .. } => *line,
+                            Statement::EventHandler { line, .. } => *line,
+                            Statement::ParentMethodCall { line, .. } => *line,
                         },
                         column: match statement {
                             Statement::VariableDeclaration { column, .. } => *column,
@@ -782,6 +790,14 @@ impl Analyzer {
                             Statement::HttpGetStatement { column, .. } => *column,
                             Statement::HttpPostStatement { column, .. } => *column,
                             Statement::PushStatement { column, .. } => *column,
+                            // Container-related statements
+                            Statement::ContainerDefinition { column, .. } => *column,
+                            Statement::ContainerInstantiation { column, .. } => *column,
+                            Statement::InterfaceDefinition { column, .. } => *column,
+                            Statement::EventDefinition { column, .. } => *column,
+                            Statement::EventTrigger { column, .. } => *column,
+                            Statement::EventHandler { column, .. } => *column,
+                            Statement::ParentMethodCall { column, .. } => *column,
                         },
                     });
                     stmt_nodes.push(node_idx);
@@ -838,6 +854,14 @@ impl Analyzer {
                                 Statement::HttpGetStatement { line, .. } => *line,
                                 Statement::HttpPostStatement { line, .. } => *line,
                                 Statement::PushStatement { line, .. } => *line,
+                                // Container-related statements
+                                Statement::ContainerDefinition { line, .. } => *line,
+                                Statement::ContainerInstantiation { line, .. } => *line,
+                                Statement::InterfaceDefinition { line, .. } => *line,
+                                Statement::EventDefinition { line, .. } => *line,
+                                Statement::EventTrigger { line, .. } => *line,
+                                Statement::EventHandler { line, .. } => *line,
+                                Statement::ParentMethodCall { line, .. } => *line,
                             },
                             column: match stmt {
                                 Statement::VariableDeclaration { column, .. } => *column,
@@ -866,6 +890,14 @@ impl Analyzer {
                                 Statement::HttpGetStatement { column, .. } => *column,
                                 Statement::HttpPostStatement { column, .. } => *column,
                                 Statement::PushStatement { column, .. } => *column,
+                                // Container-related statements
+                                Statement::ContainerDefinition { column, .. } => *column,
+                                Statement::ContainerInstantiation { column, .. } => *column,
+                                Statement::InterfaceDefinition { column, .. } => *column,
+                                Statement::EventDefinition { column, .. } => *column,
+                                Statement::EventTrigger { column, .. } => *column,
+                                Statement::EventHandler { column, .. } => *column,
+                                Statement::ParentMethodCall { column, .. } => *column,
                             },
                         });
                         then_nodes.push(then_node_idx);
@@ -910,6 +942,14 @@ impl Analyzer {
                                     Statement::HttpGetStatement { line, .. } => *line,
                                     Statement::HttpPostStatement { line, .. } => *line,
                                     Statement::PushStatement { line, .. } => *line,
+                                    // Container-related statements
+                                    Statement::ContainerDefinition { line, .. } => *line,
+                                    Statement::ContainerInstantiation { line, .. } => *line,
+                                    Statement::InterfaceDefinition { line, .. } => *line,
+                                    Statement::EventDefinition { line, .. } => *line,
+                                    Statement::EventTrigger { line, .. } => *line,
+                                    Statement::EventHandler { line, .. } => *line,
+                                    Statement::ParentMethodCall { line, .. } => *line,
                                 },
                                 column: match stmt {
                                     Statement::VariableDeclaration { column, .. } => *column,
@@ -938,6 +978,14 @@ impl Analyzer {
                                     Statement::HttpGetStatement { column, .. } => *column,
                                     Statement::HttpPostStatement { column, .. } => *column,
                                     Statement::PushStatement { column, .. } => *column,
+                                    // Container-related statements
+                                    Statement::ContainerDefinition { column, .. } => *column,
+                                    Statement::ContainerInstantiation { column, .. } => *column,
+                                    Statement::InterfaceDefinition { column, .. } => *column,
+                                    Statement::EventDefinition { column, .. } => *column,
+                                    Statement::EventTrigger { column, .. } => *column,
+                                    Statement::EventHandler { column, .. } => *column,
+                                    Statement::ParentMethodCall { column, .. } => *column,
                                 },
                             });
                             else_nodes.push(else_node_idx);

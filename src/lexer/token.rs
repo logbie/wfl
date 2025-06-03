@@ -154,8 +154,54 @@ pub enum Token {
     #[token("than")]
     KeywordThan,
 
+    // Container-related keywords
+    #[token("container")]
+    KeywordContainer,
+    #[token("property")]
+    KeywordProperty,
+    #[token("extends")]
+    KeywordExtends,
+    #[token("implements")]
+    KeywordImplements,
+    #[token("interface")]
+    KeywordInterface,
+    #[token("requires")]
+    KeywordRequires,
+    #[token("event")]
+    KeywordEvent,
+    #[token("trigger")]
+    KeywordTrigger,
+    #[token("on")]
+    KeywordOn,
+    #[token("static")]
+    KeywordStatic,
+    #[token("public")]
+    KeywordPublic,
+    #[token("private")]
+    KeywordPrivate,
+    #[token("parent")]
+    KeywordParent,
+    #[token("new")]
+    KeywordNew,
+    #[token("must")]
+    KeywordMust,
+    #[token("defaults")]
+    KeywordDefaults,
+
     #[token(":")]
     Colon,
+
+    #[token(",")]
+    Comma,
+
+    #[token("+")]
+    Plus,
+
+    #[token(".")]
+    Dot,
+
+    #[token("=")]
+    Equals,
 
     #[token("[")]
     LeftBracket,
@@ -266,6 +312,22 @@ impl Token {
                 | Token::KeywordSkip
                 | Token::KeywordThan
                 | Token::KeywordPush
+                | Token::KeywordContainer
+                | Token::KeywordProperty
+                | Token::KeywordExtends
+                | Token::KeywordImplements
+                | Token::KeywordInterface
+                | Token::KeywordRequires
+                | Token::KeywordEvent
+                | Token::KeywordTrigger
+                | Token::KeywordOn
+                | Token::KeywordStatic
+                | Token::KeywordPublic
+                | Token::KeywordPrivate
+                | Token::KeywordParent
+                | Token::KeywordNew
+                | Token::KeywordMust
+                | Token::KeywordDefaults
         )
     }
 }
