@@ -125,7 +125,7 @@ impl StaticAnalyzer for Analyzer {
         action_parameters.insert("helper_function".to_string());
         action_parameters.insert("nested_function".to_string());
         action_parameters.insert("y".to_string());
-        
+
         // Store action parameters in the analyzer for use by the type checker
         self.action_parameters = action_parameters.clone();
 
@@ -235,7 +235,7 @@ impl StaticAnalyzer for Analyzer {
                             usage.used = true;
                         }
                     }
-                    
+
                     // Also mark any variables used within more complex expressions
                     // We need to remove this line since we're already marking variables in the expression
                     // through the Variable match above and the mark_used_variables function
@@ -248,7 +248,7 @@ impl StaticAnalyzer for Analyzer {
             if name == "y" {
                 continue;
             }
-            
+
             if !usage.used {
                 diagnostics.push(WflDiagnostic::new(
                     Severity::Warning,
@@ -631,7 +631,7 @@ impl Analyzer {
                 if name == "count" || name == "loopcounter" {
                     return;
                 }
-                
+
                 if let Some(usage) = usages.get_mut(name) {
                     usage.used = true;
                 }
