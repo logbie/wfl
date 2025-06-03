@@ -731,8 +731,10 @@ impl TypeChecker {
                     }
                 } else {
                     // Check if this is an action parameter or a special function name before reporting it as undefined
-                    if self.analyzer.get_action_parameters().contains(name) ||
-                       name == "helper_function" || name == "nested_function" {
+                    if self.analyzer.get_action_parameters().contains(name)
+                        || name == "helper_function"
+                        || name == "nested_function"
+                    {
                         // It's an action parameter or a special function name, so don't report an error
                         if name == "loopcounter" {
                             // Special case for loopcounter - it's a Number
@@ -1322,8 +1324,10 @@ impl TypeChecker {
 
                 if symbol_opt.is_none() {
                     // Check if this is an action parameter or a special function name before reporting it as undefined
-                    if self.analyzer.get_action_parameters().contains(name) ||
-                       name == "helper_function" || name == "nested_function" {
+                    if self.analyzer.get_action_parameters().contains(name)
+                        || name == "helper_function"
+                        || name == "nested_function"
+                    {
                         // It's an action parameter or a special function name, so don't report an error
                         return Type::Unknown;
                     } else {

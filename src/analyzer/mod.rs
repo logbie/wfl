@@ -518,7 +518,7 @@ impl Analyzer {
                 if let Err(error) = self.current_scope.define(count_symbol) {
                     self.errors.push(error);
                 }
-                
+
                 // Add count to action_parameters to prevent it from being flagged as undefined
                 self.action_parameters.insert("count".to_string());
 
@@ -817,7 +817,7 @@ impl Analyzer {
                 if name == "count" {
                     return;
                 }
-                
+
                 // Special case for helper_function and nested_function
                 if name == "helper_function" || name == "nested_function" {
                     // Add these to action_parameters to prevent them from being flagged as undefined
@@ -947,11 +947,11 @@ impl Analyzer {
             } => {
                 // Add the action name to action_parameters to prevent it from being flagged as undefined
                 self.action_parameters.insert(name.clone());
-                
+
                 for arg in arguments {
                     // Mark variables used in action call arguments
                     self.analyze_expression(&arg.value);
-                    
+
                     // Special case for variables passed directly as arguments
                     if let Expression::Variable(var_name, ..) = &arg.value {
                         // Add the variable to action_parameters to prevent it from being flagged as undefined
