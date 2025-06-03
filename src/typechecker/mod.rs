@@ -149,8 +149,8 @@ impl TypeChecker {
             Statement::PushStatement {
                 list,
                 value,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let list_type = self.infer_expression_type(list);
                 match list_type {
@@ -160,8 +160,8 @@ impl TypeChecker {
                             format!("Expected list type for push operation, got {:?}", list_type),
                             Some(Type::List(Box::new(Type::Any))),
                             Some(list_type.clone()),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         ));
                     }
                 }
@@ -170,8 +170,8 @@ impl TypeChecker {
             Statement::RepeatWhileLoop {
                 condition,
                 body,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let condition_type = self.infer_expression_type(condition);
                 if condition_type != Type::Boolean && condition_type != Type::Unknown {
@@ -182,8 +182,8 @@ impl TypeChecker {
                         ),
                         Some(Type::Boolean),
                         Some(condition_type.clone()),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     ));
                 }
 
@@ -228,8 +228,8 @@ impl TypeChecker {
             Statement::HttpGetStatement {
                 url,
                 variable_name,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let url_type = self.infer_expression_type(url);
                 if url_type != Type::Text && url_type != Type::Unknown && url_type != Type::Error {
@@ -237,8 +237,8 @@ impl TypeChecker {
                         "URL must be a text string".to_string(),
                         Some(Type::Text),
                         Some(url_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -252,8 +252,8 @@ impl TypeChecker {
                 url,
                 data,
                 variable_name,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let url_type = self.infer_expression_type(url);
                 if url_type != Type::Text && url_type != Type::Unknown && url_type != Type::Error {
@@ -261,8 +261,8 @@ impl TypeChecker {
                         "URL must be a text string".to_string(),
                         Some(Type::Text),
                         Some(url_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -277,8 +277,8 @@ impl TypeChecker {
             Statement::VariableDeclaration {
                 name,
                 value,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let inferred_type = self.infer_expression_type(value);
 
@@ -287,8 +287,8 @@ impl TypeChecker {
                         format!("Could not infer type for variable '{}'", name),
                         None,
                         None,
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -312,8 +312,8 @@ impl TypeChecker {
                         ),
                         symbol_type_option.clone(),
                         Some(inferred_type.clone()),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -359,8 +359,8 @@ impl TypeChecker {
                 parameters,
                 body,
                 return_type,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let param_types = parameters
                     .iter()
@@ -381,15 +381,15 @@ impl TypeChecker {
                 }
 
                 if let Some(ret_type) = return_type {
-                    self.check_return_statements(body, ret_type, *line, *column);
+                    self.check_return_statements(body, ret_type, *_line, *_column);
                 }
             }
             Statement::IfStatement {
                 condition,
                 then_block,
                 else_block,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let condition_type = self.infer_expression_type(condition);
                 if condition_type != Type::Boolean
@@ -400,8 +400,8 @@ impl TypeChecker {
                         "Condition must be a boolean expression".to_string(),
                         Some(Type::Boolean),
                         Some(condition_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -419,8 +419,8 @@ impl TypeChecker {
                 condition,
                 then_stmt,
                 else_stmt,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let condition_type = self.infer_expression_type(condition);
                 if condition_type != Type::Boolean
@@ -431,8 +431,8 @@ impl TypeChecker {
                         "Condition must be a boolean expression".to_string(),
                         Some(Type::Boolean),
                         Some(condition_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -446,8 +446,8 @@ impl TypeChecker {
                 item_name,
                 collection,
                 body,
-                line,
-                column,
+                line: _line,
+                column: _column,
                 ..
             } => {
                 let collection_type = self.infer_expression_type(collection);
@@ -468,8 +468,8 @@ impl TypeChecker {
                             "Collection in for-each loop must be a list or map".to_string(),
                             Some(Type::List(Box::new(Type::Unknown))),
                             Some(collection_type),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                     }
                 }
@@ -483,8 +483,8 @@ impl TypeChecker {
                 end,
                 step,
                 body,
-                line,
-                column,
+                line: _line,
+                column: _column,
                 ..
             } => {
                 let start_type = self.infer_expression_type(start);
@@ -496,8 +496,8 @@ impl TypeChecker {
                         "Start value in count loop must be a number".to_string(),
                         Some(Type::Number),
                         Some(start_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -508,8 +508,8 @@ impl TypeChecker {
                         "End value in count loop must be a number".to_string(),
                         Some(Type::Number),
                         Some(end_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -523,8 +523,8 @@ impl TypeChecker {
                             "Step value in count loop must be a number".to_string(),
                             Some(Type::Number),
                             Some(step_type),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                     }
                 }
@@ -536,8 +536,8 @@ impl TypeChecker {
             Statement::WhileLoop {
                 condition,
                 body,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let condition_type = self.infer_expression_type(condition);
                 if condition_type != Type::Boolean
@@ -548,8 +548,8 @@ impl TypeChecker {
                         "Condition in while loop must be a boolean expression".to_string(),
                         Some(Type::Boolean),
                         Some(condition_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -560,8 +560,8 @@ impl TypeChecker {
             Statement::RepeatUntilLoop {
                 condition,
                 body,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let condition_type = self.infer_expression_type(condition);
                 if condition_type != Type::Boolean
@@ -572,8 +572,8 @@ impl TypeChecker {
                         "Condition in repeat-until loop must be a boolean expression".to_string(),
                         Some(Type::Boolean),
                         Some(condition_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -605,8 +605,8 @@ impl TypeChecker {
             Statement::OpenFileStatement {
                 path,
                 variable_name,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let path_type = self.infer_expression_type(path);
                 if path_type != Type::Text && path_type != Type::Unknown && path_type != Type::Error
@@ -615,8 +615,8 @@ impl TypeChecker {
                         "File path must be a text string".to_string(),
                         Some(Type::Text),
                         Some(path_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -627,8 +627,8 @@ impl TypeChecker {
             Statement::ReadFileStatement {
                 path,
                 variable_name,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let file_type = self.infer_expression_type(path);
                 if file_type != Type::Custom("File".to_string())
@@ -639,8 +639,8 @@ impl TypeChecker {
                         "Expected a File object".to_string(),
                         Some(Type::Custom("File".to_string())),
                         Some(file_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -652,8 +652,8 @@ impl TypeChecker {
                 file,
                 content,
                 mode: _,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let file_type = self.infer_expression_type(file);
                 if file_type != Type::Custom("File".to_string())
@@ -664,8 +664,8 @@ impl TypeChecker {
                         "Expected a File object".to_string(),
                         Some(Type::Custom("File".to_string())),
                         Some(file_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
 
@@ -678,12 +678,16 @@ impl TypeChecker {
                         "File content must be a text string".to_string(),
                         Some(Type::Text),
                         Some(content_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
             }
-            Statement::CloseFileStatement { file, line, column } => {
+            Statement::CloseFileStatement {
+                file,
+                line: _line,
+                column: _column,
+            } => {
                 let file_type = self.infer_expression_type(file);
                 if file_type != Type::Custom("File".to_string())
                     && file_type != Type::Unknown
@@ -693,40 +697,171 @@ impl TypeChecker {
                         "Expected a File object".to_string(),
                         Some(Type::Custom("File".to_string())),
                         Some(file_type),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                 }
             }
             // Container-related statements
-            Statement::ContainerDefinition { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
+            Statement::ContainerDefinition {
+                name: _name,
+                extends,
+                implements,
+                properties,
+                methods,
+                events: _events,
+                static_properties: _static_properties,
+                static_methods: _static_methods,
+                line,
+                column,
+            } => {
+                if let Some(parent_name) = extends {
+                    if let Some(parent_symbol) = self.analyzer.get_symbol(parent_name) {
+                        if parent_symbol.symbol_type != Some(Type::Container(parent_name.clone())) {
+                            self.type_error(
+                                format!("'{}' is not a container type", parent_name),
+                                Some(Type::Container(parent_name.clone())),
+                                parent_symbol.symbol_type.clone(),
+                                *line,
+                                *column,
+                            );
+                        }
+                    } else {
+                        self.type_error(
+                            format!("Parent container '{}' not found", parent_name),
+                            Some(Type::Container(parent_name.clone())),
+                            None,
+                            *line,
+                            *column,
+                        );
+                    }
+                }
+
+                for interface_name in implements {
+                    if let Some(interface_symbol) = self.analyzer.get_symbol(interface_name) {
+                        if interface_symbol.symbol_type
+                            != Some(Type::Interface(interface_name.clone()))
+                        {
+                            self.type_error(
+                                format!("'{}' is not an interface type", interface_name),
+                                Some(Type::Interface(interface_name.clone())),
+                                interface_symbol.symbol_type.clone(),
+                                *line,
+                                *column,
+                            );
+                        }
+                    } else {
+                        self.type_error(
+                            format!("Interface '{}' not found", interface_name),
+                            Some(Type::Interface(interface_name.clone())),
+                            None,
+                            *line,
+                            *column,
+                        );
+                    }
+                }
+
+                for property in properties {
+                    if let Some(default_expr) = &property.default_value {
+                        let default_type = self.infer_expression_type(default_expr);
+                        if let Some(declared_type) = &property.property_type {
+                            if !self.are_types_compatible(&default_type, declared_type) {
+                                self.type_error(
+                                    format!(
+                                        "Default value type {:?} incompatible with declared type {:?}",
+                                        default_type, declared_type
+                                    ),
+                                    Some(declared_type.clone()),
+                                    Some(default_type),
+                                    property.line,
+                                    property.column,
+                                );
+                            }
+                        }
+                    }
+                }
+
+                for method in methods {
+                    if let Statement::ActionDefinition { body, .. } = method {
+                        for stmt in body {
+                            self.check_statement_types(stmt);
+                        }
+                    }
+                }
+
+                // Container type registration would be handled by analyzer
             }
-            Statement::ContainerInstantiation { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
+            Statement::ContainerInstantiation {
+                container_type,
+                instance_name: _instance_name,
+                arguments: _arguments,
+                property_initializers,
+                line,
+                column,
+            } => {
+                if let Some(container_symbol) = self.analyzer.get_symbol(container_type) {
+                    if container_symbol.symbol_type != Some(Type::Container(container_type.clone()))
+                    {
+                        self.type_error(
+                            format!("'{}' is not a container type", container_type),
+                            Some(Type::Container(container_type.clone())),
+                            container_symbol.symbol_type.clone(),
+                            *line,
+                            *column,
+                        );
+                    }
+                } else {
+                    self.type_error(
+                        format!("Container type '{}' not found", container_type),
+                        Some(Type::Container(container_type.clone())),
+                        None,
+                        *line,
+                        *column,
+                    );
+                }
+
+                for initializer in property_initializers {
+                    let _init_type = self.infer_expression_type(&initializer.value);
+                }
             }
-            Statement::InterfaceDefinition { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
+            Statement::InterfaceDefinition {
+                name: _name,
+                extends: _extends,
+                required_actions: _required_actions,
+                line: _line,
+                column: _column,
+            } => {
+                // Interface type registration would be handled by analyzer
             }
-            Statement::EventDefinition { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
+            Statement::EventDefinition {
+                name: _name,
+                parameters: _parameters,
+                line: _line,
+                column: _column,
+            } => {}
+            Statement::EventTrigger {
+                name: _name,
+                arguments: _arguments,
+                line: _line,
+                column: _column,
+            } => {}
+            Statement::EventHandler {
+                event_name: _event_name,
+                event_source: _event_source,
+                handler_body,
+                line: _line,
+                column: _column,
+            } => {
+                for stmt in handler_body {
+                    self.check_statement_types(stmt);
+                }
             }
-            Statement::EventTrigger { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
-            }
-            Statement::EventHandler { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
-            }
-            Statement::ParentMethodCall { .. } => {
-                // For now, just a stub implementation
-                // This will be expanded later
-            }
+            Statement::ParentMethodCall {
+                method_name: _method_name,
+                arguments: _arguments,
+                line: _line,
+                column: _column,
+            } => {}
         }
     }
 
@@ -741,7 +876,7 @@ impl TypeChecker {
                 Literal::Pattern(_) => Type::Text,
                 Literal::List(_) => Type::List(Box::new(Type::Any)),
             },
-            Expression::Variable(name, line, column) => {
+            Expression::Variable(name, _line, _column) => {
                 if let Some(symbol) = self.analyzer.get_symbol(name) {
                     if let Some(var_type) = &symbol.symbol_type {
                         var_type.clone()
@@ -750,8 +885,8 @@ impl TypeChecker {
                             format!("Cannot determine type of variable '{}'", name),
                             None,
                             None,
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                         Type::Unknown
                     }
@@ -766,8 +901,8 @@ impl TypeChecker {
                             format!("Variable '{}' is not defined", name),
                             None,
                             None,
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                         Type::Error
                     }
@@ -1067,8 +1202,8 @@ impl TypeChecker {
             Expression::MemberAccess {
                 object,
                 property,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let object_type = self.infer_expression_type(object);
 
@@ -1084,8 +1219,8 @@ impl TypeChecker {
                             format!("Cannot access property '{}' on {}", property, object_type),
                             Some(Type::Custom("Object".to_string())),
                             Some(object_type),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                         Type::Error
                     }
@@ -1163,8 +1298,8 @@ impl TypeChecker {
             Expression::Concatenation {
                 left,
                 right,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let left_type = self.infer_expression_type(left);
                 let right_type = self.infer_expression_type(right);
@@ -1186,8 +1321,8 @@ impl TypeChecker {
                         } else {
                             right_type
                         }),
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                     Type::Error
                 }
@@ -1336,8 +1471,8 @@ impl TypeChecker {
             Expression::ActionCall {
                 name,
                 arguments,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 let symbol_opt = self.analyzer.get_symbol(name);
 
@@ -1351,8 +1486,8 @@ impl TypeChecker {
                             format!("Undefined action '{}'", name),
                             None,
                             None,
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                         return Type::Error;
                     }
@@ -1365,8 +1500,8 @@ impl TypeChecker {
                         format!("Cannot determine type of action '{}'", name),
                         None,
                         None,
-                        *line,
-                        *column,
+                        *_line,
+                        *_column,
                     );
                     return Type::Unknown;
                 }
@@ -1388,8 +1523,8 @@ impl TypeChecker {
                                 ),
                                 None,
                                 None,
-                                *line,
-                                *column,
+                                *_line,
+                                *_column,
                             );
                             return Type::Error;
                         }
@@ -1413,8 +1548,8 @@ impl TypeChecker {
                                     ),
                                     Some(param_type.clone()),
                                     Some(arg_type.clone()),
-                                    *line,
-                                    *column,
+                                    *_line,
+                                    *_column,
                                 );
                                 return Type::Error;
                             }
@@ -1430,21 +1565,21 @@ impl TypeChecker {
                                 return_type: Box::new(Type::Unknown),
                             }),
                             Some(symbol_type),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         );
                         Type::Error
                     }
                 }
             }
             Expression::StaticMemberAccess {
-                container,
-                member,
-                line,
-                column,
+                container: _container,
+                member: _member,
+                line: _line,
+                column: _column,
             } => {
                 // Check if the container exists
-                let container_type = Type::Container(container.clone());
+                let _container_type = Type::Container(_container.clone());
 
                 // Look up the static member in the container
                 // For now, return Unknown type since we need to implement container symbol table
@@ -1460,17 +1595,17 @@ impl TypeChecker {
             }
             Expression::MethodCall {
                 object,
-                method,
+                method: _method,
                 arguments,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 // First, determine the type of the object
                 let object_type = self.infer_expression_type(object);
 
                 // Check if the object is a container instance
                 match object_type {
-                    Type::ContainerInstance(container_name) => {
+                    Type::ContainerInstance(_container_name) => {
                         // Look up the method in the container
                         // For now, return Unknown type since we need to implement container method lookup
                         // TODO: Implement proper method type lookup
@@ -1493,12 +1628,36 @@ impl TypeChecker {
                         self.type_error(
                             format!(
                                 "Cannot call method '{}' on non-container type {}",
-                                method, object_type
+                                _method, object_type
                             ),
                             Some(Type::ContainerInstance(String::from("Unknown"))),
                             Some(object_type),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
+                        );
+                        Type::Error
+                    }
+                }
+            }
+            Expression::PropertyAccess {
+                object, property, ..
+            } => {
+                let object_type = self.infer_expression_type(object);
+                match object_type {
+                    Type::ContainerInstance(_container_name) => {
+                        // For now, return Unknown type for property access
+                        Type::Unknown
+                    }
+                    _ => {
+                        self.type_error(
+                            format!(
+                                "Cannot access property '{}' on non-container type",
+                                property
+                            ),
+                            Some(Type::ContainerInstance("Unknown".to_string())),
+                            Some(object_type),
+                            0,
+                            0,
                         );
                         Type::Error
                     }
@@ -1775,6 +1934,8 @@ mod tests {
                         name: "name".to_string(),
                         param_type: Some(Type::Text),
                         default_value: None,
+                        line: 0,
+                        column: 0,
                     }],
                     body: vec![Statement::DisplayStatement {
                         value: Expression::Variable("name".to_string(), 2, 5),
