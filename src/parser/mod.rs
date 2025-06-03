@@ -270,10 +270,337 @@ impl<'a> Parser<'a> {
         }
     }
 
+    // Container-related parsing methods - stub implementations for now
+    pub fn parse_container_definition(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'create'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        self.expect_token(
+            Token::KeywordContainer,
+            "Expected 'container' after 'create'",
+        )?;
+
+        // Parse container name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for container name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for container name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple container definition
+        Ok(Statement::ContainerDefinition {
+            name,
+            extends: None,
+            implements: Vec::new(),
+            properties: Vec::new(),
+            methods: Vec::new(),
+            events: Vec::new(),
+            static_properties: Vec::new(),
+            static_methods: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_interface_definition(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'create'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        self.expect_token(
+            Token::KeywordInterface,
+            "Expected 'interface' after 'create'",
+        )?;
+
+        // Parse interface name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for interface name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for interface name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple interface definition
+        Ok(Statement::InterfaceDefinition {
+            name,
+            extends: Vec::new(),
+            required_actions: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_container_instantiation(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'create'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        self.expect_token(Token::KeywordNew, "Expected 'new' after 'create'")?;
+
+        // Parse container type
+        let container_type = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for container type, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for container type, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        self.expect_token(Token::KeywordAs, "Expected 'as' after container type")?;
+
+        // Parse instance name
+        let instance_name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for instance name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for instance name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple container instantiation
+        Ok(Statement::ContainerInstantiation {
+            container_type,
+            instance_name,
+            arguments: Vec::new(),
+            property_initializers: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_event_definition(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'event'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse event name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for event name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for event name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple event definition
+        Ok(Statement::EventDefinition {
+            name,
+            parameters: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_event_trigger(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'trigger'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse event name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for event name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for event name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple event trigger
+        Ok(Statement::EventTrigger {
+            name,
+            arguments: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_event_handler(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'on'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse event source
+        let event_source = self.parse_expression()?;
+
+        // Parse event name
+        let event_name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for event name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for event name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple event handler
+        Ok(Statement::EventHandler {
+            event_source,
+            event_name,
+            handler_body: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    pub fn parse_parent_method_call(&mut self) -> Result<Statement, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'parent'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse method name
+        let method_name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier for method name, found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier for method name, found end of input".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        // For now, just create a simple parent method call
+        Ok(Statement::ParentMethodCall {
+            method_name,
+            arguments: Vec::new(),
+            line,
+            column,
+        })
+    }
+
+    // Helper methods for parsing container-related constructs will be added as needed
+
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         if let Some(token) = self.tokens.peek().cloned() {
             match &token.token {
-                Token::KeywordStore | Token::KeywordCreate => self.parse_variable_declaration(),
+                Token::KeywordStore | Token::KeywordCreate => {
+                    // Check if it's "create container", "create interface", or "create new"
+                    let mut tokens_clone = self.tokens.clone();
+                    tokens_clone.next(); // Skip "create"
+
+                    if let Some(next_token) = tokens_clone.next() {
+                        match &next_token.token {
+                            Token::KeywordContainer => self.parse_container_definition(),
+                            Token::KeywordInterface => self.parse_interface_definition(),
+                            Token::KeywordNew => self.parse_container_instantiation(),
+                            _ => self.parse_variable_declaration(), // Default to variable declaration
+                        }
+                    } else {
+                        self.parse_variable_declaration() // Default to variable declaration
+                    }
+                }
                 Token::KeywordDisplay => self.parse_display_statement(),
                 Token::KeywordCheck => self.parse_if_statement(),
                 Token::KeywordIf => self.parse_single_line_if(),
@@ -285,6 +612,10 @@ impl<'a> Parser<'a> {
                 Token::KeywordRepeat => self.parse_repeat_statement(),
                 Token::KeywordExit => self.parse_exit_statement(),
                 Token::KeywordPush => self.parse_push_statement(),
+                Token::KeywordEvent => self.parse_event_definition(),
+                Token::KeywordTrigger => self.parse_event_trigger(),
+                Token::KeywordOn => self.parse_event_handler(),
+                Token::KeywordParent => self.parse_parent_method_call(),
                 Token::KeywordBreak => {
                     let token_pos = self.tokens.next().unwrap();
                     Ok(Statement::BreakStatement {
@@ -1397,6 +1728,51 @@ impl<'a> Parser<'a> {
                                 column: token.column,
                             };
                         }
+                        // Handle static member access: "Container.staticMember"
+                        Token::Identifier(id) if id == "." => {
+                            self.tokens.next(); // Consume "."
+
+                            if let Some(member_token) = self.tokens.peek().cloned() {
+                                if let Token::Identifier(member) = &member_token.token {
+                                    self.tokens.next(); // Consume member name
+
+                                    // Extract container name from expression
+                                    let container = if let Expression::Variable(name, _, _) = &expr
+                                    {
+                                        name.clone()
+                                    } else {
+                                        return Err(ParseError::new(
+                                            "Static member access requires a container name"
+                                                .to_string(),
+                                            token.line,
+                                            token.column,
+                                        ));
+                                    };
+
+                                    expr = Expression::StaticMemberAccess {
+                                        container,
+                                        member: member.clone(),
+                                        line: token.line,
+                                        column: token.column,
+                                    };
+                                } else {
+                                    return Err(ParseError::new(
+                                        format!(
+                                            "Expected identifier after '.', found {:?}",
+                                            member_token.token
+                                        ),
+                                        member_token.line,
+                                        member_token.column,
+                                    ));
+                                }
+                            } else {
+                                return Err(ParseError::new(
+                                    "Unexpected end of input after '.'".to_string(),
+                                    token.line,
+                                    token.column,
+                                ));
+                            }
+                        }
                         _ => break,
                     }
                 }
@@ -1497,6 +1873,18 @@ impl<'a> Parser<'a> {
                     })
                 }
                 Expression::ActionCall { line, column, .. } => Ok(Statement::DisplayStatement {
+                    value: expr,
+                    line,
+                    column,
+                }),
+                Expression::StaticMemberAccess { line, column, .. } => {
+                    Ok(Statement::DisplayStatement {
+                        value: expr,
+                        line,
+                        column,
+                    })
+                }
+                Expression::MethodCall { line, column, .. } => Ok(Statement::DisplayStatement {
                     value: expr,
                     line,
                     column,

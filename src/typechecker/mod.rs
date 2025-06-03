@@ -75,6 +75,9 @@ impl fmt::Display for Type {
             Type::Error => write!(f, "Error"),
             Type::Async(t) => write!(f, "Async<{}>", t),
             Type::Any => write!(f, "Any"),
+            Type::Container(name) => write!(f, "Container<{}>", name),
+            Type::ContainerInstance(name) => write!(f, "Instance<{}>", name),
+            Type::Interface(name) => write!(f, "Interface<{}>", name),
         }
     }
 }
@@ -694,6 +697,35 @@ impl TypeChecker {
                         *column,
                     );
                 }
+            }
+            // Container-related statements
+            Statement::ContainerDefinition { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::ContainerInstantiation { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::InterfaceDefinition { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::EventDefinition { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::EventTrigger { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::EventHandler { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Statement::ParentMethodCall { .. } => {
+                // For now, just a stub implementation
+                // This will be expanded later
             }
         }
     }
@@ -1398,6 +1430,73 @@ impl TypeChecker {
                                 return_type: Box::new(Type::Unknown),
                             }),
                             Some(symbol_type),
+                            *line,
+                            *column,
+                        );
+                        Type::Error
+                    }
+                }
+            }
+            Expression::StaticMemberAccess {
+                container,
+                member,
+                line,
+                column,
+            } => {
+                // Check if the container exists
+                let container_type = Type::Container(container.clone());
+
+                // Look up the static member in the container
+                // For now, return Unknown type since we need to implement container symbol table
+                // TODO: Implement proper static member type lookup
+
+                // This is a placeholder implementation
+                // In a full implementation, we would:
+                // 1. Check if the container exists in the symbol table
+                // 2. Check if the member exists as a static member in the container
+                // 3. Return the appropriate type based on the member's definition
+
+                Type::Unknown
+            }
+            Expression::MethodCall {
+                object,
+                method,
+                arguments,
+                line,
+                column,
+            } => {
+                // First, determine the type of the object
+                let object_type = self.infer_expression_type(object);
+
+                // Check if the object is a container instance
+                match object_type {
+                    Type::ContainerInstance(container_name) => {
+                        // Look up the method in the container
+                        // For now, return Unknown type since we need to implement container method lookup
+                        // TODO: Implement proper method type lookup
+
+                        // This is a placeholder implementation
+                        // In a full implementation, we would:
+                        // 1. Check if the container exists in the symbol table
+                        // 2. Check if the method exists in the container
+                        // 3. Check if the arguments match the method's parameters
+                        // 4. Return the method's return type
+
+                        // Check argument types
+                        for arg in arguments {
+                            self.infer_expression_type(&arg.value);
+                        }
+
+                        Type::Unknown
+                    }
+                    _ => {
+                        self.type_error(
+                            format!(
+                                "Cannot call method '{}' on non-container type {}",
+                                method, object_type
+                            ),
+                            Some(Type::ContainerInstance(String::from("Unknown"))),
+                            Some(object_type),
                             *line,
                             *column,
                         );

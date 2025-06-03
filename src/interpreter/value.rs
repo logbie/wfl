@@ -17,6 +17,14 @@ pub enum Value {
     NativeFunction(NativeFunction),
     Future(Rc<RefCell<FutureValue>>),
     Null,
+    Nothing, // Used for void returns
+
+    // Container-related values
+    ContainerDefinition(Rc<ContainerDefinitionValue>),
+    ContainerInstance(Rc<RefCell<ContainerInstanceValue>>),
+    ContainerMethod(Rc<ContainerMethodValue>),
+    ContainerEvent(Rc<ContainerEventValue>),
+    InterfaceDefinition(Rc<InterfaceDefinitionValue>),
 }
 
 pub type NativeFunction = fn(Vec<Value>) -> Result<Value, RuntimeError>;
@@ -39,6 +47,108 @@ pub struct FutureValue {
     pub column: usize,
 }
 
+// Container-related structs
+#[derive(Clone)]
+pub struct ContainerDefinitionValue {
+    pub name: String,
+    pub extends: Option<String>,
+    pub implements: Vec<String>,
+    pub properties: HashMap<String, PropertyDefinition>,
+    pub methods: HashMap<String, ContainerMethodValue>,
+    pub events: HashMap<String, ContainerEventValue>,
+    pub static_properties: HashMap<String, Value>,
+    pub static_methods: HashMap<String, ContainerMethodValue>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct PropertyDefinition {
+    pub name: String,
+    pub property_type: Option<String>,
+    pub default_value: Option<Value>,
+    pub validation_rules: Vec<ValidationRule>,
+    pub is_static: bool,
+    pub is_public: bool,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct ValidationRule {
+    pub rule_type: ValidationRuleType,
+    pub parameters: Vec<Value>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone, PartialEq)]
+pub enum ValidationRuleType {
+    NotEmpty,
+    MinLength,
+    MaxLength,
+    ExactLength,
+    MinValue,
+    MaxValue,
+    Pattern,
+    Custom,
+}
+
+#[derive(Clone)]
+pub struct ContainerInstanceValue {
+    pub container_type: String,
+    pub properties: HashMap<String, Value>,
+    pub parent: Option<Rc<RefCell<ContainerInstanceValue>>>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct ContainerMethodValue {
+    pub name: String,
+    pub params: Vec<String>,
+    pub body: Vec<Statement>,
+    pub is_static: bool,
+    pub is_public: bool,
+    pub env: Weak<RefCell<Environment>>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct ContainerEventValue {
+    pub name: String,
+    pub params: Vec<String>,
+    pub handlers: Vec<EventHandler>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct EventHandler {
+    pub body: Vec<Statement>,
+    pub env: Weak<RefCell<Environment>>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct InterfaceDefinitionValue {
+    pub name: String,
+    pub extends: Vec<String>,
+    pub required_actions: HashMap<String, ActionSignature>,
+    pub line: usize,
+    pub column: usize,
+}
+
+#[derive(Clone)]
+pub struct ActionSignature {
+    pub name: String,
+    pub params: Vec<String>,
+    pub line: usize,
+    pub column: usize,
+}
+
 impl Value {
     pub fn type_name(&self) -> &'static str {
         match self {
@@ -51,6 +161,12 @@ impl Value {
             Value::NativeFunction(_) => "NativeFunction",
             Value::Future(_) => "Future",
             Value::Null => "Null",
+            Value::Nothing => "Nothing",
+            Value::ContainerDefinition(def) => "Container",
+            Value::ContainerInstance(_) => "ContainerInstance",
+            Value::ContainerMethod(_) => "ContainerMethod",
+            Value::ContainerEvent(_) => "ContainerEvent",
+            Value::InterfaceDefinition(_) => "Interface",
         }
     }
 
@@ -64,6 +180,12 @@ impl Value {
             Value::Object(obj) => !obj.borrow().is_empty(),
             Value::Function(_) | Value::NativeFunction(_) => true,
             Value::Future(future) => future.borrow().completed,
+            Value::Nothing => false,
+            Value::ContainerDefinition(_) => true,
+            Value::ContainerInstance(_) => true,
+            Value::ContainerMethod(_) => true,
+            Value::ContainerEvent(_) => true,
+            Value::InterfaceDefinition(_) => true,
         }
     }
 }
@@ -74,6 +196,7 @@ impl fmt::Debug for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::Text(s) => write!(f, "\"{}\"", s),
             Value::Bool(b) => write!(f, "{}", b),
+            Value::Nothing => write!(f, "nothing"),
             Value::List(l) => {
                 let values = l.borrow();
                 write!(f, "[")?;
@@ -106,6 +229,15 @@ impl fmt::Debug for Value {
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "null"),
+            Value::Nothing => write!(f, "nothing"),
+            Value::ContainerDefinition(def) => write!(f, "<container {}>", def.name),
+            Value::ContainerInstance(instance) => {
+                let instance = instance.borrow();
+                write!(f, "<instance of {}>", instance.container_type)
+            }
+            Value::ContainerMethod(method) => write!(f, "<container method {}>", method.name),
+            Value::ContainerEvent(event) => write!(f, "<container event {}>", event.name),
+            Value::InterfaceDefinition(interface) => write!(f, "<interface {}>", interface.name),
         }
     }
 }
@@ -116,6 +248,7 @@ impl fmt::Display for Value {
             Value::Number(n) => write!(f, "{}", n),
             Value::Text(s) => write!(f, "{}", s),
             Value::Bool(b) => write!(f, "{}", if *b { "yes" } else { "no" }),
+            Value::Nothing => write!(f, "nothing"),
             Value::List(_) => write!(f, "[List]"),
             Value::Object(_) => write!(f, "[Object]"),
             Value::Function(func) => {
@@ -128,6 +261,15 @@ impl fmt::Display for Value {
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "nothing"),
+            Value::Nothing => write!(f, "nothing"),
+            Value::ContainerDefinition(def) => write!(f, "container {}", def.name),
+            Value::ContainerInstance(instance) => {
+                let instance = instance.borrow();
+                write!(f, "{} instance", instance.container_type)
+            }
+            Value::ContainerMethod(method) => write!(f, "method {}", method.name),
+            Value::ContainerEvent(event) => write!(f, "event {}", event.name),
+            Value::InterfaceDefinition(interface) => write!(f, "interface {}", interface.name),
         }
     }
 }
@@ -139,6 +281,16 @@ impl PartialEq for Value {
             (Value::Text(a), Value::Text(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Null, Value::Null) => true,
+            (Value::Nothing, Value::Nothing) => true,
+            (Value::ContainerDefinition(a), Value::ContainerDefinition(b)) => a.name == b.name,
+            (Value::ContainerInstance(a), Value::ContainerInstance(b)) => {
+                let a = a.borrow();
+                let b = b.borrow();
+                a.container_type == b.container_type
+            }
+            (Value::ContainerMethod(a), Value::ContainerMethod(b)) => a.name == b.name,
+            (Value::ContainerEvent(a), Value::ContainerEvent(b)) => a.name == b.name,
+            (Value::InterfaceDefinition(a), Value::InterfaceDefinition(b)) => a.name == b.name,
             _ => false,
         }
     }

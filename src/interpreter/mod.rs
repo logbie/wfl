@@ -12,7 +12,11 @@ use self::control_flow::ControlFlow;
 
 use self::environment::Environment;
 use self::error::{ErrorKind, RuntimeError};
-use self::value::{FunctionValue, Value};
+use self::value::{
+    ContainerDefinitionValue, ContainerEventValue, ContainerInstanceValue, ContainerMethodValue,
+    EventHandler, FunctionValue, InterfaceDefinitionValue,
+    PropertyDefinition as ValuePropertyDefinition, ValidationRule, ValidationRuleType, Value,
+};
 use crate::debug_report::CallFrame;
 #[cfg(debug_assertions)]
 use crate::exec_block_enter;
@@ -31,7 +35,10 @@ use crate::exec_var_assign;
 use crate::exec_var_declare;
 #[cfg(debug_assertions)]
 use crate::logging::IndentGuard;
-use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
+use crate::parser::ast::{
+    Argument, EventDefinition, Expression, Literal, Operator, Parameter, Program,
+    PropertyDefinition, Statement, UnaryOperator, Visibility,
+};
 use crate::stdlib;
 use std::cell::RefCell;
 use std::io::{self, Write};
@@ -77,6 +84,23 @@ fn stmt_type(stmt: &Statement) -> String {
             format!("HttpPostStatement '{}'", variable_name)
         }
         Statement::PushStatement { .. } => "PushStatement to list".to_string(),
+        // Container-related statements
+        Statement::ContainerDefinition { name, .. } => format!("ContainerDefinition '{}'", name),
+        Statement::ContainerInstantiation {
+            container_type,
+            instance_name,
+            ..
+        } => format!(
+            "ContainerInstantiation '{}' as '{}'",
+            container_type, instance_name
+        ),
+        Statement::InterfaceDefinition { name, .. } => format!("InterfaceDefinition '{}'", name),
+        Statement::EventDefinition { name, .. } => format!("EventDefinition '{}'", name),
+        Statement::EventTrigger { name, .. } => format!("EventTrigger '{}'", name),
+        Statement::EventHandler { event_name, .. } => format!("EventHandler '{}'", event_name),
+        Statement::ParentMethodCall { method_name, .. } => {
+            format!("ParentMethodCall '{}'", method_name)
+        }
     }
 }
 
@@ -108,6 +132,11 @@ fn expr_type(expr: &Expression) -> String {
         Expression::PatternReplace { .. } => "PatternReplace".to_string(),
         Expression::PatternSplit { .. } => "PatternSplit".to_string(),
         Expression::AwaitExpression { .. } => "AwaitExpression".to_string(),
+        // Container-related expressions
+        Expression::StaticMemberAccess {
+            container, member, ..
+        } => format!("StaticMemberAccess '{}' member '{}'", container, member),
+        Expression::MethodCall { method, .. } => format!("MethodCall '{}'", method),
     }
 }
 
@@ -637,6 +666,14 @@ impl Interpreter {
             Statement::HttpGetStatement { line, column, .. } => (*line, *column),
             Statement::HttpPostStatement { line, column, .. } => (*line, *column),
             Statement::PushStatement { line, column, .. } => (*line, *column),
+            // Container-related statements
+            Statement::ContainerDefinition { line, column, .. } => (*line, *column),
+            Statement::ContainerInstantiation { line, column, .. } => (*line, *column),
+            Statement::InterfaceDefinition { line, column, .. } => (*line, *column),
+            Statement::EventDefinition { line, column, .. } => (*line, *column),
+            Statement::EventTrigger { line, column, .. } => (*line, *column),
+            Statement::EventHandler { line, column, .. } => (*line, *column),
+            Statement::ParentMethodCall { line, column, .. } => (*line, *column),
         };
 
         let result = match stmt {
@@ -1637,6 +1674,350 @@ impl Interpreter {
                     )),
                 }
             }
+            // Container-related statements
+            Statement::ContainerDefinition {
+                name,
+                extends,
+                implements,
+                properties,
+                methods,
+                events,
+                static_properties,
+                static_methods,
+                line,
+                column,
+            } => {
+                // Create a new container definition
+                let container_def = ContainerDefinitionValue {
+                    name: name.clone(),
+                    extends: extends.clone(),
+                    implements: implements.clone(),
+                    properties: HashMap::new(),
+                    methods: HashMap::new(),
+                    events: HashMap::new(),
+                    static_properties: HashMap::new(),
+                    static_methods: HashMap::new(),
+                    line: *line,
+                    column: *column,
+                };
+
+                // Create the container definition value
+                let container_value = Value::ContainerDefinition(Rc::new(container_def));
+
+                // Store the container definition in the environment
+                env.borrow_mut().define(&name, container_value.clone());
+
+                Ok((container_value, ControlFlow::None))
+            }
+            Statement::ContainerInstantiation {
+                container_type,
+                instance_name,
+                arguments,
+                property_initializers,
+                line,
+                column,
+            } => {
+                // Look up the container definition
+                let container_def = match env.borrow().get(&container_type) {
+                    Some(Value::ContainerDefinition(def)) => def.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Container '{}' not found", container_type),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+
+                // Create a new container instance
+                let instance = ContainerInstanceValue {
+                    container_type: container_type.clone(),
+                    properties: HashMap::new(),
+                    parent: None, // TODO: Handle inheritance
+                    line: *line,
+                    column: *column,
+                };
+
+                let instance_value = Value::ContainerInstance(Rc::new(RefCell::new(instance)));
+
+                // Store the instance in the environment
+                env.borrow_mut()
+                    .define(&instance_name, instance_value.clone());
+
+                // TODO: Process property initializers
+
+                // TODO: Call initialize method if it exists
+
+                Ok((instance_value, ControlFlow::None))
+            }
+            Statement::InterfaceDefinition {
+                name,
+                extends,
+                required_actions,
+                line,
+                column,
+            } => {
+                // Create a new interface definition
+                let interface_def = InterfaceDefinitionValue {
+                    name: name.clone(),
+                    extends: extends.clone(),
+                    required_actions: HashMap::new(), // TODO: Process required actions
+                    line: *line,
+                    column: *column,
+                };
+
+                let interface_value = Value::InterfaceDefinition(Rc::new(interface_def));
+
+                // Store the interface definition in the environment
+                env.borrow_mut().define(&name, interface_value.clone());
+
+                Ok((interface_value, ControlFlow::None))
+            }
+            Statement::EventDefinition {
+                name,
+                parameters,
+                line,
+                column,
+            } => {
+                // Create a new event definition
+                let event_def = ContainerEventValue {
+                    name: name.clone(),
+                    params: parameters.iter().map(|p| p.name.clone()).collect(),
+                    handlers: Vec::new(),
+                    line: *line,
+                    column: *column,
+                };
+
+                let event_value = Value::ContainerEvent(Rc::new(event_def));
+
+                // Store the event definition in the environment
+                env.borrow_mut().define(&name, event_value.clone());
+
+                Ok((event_value, ControlFlow::None))
+            }
+            Statement::EventTrigger {
+                name,
+                arguments,
+                line,
+                column,
+            } => {
+                // Look up the event
+                let event = match env.borrow().get(name) {
+                    Some(Value::ContainerEvent(event)) => event.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Event '{}' not found", name),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+
+                // Evaluate the arguments
+                let mut arg_values = Vec::with_capacity(arguments.len());
+                for arg in arguments {
+                    let arg_val = self
+                        .evaluate_expression(&arg.value, Rc::clone(&env))
+                        .await?;
+                    arg_values.push(arg_val);
+                }
+
+                // Execute all event handlers
+                for handler in &event.handlers {
+                    // Create a new environment for the handler
+                    let handler_env = Environment::new_child_env(&env);
+
+                    // Bind arguments to parameters
+                    for (i, param_name) in event.params.iter().enumerate() {
+                        if i < arg_values.len() {
+                            handler_env
+                                .borrow_mut()
+                                .define(param_name, arg_values[i].clone());
+                        } else {
+                            handler_env.borrow_mut().define(param_name, Value::Null);
+                        }
+                    }
+
+                    // Execute the handler
+                    self.execute_block(&handler.body, handler_env).await?;
+                }
+
+                Ok((Value::Null, ControlFlow::None))
+            }
+            Statement::EventHandler {
+                event_source,
+                event_name,
+                handler_body,
+                line,
+                column,
+            } => {
+                // Evaluate the event source
+                let source_val = self
+                    .evaluate_expression(event_source, Rc::clone(&env))
+                    .await?;
+
+                // Check if the source is a container instance
+                if let Value::ContainerInstance(instance_rc) = &source_val {
+                    let instance = instance_rc.borrow();
+                    let container_type = instance.container_type.clone();
+
+                    // Look up the container definition
+                    let container_def = match env.borrow().get(&container_type) {
+                        Some(Value::ContainerDefinition(def)) => def.clone(),
+                        _ => {
+                            return Err(RuntimeError::new(
+                                format!("Container '{}' not found", container_type),
+                                *line,
+                                *column,
+                            ));
+                        }
+                    };
+
+                    // Look up the event
+                    if let Some(event) = container_def.events.get(event_name) {
+                        // Create a new event handler
+                        let handler = EventHandler {
+                            body: handler_body.clone(),
+                            env: Rc::downgrade(&env),
+                            line: *line,
+                            column: *column,
+                        };
+
+                        // Create a new event with the handler added
+                        let mut handlers = event.handlers.clone();
+                        handlers.push(handler);
+
+                        // Create a new event value
+                        let new_event = ContainerEventValue {
+                            name: event.name.clone(),
+                            params: event.params.clone(),
+                            handlers,
+                            line: event.line,
+                            column: event.column,
+                        };
+
+                        // Store the updated event in the environment
+                        let event_value = Value::ContainerEvent(Rc::new(new_event));
+                        env.borrow_mut().define(event_name, event_value.clone());
+
+                        Ok((Value::Null, ControlFlow::None))
+                    } else {
+                        Err(RuntimeError::new(
+                            format!(
+                                "Event '{}' not found in container '{}'",
+                                event_name, container_type
+                            ),
+                            *line,
+                            *column,
+                        ))
+                    }
+                } else {
+                    Err(RuntimeError::new(
+                        format!("Cannot add event handler to non-container value"),
+                        *line,
+                        *column,
+                    ))
+                }
+            }
+            Statement::ParentMethodCall {
+                method_name,
+                arguments,
+                line,
+                column,
+            } => {
+                // Get the current container instance (this)
+                let this_val = match env.borrow().get("this") {
+                    Some(val) => val.clone(),
+                    None => {
+                        return Err(RuntimeError::new(
+                            format!(
+                                "Parent method call can only be used inside a container method"
+                            ),
+                            *line,
+                            *column,
+                        ));
+                    }
+                };
+
+                // Check if this is a container instance
+                if let Value::ContainerInstance(instance_rc) = &this_val {
+                    let instance = instance_rc.borrow();
+
+                    // Check if the instance has a parent
+                    if let Some(parent_rc) = &instance.parent {
+                        let parent = parent_rc.borrow();
+                        let parent_type = parent.container_type.clone();
+
+                        // Look up the parent container definition
+                        let parent_def = match env.borrow().get(&parent_type) {
+                            Some(Value::ContainerDefinition(def)) => def.clone(),
+                            _ => {
+                                return Err(RuntimeError::new(
+                                    format!("Parent container '{}' not found", parent_type),
+                                    *line,
+                                    *column,
+                                ));
+                            }
+                        };
+
+                        // Look up the method in the parent
+                        if let Some(method_val) = parent_def.methods.get(method_name) {
+                            // Create a function value from the method
+                            let function = FunctionValue {
+                                name: Some(method_val.name.clone()),
+                                params: method_val.params.clone(),
+                                body: method_val.body.clone(),
+                                env: method_val.env.clone(),
+                                line: method_val.line,
+                                column: method_val.column,
+                            };
+
+                            // Create a new environment for the method execution
+                            let method_env = Environment::new_child_env(&env);
+
+                            // Add 'this' to the environment (the current instance, not the parent)
+                            method_env.borrow_mut().define("this", this_val.clone());
+
+                            // Evaluate the arguments
+                            let mut arg_values = Vec::with_capacity(arguments.len());
+                            for arg in arguments {
+                                let arg_val = self
+                                    .evaluate_expression(&arg.value, Rc::clone(&env))
+                                    .await?;
+                                arg_values.push(arg_val);
+                            }
+
+                            // Call the function
+                            let result = self
+                                .call_function(&function, arg_values, *line, *column)
+                                .await?;
+
+                            Ok((result, ControlFlow::None))
+                        } else {
+                            Err(RuntimeError::new(
+                                format!(
+                                    "Method '{}' not found in parent container '{}'",
+                                    method_name, parent_type
+                                ),
+                                *line,
+                                *column,
+                            ))
+                        }
+                    } else {
+                        Err(RuntimeError::new(
+                            format!("Cannot call parent method: no parent container"),
+                            *line,
+                            *column,
+                        ))
+                    }
+                } else {
+                    Err(RuntimeError::new(
+                        format!("Parent method call can only be used inside a container method"),
+                        *line,
+                        *column,
+                    ))
+                }
+            }
         };
 
         if self.step_mode {
@@ -1711,6 +2092,133 @@ impl Interpreter {
         self.check_time()?;
 
         let result = match expr {
+            // Container-related expressions
+            &Expression::StaticMemberAccess {
+                ref container,
+                ref member,
+                line,
+                column,
+            } => {
+                // Look up the container definition
+                let container_def = match env.borrow().get(container) {
+                    Some(Value::ContainerDefinition(def)) => def.clone(),
+                    _ => {
+                        return Err(RuntimeError::new(
+                            format!("Container '{}' not found", container),
+                            line,
+                            column,
+                        ));
+                    }
+                };
+
+                // Look up the static member
+                if let Some(value) = container_def.static_properties.get(member) {
+                    Ok(value.clone())
+                } else if let Some(method) = container_def.static_methods.get(member) {
+                    // Create a function value from the method
+                    let function = FunctionValue {
+                        name: Some(method.name.clone()),
+                        params: method.params.clone(),
+                        body: method.body.clone(),
+                        env: method.env.clone(),
+                        line: method.line,
+                        column: method.column,
+                    };
+
+                    Ok(Value::Function(Rc::new(function)))
+                } else {
+                    Err(RuntimeError::new(
+                        format!(
+                            "Static member '{}' not found in container '{}'",
+                            member, container
+                        ),
+                        line,
+                        column,
+                    ))
+                }
+            }
+
+            &Expression::MethodCall {
+                ref object,
+                ref method,
+                ref arguments,
+                line,
+                column,
+            } => {
+                // Evaluate the object
+                let object_val = self.evaluate_expression(object, Rc::clone(&env)).await?;
+
+                // Clone the object value to avoid borrow issues
+                let object_val_clone = object_val.clone();
+
+                // Check if the object is a container instance
+                if let Value::ContainerInstance(instance_rc) = &object_val_clone {
+                    let instance = instance_rc.borrow();
+                    let container_type = instance.container_type.clone();
+
+                    // Look up the container definition
+                    let container_def = match env.borrow().get(&container_type) {
+                        Some(Value::ContainerDefinition(def)) => def.clone(),
+                        _ => {
+                            return Err(RuntimeError::new(
+                                format!("Container '{}' not found", container_type),
+                                line,
+                                column,
+                            ));
+                        }
+                    };
+
+                    // Look up the method
+                    if let Some(method_val) = container_def.methods.get(method) {
+                        // Create a function value from the method
+                        let function = FunctionValue {
+                            name: Some(method_val.name.clone()),
+                            params: method_val.params.clone(),
+                            body: method_val.body.clone(),
+                            env: method_val.env.clone(),
+                            line: method_val.line,
+                            column: method_val.column,
+                        };
+
+                        // Create a new environment for the method execution
+                        let method_env = Environment::new_child_env(&env);
+
+                        // Add 'this' to the environment
+                        method_env.borrow_mut().define("this", object_val.clone());
+
+                        // Evaluate the arguments
+                        let mut arg_values = Vec::with_capacity(arguments.len());
+                        for arg in arguments {
+                            let arg_val = self
+                                .evaluate_expression(&arg.value, Rc::clone(&env))
+                                .await?;
+                            arg_values.push(arg_val);
+                        }
+
+                        // Call the function
+                        let result = self
+                            .call_function(&function, arg_values, line, column)
+                            .await?;
+
+                        Ok(result)
+                    } else {
+                        Err(RuntimeError::new(
+                            format!(
+                                "Method '{}' not found in container '{}'",
+                                method, container_type
+                            ),
+                            line,
+                            column,
+                        ))
+                    }
+                } else {
+                    Err(RuntimeError::new(
+                        format!("Cannot call method '{}' on non-container value", method),
+                        line,
+                        column,
+                    ))
+                }
+            }
             &Expression::AwaitExpression {
                 ref expression,
                 line: _line,

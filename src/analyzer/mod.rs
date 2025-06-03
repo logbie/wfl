@@ -931,6 +931,27 @@ impl Analyzer {
                 }
             }
             Expression::Literal(_, _, _) => {}
+            // Container-related expressions
+            Expression::StaticMemberAccess {
+                container, member, ..
+            } => {
+                // For now, just a stub implementation
+                // This will be expanded later
+            }
+            Expression::MethodCall {
+                object,
+                method,
+                arguments,
+                ..
+            } => {
+                // Analyze the object expression
+                self.analyze_expression(object);
+
+                // Analyze the arguments
+                for arg in arguments {
+                    self.analyze_expression(&arg.value);
+                }
+            }
         }
     }
 }
