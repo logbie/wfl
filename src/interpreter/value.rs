@@ -14,7 +14,7 @@ pub enum Value {
     List(Rc<RefCell<Vec<Value>>>),
     Object(Rc<RefCell<HashMap<String, Value>>>),
     Function(Rc<FunctionValue>),
-    NativeFunction(NativeFunction),
+    NativeFunction(&'static str, NativeFunction),
     Future(Rc<RefCell<FutureValue>>),
     Date(Rc<chrono::NaiveDate>),
     Time(Rc<chrono::NaiveTime>),
@@ -51,7 +51,7 @@ impl Value {
             Value::List(_) => "List",
             Value::Object(_) => "Object",
             Value::Function(_) => "Function",
-            Value::NativeFunction(_) => "NativeFunction",
+            Value::NativeFunction(_, _) => "NativeFunction",
             Value::Future(_) => "Future",
             Value::Date(_) => "Date",
             Value::Time(_) => "Time",
@@ -68,7 +68,7 @@ impl Value {
             Value::Text(s) => !s.is_empty(),
             Value::List(list) => !list.borrow().is_empty(),
             Value::Object(obj) => !obj.borrow().is_empty(),
-            Value::Function(_) | Value::NativeFunction(_) => true,
+            Value::Function(_) | Value::NativeFunction(_, _) => true,
             Value::Future(future) => future.borrow().completed,
             Value::Date(_) | Value::Time(_) | Value::DateTime(_) => true,
         }
@@ -110,7 +110,7 @@ impl fmt::Debug for Value {
                     func.name.as_ref().unwrap_or(&"anonymous".to_string())
                 )
             }
-            Value::NativeFunction(_) => write!(f, "NativeFunction"),
+            Value::NativeFunction(name, _) => write!(f, "NativeFunction({})", name),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Date(d) => write!(f, "Date({})", d),
             Value::Time(t) => write!(f, "Time({})", t),
@@ -135,7 +135,7 @@ impl fmt::Display for Value {
                     func.name.as_ref().unwrap_or(&"anonymous".to_string())
                 )
             }
-            Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
+            Value::NativeFunction(name, _) => write!(f, "native {}", name),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Date(d) => write!(f, "{}", d.format("%Y-%m-%d")),
             Value::Time(t) => write!(f, "{}", t.format("%H:%M:%S")),
