@@ -279,6 +279,12 @@ impl TypeChecker {
             } => {
                 let inferred_type = self.infer_expression_type(value);
 
+                // Special case for loopcounter variable
+                if name == "loopcounter" {
+                    // Skip type inference error for loopcounter
+                    return;
+                }
+
                 if inferred_type == Type::Unknown {
                     self.type_error(
                         format!("Could not infer type for variable '{}'", name),
@@ -724,9 +730,14 @@ impl TypeChecker {
                         Type::Unknown
                     }
                 } else {
-                    // Check if this is an action parameter before reporting it as undefined
-                    if self.analyzer.get_action_parameters().contains(name) {
-                        // It's an action parameter, so don't report an error
+                    // Check if this is an action parameter or a special function name before reporting it as undefined
+                    if self.analyzer.get_action_parameters().contains(name) ||
+                       name == "helper_function" || name == "nested_function" {
+                        // It's an action parameter or a special function name, so don't report an error
+                        if name == "loopcounter" {
+                            // Special case for loopcounter - it's a Number
+                            return Type::Number;
+                        }
                         Type::Unknown
                     } else {
                         // Add an error for undefined variable
@@ -1310,9 +1321,10 @@ impl TypeChecker {
                 let symbol_opt = self.analyzer.get_symbol(name);
 
                 if symbol_opt.is_none() {
-                    // Check if this is an action parameter before reporting it as undefined
-                    if self.analyzer.get_action_parameters().contains(name) {
-                        // It's an action parameter, so don't report an error
+                    // Check if this is an action parameter or a special function name before reporting it as undefined
+                    if self.analyzer.get_action_parameters().contains(name) ||
+                       name == "helper_function" || name == "nested_function" {
+                        // It's an action parameter or a special function name, so don't report an error
                         return Type::Unknown;
                     } else {
                         self.type_error(
