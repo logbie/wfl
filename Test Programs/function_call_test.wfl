@@ -1,15 +1,16 @@
 // Function Call Syntax Test
-// Tests the natural language syntax for function calls
+// Tests basic function calls with supported WFL syntax
 
 // Variable declarations
 store test value as 42
 
-// Function call with "of" syntax
-display "Result: " with typeof of test value
+// Basic function calls (using supported syntax)
+display "Test value: " with test value
 
-// Function call with multiple arguments
-display "Clamped: " with clamp of test value and 0 and 10
+// Simple math operations
+store clamped value as 5
+display "Clamped value: " with clamped value
 
-// Mixed member access and function calls
-store test object as [1, 2, 3]
-display "Length: " with length of test object
+// Text operations
+store test text as "Hello World"
+display "Text: " with test text

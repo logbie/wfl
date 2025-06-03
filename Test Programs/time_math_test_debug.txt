@@ -1,0 +1,17 @@
+=== WFL Debug Report ===
+Script: ./Test Programs/time_math_test.wfl
+Time: 2025-06-03 11:08:43
+
+=== Error Summary ===
+Runtime error at line 13, column 26: Undefined variable 'round of decimal number'
+
+=== Stack Trace ===
+In main script at line 13, column 26
+
+=== Source Code ===
+   11: // Try calling a function with arguments
+   12: store decimal number as 3.7
+>> 13: display "Rounded: " with round of decimal number
+
+=== Local Variables ===
+(No local variables in global scope)

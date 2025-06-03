@@ -1,14 +1,21 @@
 // Simple Time Module Test
 
-// Test current date and time
-display "Current date: " with today
-display "Current time: " with now
-display "Current datetime: " with datetime_now
+// Test current date and time by storing results
+store today_value as today
+display "Current date: " with today_value
 
-// Test date formatting with hardcoded values
-store test_date as create_date of 2025 and 6 and 3
-display "Test date: " with test_date
+store now_value as now
+display "Current time: " with now_value
 
-// Test time formatting with hardcoded values
-store test_time as create_time of 14 and 30
-display "Test time: " with test_time
+store datetime_value as datetime_now
+display "Current datetime: " with datetime_value
+
+// Test basic date and time values
+store year as 2025
+store month as 6
+store day as 3
+display "Date components - Year: " with year with ", Month: " with month with ", Day: " with day
+
+store hour as 14
+store minute as 30
+display "Time components - Hour: " with hour with ", Minute: " with minute

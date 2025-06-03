@@ -1,6 +1,6 @@
 === WFL Debug Report ===
-Script: Test Programs/random_and_time_test.wfl
-Time: 2025-06-03 05:09:40
+Script: ./Test Programs/random_and_time_test.wfl
+Time: 2025-06-03 11:07:41
 
 === Error Summary ===
 Runtime error at line 10, column 1: Undefined variable 'run random'

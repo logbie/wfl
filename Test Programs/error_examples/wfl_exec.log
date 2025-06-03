@@ -1,0 +1,2 @@
+10:48:01.874206454 [INFO] WFL execution logging initialized at 2025-06-03 10:48:01 - ./Test Programs/error_examples/wfl_exec.log
+10:48:01.929350056 [DEBUG] (1) wfl::interpreter: [/home/ubuntu/repos/wfl/src/interpreter/mod.rs:658] EXEC: Declaration: 'x' = 0

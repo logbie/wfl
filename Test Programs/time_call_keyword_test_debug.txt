@@ -1,6 +1,6 @@
 === WFL Debug Report ===
-Script: Test Programs/time_call_keyword_test.wfl
-Time: 2025-06-03 05:08:04
+Script: ./Test Programs/time_call_keyword_test.wfl
+Time: 2025-06-03 11:09:20
 
 === Error Summary ===
 Runtime error at line 4, column 23: Undefined variable 'call today'

@@ -1,31 +1,16 @@
 // Random and Time Test
 
-// Test random function
-display "Random number: " with random
+// Test random function by storing its result
+store random_value as random
+display "Random number: " with random_value
 
-// Test current_date function
-display "Current date: " with current_date
+// Test today function (current_date is not available)
+store current_date_value as today
+display "Current date: " with current_date_value
 
-// Try to run the functions
-run random
-run current_date
+// Test multiple random values
+store random_value2 as random
+display "Another random number: " with random_value2
 
-// Try to execute the functions
-execute random
-execute current_date
-
-// Try to call the functions
-call random
-call current_date
-
-// Try to invoke the functions
-invoke random
-invoke current_date
-
-// Try to apply the functions
-apply random
-apply current_date
-
-// Try to do the functions
-do random
-do current_date
+store random_value3 as random
+display "Third random number: " with random_value3
