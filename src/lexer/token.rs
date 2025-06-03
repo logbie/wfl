@@ -191,6 +191,18 @@ pub enum Token {
     #[token(":")]
     Colon,
 
+    #[token(",")]
+    Comma,
+
+    #[token("+")]
+    Plus,
+
+    #[token(".")]
+    Dot,
+
+    #[token("=")]
+    Equals,
+
     #[token("[")]
     LeftBracket,
 

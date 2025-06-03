@@ -14,8 +14,7 @@ use self::environment::Environment;
 use self::error::{ErrorKind, RuntimeError};
 use self::value::{
     ContainerDefinitionValue, ContainerEventValue, ContainerInstanceValue, ContainerMethodValue,
-    EventHandler, FunctionValue, InterfaceDefinitionValue,
-    PropertyDefinition as ValuePropertyDefinition, ValidationRule, ValidationRuleType, Value,
+    EventHandler, FunctionValue, InterfaceDefinitionValue, Value,
 };
 use crate::debug_report::CallFrame;
 #[cfg(debug_assertions)]
@@ -35,10 +34,7 @@ use crate::exec_var_assign;
 use crate::exec_var_declare;
 #[cfg(debug_assertions)]
 use crate::logging::IndentGuard;
-use crate::parser::ast::{
-    Argument, EventDefinition, Expression, Literal, Operator, Parameter, Program,
-    PropertyDefinition, Statement, UnaryOperator, Visibility,
-};
+use crate::parser::ast::{Expression, Literal, Operator, Program, Statement, UnaryOperator};
 use crate::stdlib;
 use std::cell::RefCell;
 use std::io::{self, Write};
@@ -137,6 +133,7 @@ fn expr_type(expr: &Expression) -> String {
             container, member, ..
         } => format!("StaticMemberAccess '{}' member '{}'", container, member),
         Expression::MethodCall { method, .. } => format!("MethodCall '{}'", method),
+        Expression::PropertyAccess { property, .. } => format!("PropertyAccess '{}'", property),
     }
 }
 
@@ -1681,22 +1678,76 @@ impl Interpreter {
                 implements,
                 properties,
                 methods,
-                events,
-                static_properties,
-                static_methods,
+                events: _events,
+                static_properties: _static_properties,
+                static_methods: _static_methods,
                 line,
                 column,
             } => {
                 // Create a new container definition
+                let mut container_properties = HashMap::new();
+                let mut container_methods = HashMap::new();
+
+                for prop in properties {
+                    let property_type_str = prop
+                        .property_type
+                        .as_ref()
+                        .map(|ast_type| format!("{:?}", ast_type));
+
+                    let default_val = match &prop.default_value {
+                        Some(expr) => {
+                            // Evaluate the default expression to get a Value
+                            (self._evaluate_expression(expr, env.clone()).await).ok()
+                        }
+                        None => None,
+                    };
+
+                    let value_prop = value::PropertyDefinition {
+                        name: prop.name.clone(),
+                        property_type: property_type_str,
+                        default_value: default_val,
+                        validation_rules: Vec::new(),
+                        is_static: false,
+                        is_public: true,
+                        line: prop.line,
+                        column: prop.column,
+                    };
+                    container_properties.insert(prop.name.clone(), value_prop);
+                }
+
+                for method in methods {
+                    if let Statement::ActionDefinition {
+                        name,
+                        parameters,
+                        body,
+                        line,
+                        column,
+                        ..
+                    } = method
+                    {
+                        let container_method = ContainerMethodValue {
+                            name: name.clone(),
+                            params: parameters.iter().map(|p| p.name.clone()).collect(),
+                            body: body.clone(),
+                            is_static: false,
+                            is_public: true,
+                            env: Rc::downgrade(&env),
+                            line: *line,
+                            column: *column,
+                        };
+                        container_methods.insert(name.clone(), container_method);
+                    }
+                }
+
                 let container_def = ContainerDefinitionValue {
                     name: name.clone(),
                     extends: extends.clone(),
                     implements: implements.clone(),
-                    properties: HashMap::new(),
-                    methods: HashMap::new(),
-                    events: HashMap::new(),
-                    static_properties: HashMap::new(),
-                    static_methods: HashMap::new(),
+                    properties: container_properties,
+                    methods: container_methods,
+                    events: HashMap::new(),            // Future feature
+                    static_properties: HashMap::new(), // Future feature
+                    static_methods: HashMap::new(),    // Future feature
                     line: *line,
                     column: *column,
                 };
@@ -1705,7 +1756,7 @@ impl Interpreter {
                 let container_value = Value::ContainerDefinition(Rc::new(container_def));
 
                 // Store the container definition in the environment
-                env.borrow_mut().define(&name, container_value.clone());
+                env.borrow_mut().define(name, container_value.clone());
 
                 Ok((container_value, ControlFlow::None))
             }
@@ -1718,7 +1769,7 @@ impl Interpreter {
                 column,
             } => {
                 // Look up the container definition
-                let container_def = match env.borrow().get(&container_type) {
+                let _container_def = match env.borrow().get(container_type) {
                     Some(Value::ContainerDefinition(def)) => def.clone(),
                     _ => {
                         return Err(RuntimeError::new(
@@ -1729,10 +1780,20 @@ impl Interpreter {
                     }
                 };
 
-                // Create a new container instance
+                // Create a new container instance with initial properties
+                let mut instance_properties = HashMap::new();
+
+                // Process property initializers
+                for initializer in property_initializers {
+                    let init_value = self
+                        ._evaluate_expression(&initializer.value, env.clone())
+                        .await?;
+                    instance_properties.insert(initializer.name.clone(), init_value);
+                }
+
                 let instance = ContainerInstanceValue {
                     container_type: container_type.clone(),
-                    properties: HashMap::new(),
+                    properties: instance_properties,
                     parent: None, // TODO: Handle inheritance
                     line: *line,
                     column: *column,
@@ -1742,11 +1803,11 @@ impl Interpreter {
 
                 // Store the instance in the environment
                 env.borrow_mut()
-                    .define(&instance_name, instance_value.clone());
+                    .define(instance_name, instance_value.clone());
 
-                // TODO: Process property initializers
-
-                // TODO: Call initialize method if it exists
+                if !arguments.is_empty() {
+                    // TODO: Call constructor method with arguments
+                }
 
                 Ok((instance_value, ControlFlow::None))
             }
@@ -1754,52 +1815,64 @@ impl Interpreter {
                 name,
                 extends,
                 required_actions,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 // Create a new interface definition
+                let mut interface_required_actions = HashMap::new();
+
+                for action in required_actions {
+                    let value_action = value::ActionSignature {
+                        name: action.name.clone(),
+                        params: action.parameters.iter().map(|p| p.name.clone()).collect(),
+                        line: action.line,
+                        column: action.column,
+                    };
+                    interface_required_actions.insert(action.name.clone(), value_action);
+                }
+
                 let interface_def = InterfaceDefinitionValue {
                     name: name.clone(),
                     extends: extends.clone(),
-                    required_actions: HashMap::new(), // TODO: Process required actions
-                    line: *line,
-                    column: *column,
+                    required_actions: interface_required_actions,
+                    line: *_line,
+                    column: *_column,
                 };
 
                 let interface_value = Value::InterfaceDefinition(Rc::new(interface_def));
 
                 // Store the interface definition in the environment
-                env.borrow_mut().define(&name, interface_value.clone());
+                env.borrow_mut().define(name, interface_value.clone());
 
                 Ok((interface_value, ControlFlow::None))
             }
             Statement::EventDefinition {
                 name,
                 parameters,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 // Create a new event definition
                 let event_def = ContainerEventValue {
                     name: name.clone(),
                     params: parameters.iter().map(|p| p.name.clone()).collect(),
                     handlers: Vec::new(),
-                    line: *line,
-                    column: *column,
+                    line: *_line,
+                    column: *_column,
                 };
 
                 let event_value = Value::ContainerEvent(Rc::new(event_def));
 
                 // Store the event definition in the environment
-                env.borrow_mut().define(&name, event_value.clone());
+                env.borrow_mut().define(name, event_value.clone());
 
                 Ok((event_value, ControlFlow::None))
             }
             Statement::EventTrigger {
                 name,
                 arguments,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 // Look up the event
                 let event = match env.borrow().get(name) {
@@ -1807,8 +1880,8 @@ impl Interpreter {
                     _ => {
                         return Err(RuntimeError::new(
                             format!("Event '{}' not found", name),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         ));
                     }
                 };
@@ -1848,8 +1921,8 @@ impl Interpreter {
                 event_source,
                 event_name,
                 handler_body,
-                line,
-                column,
+                line: _line,
+                column: _column,
             } => {
                 // Evaluate the event source
                 let source_val = self
@@ -1867,8 +1940,8 @@ impl Interpreter {
                         _ => {
                             return Err(RuntimeError::new(
                                 format!("Container '{}' not found", container_type),
-                                *line,
-                                *column,
+                                *_line,
+                                *_column,
                             ));
                         }
                     };
@@ -1879,8 +1952,8 @@ impl Interpreter {
                         let handler = EventHandler {
                             body: handler_body.clone(),
                             env: Rc::downgrade(&env),
-                            line: *line,
-                            column: *column,
+                            line: *_line,
+                            column: *_column,
                         };
 
                         // Create a new event with the handler added
@@ -1907,15 +1980,15 @@ impl Interpreter {
                                 "Event '{}' not found in container '{}'",
                                 event_name, container_type
                             ),
-                            *line,
-                            *column,
+                            *_line,
+                            *_column,
                         ))
                     }
                 } else {
                     Err(RuntimeError::new(
-                        format!("Cannot add event handler to non-container value"),
-                        *line,
-                        *column,
+                        "Cannot add event handler to non-container value".to_string(),
+                        *_line,
+                        *_column,
                     ))
                 }
             }
@@ -1930,9 +2003,8 @@ impl Interpreter {
                     Some(val) => val.clone(),
                     None => {
                         return Err(RuntimeError::new(
-                            format!(
-                                "Parent method call can only be used inside a container method"
-                            ),
+                            "Parent method call can only be used inside a container method"
+                                .to_string(),
                             *line,
                             *column,
                         ));
@@ -2005,14 +2077,14 @@ impl Interpreter {
                         }
                     } else {
                         Err(RuntimeError::new(
-                            format!("Cannot call parent method: no parent container"),
+                            "Cannot call parent method: no parent container".to_string(),
                             *line,
                             *column,
                         ))
                     }
                 } else {
                     Err(RuntimeError::new(
-                        format!("Parent method call can only be used inside a container method"),
+                        "Parent method call can only be used inside a container method".to_string(),
                         *line,
                         *column,
                     ))
@@ -2623,6 +2695,36 @@ impl Interpreter {
                 let args = vec![text_val, pattern_val];
                 crate::stdlib::pattern::native_pattern_split(args)
             }
+            Expression::PropertyAccess {
+                object,
+                property,
+                line,
+                column,
+            } => {
+                let obj_value = self.evaluate_expression(object, Rc::clone(&env)).await?;
+                match obj_value {
+                    Value::ContainerInstance(instance) => {
+                        let instance_ref = instance.borrow();
+                        if let Some(prop_value) = instance_ref.properties.get(property) {
+                            Ok(prop_value.clone())
+                        } else {
+                            Err(RuntimeError::new(
+                                format!("Property '{}' not found", property),
+                                *line,
+                                *column,
+                            ))
+                        }
+                    }
+                    _ => Err(RuntimeError::new(
+                        format!(
+                            "Cannot access property '{}' on non-container value",
+                            property
+                        ),
+                        *line,
+                        *column,
+                    )),
+                }
+            }
         };
         self.assert_invariants();
         result
@@ -2663,11 +2765,10 @@ impl Interpreter {
             }
             None => {
                 exec_trace!("call_function - Failed to upgrade function environment");
-                return Err(RuntimeError::with_kind(
+                return Err(RuntimeError::new(
                     "Environment no longer exists".to_string(),
                     line,
                     column,
-                    ErrorKind::EnvDropped,
                 ));
             }
         };

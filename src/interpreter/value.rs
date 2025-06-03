@@ -162,7 +162,7 @@ impl Value {
             Value::Future(_) => "Future",
             Value::Null => "Null",
             Value::Nothing => "Nothing",
-            Value::ContainerDefinition(def) => "Container",
+            Value::ContainerDefinition(_def) => "Container",
             Value::ContainerInstance(_) => "ContainerInstance",
             Value::ContainerMethod(_) => "ContainerMethod",
             Value::ContainerEvent(_) => "ContainerEvent",
@@ -229,7 +229,6 @@ impl fmt::Debug for Value {
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "null"),
-            Value::Nothing => write!(f, "nothing"),
             Value::ContainerDefinition(def) => write!(f, "<container {}>", def.name),
             Value::ContainerInstance(instance) => {
                 let instance = instance.borrow();
@@ -261,7 +260,6 @@ impl fmt::Display for Value {
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
             Value::Future(_) => write!(f, "[Future]"),
             Value::Null => write!(f, "nothing"),
-            Value::Nothing => write!(f, "nothing"),
             Value::ContainerDefinition(def) => write!(f, "container {}", def.name),
             Value::ContainerInstance(instance) => {
                 let instance = instance.borrow();

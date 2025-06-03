@@ -270,7 +270,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    // Container-related parsing methods - stub implementations for now
+    // Container-related parsing methods
     pub fn parse_container_definition(&mut self) -> Result<Statement, ParseError> {
         let start_token = self.tokens.next().unwrap(); // Consume 'create'
         let line = start_token.line;
@@ -304,16 +304,25 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        // For now, just create a simple container definition
+        // Parse inheritance and interfaces
+        let (extends, implements) = self.parse_inheritance()?;
+
+        // Expect colon after container declaration
+        self.expect_token(Token::Colon, "Expected ':' after container name")?;
+
+        // Parse container body
+        let (properties, methods, events, static_properties, static_methods) =
+            self.parse_container_body()?;
+
         Ok(Statement::ContainerDefinition {
             name,
-            extends: None,
-            implements: Vec::new(),
-            properties: Vec::new(),
-            methods: Vec::new(),
-            events: Vec::new(),
-            static_properties: Vec::new(),
-            static_methods: Vec::new(),
+            extends,
+            implements,
+            properties,
+            methods,
+            events,
+            static_properties,
+            static_methods,
             line,
             column,
         })
@@ -417,12 +426,16 @@ impl<'a> Parser<'a> {
             ));
         };
 
-        // For now, just create a simple container instantiation
+        // Expect colon after instance declaration
+        self.expect_token(Token::Colon, "Expected ':' after instance name")?;
+
+        let (property_initializers, arguments) = self.parse_instantiation_body()?;
+
         Ok(Statement::ContainerInstantiation {
             container_type,
             instance_name,
-            arguments: Vec::new(),
-            property_initializers: Vec::new(),
+            arguments,
+            property_initializers,
             line,
             column,
         })
@@ -580,7 +593,421 @@ impl<'a> Parser<'a> {
         })
     }
 
-    // Helper methods for parsing container-related constructs will be added as needed
+    // Helper methods for parsing container-related constructs
+    fn parse_inheritance(&mut self) -> Result<(Option<String>, Vec<String>), ParseError> {
+        let mut extends = None;
+        let mut implements = Vec::new();
+
+        // Check for 'extends' keyword
+        if let Some(token) = self.tokens.peek() {
+            if token.token == Token::KeywordExtends {
+                self.tokens.next(); // Consume 'extends'
+
+                if let Some(token) = self.tokens.peek() {
+                    if let Token::Identifier(id) = &token.token {
+                        extends = Some(id.clone());
+                        self.tokens.next(); // Consume the identifier
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected identifier after 'extends'".to_string(),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new(
+                        "Expected identifier after 'extends'".to_string(),
+                        0,
+                        0,
+                    ));
+                }
+            }
+        }
+
+        // Check for 'implements' keyword
+        if let Some(token) = self.tokens.peek() {
+            if token.token == Token::KeywordImplements {
+                self.tokens.next(); // Consume 'implements'
+
+                // Parse interface list
+                loop {
+                    if let Some(token) = self.tokens.peek() {
+                        if let Token::Identifier(id) = &token.token {
+                            implements.push(id.clone());
+                            self.tokens.next(); // Consume the identifier
+
+                            // Check for comma to continue or break
+                            if let Some(next_token) = self.tokens.peek() {
+                                if next_token.token == Token::Comma {
+                                    self.tokens.next(); // Consume comma
+                                    continue;
+                                } else {
+                                    break;
+                                }
+                            } else {
+                                break;
+                            }
+                        } else {
+                            return Err(ParseError::new(
+                                "Expected identifier in implements list".to_string(),
+                                token.line,
+                                token.column,
+                            ));
+                        }
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected identifier in implements list".to_string(),
+                            0,
+                            0,
+                        ));
+                    }
+                }
+            }
+        }
+
+        Ok((extends, implements))
+    }
+
+    #[allow(clippy::type_complexity)]
+    fn parse_container_body(
+        &mut self,
+    ) -> Result<
+        (
+            Vec<PropertyDefinition>,
+            Vec<Statement>,
+            Vec<EventDefinition>,
+            Vec<PropertyDefinition>,
+            Vec<Statement>,
+        ),
+        ParseError,
+    > {
+        let mut properties = Vec::new();
+        let mut methods = Vec::new();
+        let mut events = Vec::new();
+        let mut static_properties = Vec::new();
+        let mut static_methods = Vec::new();
+
+        // Parse container body until 'end'
+        loop {
+            if let Some(token) = self.tokens.peek() {
+                match &token.token {
+                    Token::KeywordEnd => {
+                        self.tokens.next(); // Consume 'end'
+                        break;
+                    }
+                    Token::KeywordProperty => {
+                        let prop = self.parse_property_definition(false)?;
+                        properties.push(prop);
+                    }
+                    Token::KeywordStatic => {
+                        let static_token = self.tokens.next().unwrap(); // Consume 'static'
+                        if let Some(next_token) = self.tokens.peek() {
+                            match &next_token.token {
+                                Token::KeywordProperty => {
+                                    let prop = self.parse_property_definition(true)?;
+                                    static_properties.push(prop);
+                                }
+                                Token::KeywordAction => {
+                                    let method = self.parse_container_action_definition()?;
+                                    static_methods.push(method);
+                                }
+                                _ => {
+                                    return Err(ParseError::new(
+                                        "Expected 'property' or 'action' after 'static'"
+                                            .to_string(),
+                                        next_token.line,
+                                        next_token.column,
+                                    ));
+                                }
+                            }
+                        } else {
+                            return Err(ParseError::new(
+                                "Expected 'property' or 'action' after 'static'".to_string(),
+                                static_token.line,
+                                static_token.column,
+                            ));
+                        }
+                    }
+                    Token::KeywordAction => {
+                        let method = self.parse_container_action_definition()?;
+                        methods.push(method);
+                    }
+                    Token::KeywordEvent => {
+                        let event = self.parse_event_definition_full()?;
+                        events.push(event);
+                    }
+                    _ => {
+                        return Err(ParseError::new(
+                            format!("Unexpected token in container body: {:?}", token.token),
+                            token.line,
+                            token.column,
+                        ));
+                    }
+                }
+            } else {
+                return Err(ParseError::new(
+                    "Unexpected end of input in container body".to_string(),
+                    0,
+                    0,
+                ));
+            }
+        }
+
+        Ok((
+            properties,
+            methods,
+            events,
+            static_properties,
+            static_methods,
+        ))
+    }
+
+    fn parse_property_definition(
+        &mut self,
+        is_static: bool,
+    ) -> Result<PropertyDefinition, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'property'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse property name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    "Expected property name after 'property'".to_string(),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected property name after 'property'".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        let property_type = if let Some(token) = self.tokens.peek() {
+            if token.token == Token::Colon {
+                self.tokens.next(); // Consume ':'
+
+                if let Some(type_token) = self.tokens.peek() {
+                    if let Token::Identifier(type_name) = &type_token.token {
+                        self.tokens.next(); // Consume type name
+                        Some(Type::Custom(type_name.clone()))
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected type name after ':'".to_string(),
+                            type_token.line,
+                            type_token.column,
+                        ));
+                    }
+                } else {
+                    return Err(ParseError::new(
+                        "Expected type name after ':'".to_string(),
+                        line,
+                        column,
+                    ));
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        let default_value = if let Some(token) = self.tokens.peek() {
+            if token.token == Token::KeywordDefaults {
+                self.tokens.next(); // Consume 'defaults'
+                Some(self.parse_expression()?)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        Ok(PropertyDefinition {
+            name,
+            property_type,
+            default_value,
+            validation_rules: Vec::new(),
+            is_static,
+            visibility: Visibility::Public,
+            line,
+            column,
+        })
+    }
+
+    fn parse_event_definition_full(&mut self) -> Result<EventDefinition, ParseError> {
+        let start_token = self.tokens.next().unwrap(); // Consume 'event'
+        let line = start_token.line;
+        let column = start_token.column;
+
+        // Parse event name
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next(); // Consume the identifier
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    "Expected event name after 'event'".to_string(),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected event name after 'event'".to_string(),
+                line,
+                column,
+            ));
+        };
+
+        let mut parameters = Vec::new();
+        if let Some(token) = self.tokens.peek() {
+            if token.token == Token::KeywordNeeds {
+                self.tokens.next(); // Consume 'needs'
+                parameters = self.parse_parameter_list()?;
+            }
+        }
+
+        Ok(EventDefinition {
+            name,
+            parameters,
+            line,
+            column,
+        })
+    }
+
+    fn parse_parameter_list(&mut self) -> Result<Vec<Parameter>, ParseError> {
+        let mut parameters = Vec::new();
+
+        while let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(param_name) = &token.token {
+                let name = param_name.clone();
+                let param_line = token.line;
+                let param_column = token.column;
+                self.tokens.next(); // Consume parameter name
+
+                let param_type = if let Some(type_token) = self.tokens.peek() {
+                    if type_token.token == Token::Colon {
+                        self.tokens.next(); // Consume ':'
+
+                        if let Some(type_name_token) = self.tokens.peek() {
+                            if let Token::Identifier(type_name) = &type_name_token.token {
+                                self.tokens.next(); // Consume type name
+                                Some(Type::Custom(type_name.clone()))
+                            } else {
+                                return Err(ParseError::new(
+                                    "Expected type name after ':'".to_string(),
+                                    type_name_token.line,
+                                    type_name_token.column,
+                                ));
+                            }
+                        } else {
+                            return Err(ParseError::new(
+                                "Expected type name after ':'".to_string(),
+                                param_line,
+                                param_column,
+                            ));
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                parameters.push(Parameter {
+                    name,
+                    param_type,
+                    default_value: None,
+                    line: param_line,
+                    column: param_column,
+                });
+
+                // Check for comma to continue or break
+                if let Some(next_token) = self.tokens.peek() {
+                    if next_token.token == Token::Comma {
+                        self.tokens.next(); // Consume comma
+                        continue;
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
+            } else {
+                break;
+            }
+        }
+
+        Ok(parameters)
+    }
+
+    fn parse_instantiation_body(
+        &mut self,
+    ) -> Result<(Vec<PropertyInitializer>, Vec<Argument>), ParseError> {
+        let mut property_initializers = Vec::new();
+        let arguments = Vec::new();
+
+        // Parse instantiation body until 'end'
+        while let Some(token) = self.tokens.peek() {
+            match &token.token {
+                Token::KeywordEnd => {
+                    self.tokens.next(); // Consume 'end'
+                    break;
+                }
+                Token::Identifier(prop_name) => {
+                    let name = prop_name.clone();
+                    let prop_line = token.line;
+                    let prop_column = token.column;
+                    self.tokens.next(); // Consume property name
+
+                    // Expect 'is' or ':'
+                    if let Some(next_token) = self.tokens.peek() {
+                        if next_token.token == Token::KeywordIs || next_token.token == Token::Colon
+                        {
+                            self.tokens.next(); // Consume 'is' or ':'
+
+                            let value = self.parse_expression()?;
+                            property_initializers.push(PropertyInitializer {
+                                name,
+                                value,
+                                line: prop_line,
+                                column: prop_column,
+                            });
+                        } else {
+                            return Err(ParseError::new(
+                                "Expected 'is' or ':' after property name".to_string(),
+                                next_token.line,
+                                next_token.column,
+                            ));
+                        }
+                    } else {
+                        return Err(ParseError::new(
+                            "Expected 'is' or ':' after property name".to_string(),
+                            prop_line,
+                            prop_column,
+                        ));
+                    }
+                }
+                _ => {
+                    return Err(ParseError::new(
+                        format!("Unexpected token in instantiation body: {:?}", token.token),
+                        token.line,
+                        token.column,
+                    ));
+                }
+            }
+        }
+
+        Ok((property_initializers, arguments))
+    }
 
     fn parse_statement(&mut self) -> Result<Statement, ParseError> {
         if let Some(token) = self.tokens.peek().cloned() {
@@ -913,6 +1340,10 @@ impl<'a> Parser<'a> {
             }
 
             let op = match token {
+                Token::Plus => {
+                    self.tokens.next(); // Consume "+"
+                    Some((Operator::Plus, 1))
+                }
                 Token::KeywordPlus => {
                     self.tokens.next(); // Consume "plus"
                     Some((Operator::Plus, 1))
@@ -936,6 +1367,10 @@ impl<'a> Parser<'a> {
                     self.expect_token(Token::KeywordBy, "Expected 'by' after 'divided'")?;
                     self.tokens.next(); // Consume "by"
                     Some((Operator::Divide, 2))
+                }
+                Token::Equals => {
+                    self.tokens.next(); // Consume "="
+                    Some((Operator::Equals, 0))
                 }
                 Token::KeywordIs => {
                     self.tokens.next(); // Consume "is"
@@ -1463,8 +1898,91 @@ impl<'a> Parser<'a> {
                 Token::Identifier(name) => {
                     self.tokens.next();
 
+                    // Check for property access (dot notation)
                     if let Some(next_token) = self.tokens.peek().cloned() {
-                        if let Token::Identifier(id) = &next_token.token {
+                        if next_token.token == Token::Dot {
+                            self.tokens.next(); // Consume '.'
+
+                            if let Some(property_token) = self.tokens.peek().cloned() {
+                                if let Token::Identifier(property_name) = &property_token.token {
+                                    self.tokens.next(); // Consume property name
+
+                                    // Check for method call with parentheses
+                                    if let Some(paren_token) = self.tokens.peek().cloned() {
+                                        if paren_token.token == Token::LeftParen {
+                                            self.tokens.next(); // Consume '('
+
+                                            let mut arguments = Vec::new();
+
+                                            if let Some(next_token) = self.tokens.peek() {
+                                                if next_token.token != Token::RightParen {
+                                                    let expr = self.parse_expression()?;
+                                                    arguments.push(Argument {
+                                                        name: None,
+                                                        value: expr,
+                                                    });
+
+                                                    while let Some(comma_token) = self.tokens.peek()
+                                                    {
+                                                        if comma_token.token == Token::Comma {
+                                                            self.tokens.next(); // Consume ','
+                                                            let expr = self.parse_expression()?;
+                                                            arguments.push(Argument {
+                                                                name: None,
+                                                                value: expr,
+                                                            });
+                                                        } else {
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            self.expect_token(
+                                                Token::RightParen,
+                                                "Expected ')' after method arguments",
+                                            )?;
+
+                                            return Ok(Expression::MethodCall {
+                                                object: Box::new(Expression::Variable(
+                                                    name.clone(),
+                                                    token.line,
+                                                    token.column,
+                                                )),
+                                                method: property_name.clone(),
+                                                arguments,
+                                                line: token.line,
+                                                column: token.column,
+                                            });
+                                        }
+                                    }
+
+                                    // Property access without method call
+                                    return Ok(Expression::PropertyAccess {
+                                        object: Box::new(Expression::Variable(
+                                            name.clone(),
+                                            token.line,
+                                            token.column,
+                                        )),
+                                        property: property_name.clone(),
+                                        line: token.line,
+                                        column: token.column,
+                                    });
+                                } else {
+                                    return Err(ParseError::new(
+                                        "Expected property name after '.'".to_string(),
+                                        property_token.line,
+                                        property_token.column,
+                                    ));
+                                }
+                            } else {
+                                return Err(ParseError::new(
+                                    "Expected property name after '.'".to_string(),
+                                    token.line,
+                                    token.column,
+                                ));
+                            }
+                        } else if let Token::Identifier(id) = &next_token.token {
                             if id.to_lowercase() == "with" {
                                 self.tokens.next(); // Consume "with"
 
@@ -1889,6 +2407,13 @@ impl<'a> Parser<'a> {
                     line,
                     column,
                 }),
+                Expression::PropertyAccess { line, column, .. } => {
+                    Ok(Statement::DisplayStatement {
+                        value: expr,
+                        line,
+                        column,
+                    })
+                }
             };
         };
 
@@ -2275,15 +2800,18 @@ impl<'a> Parser<'a> {
 
                 while let Some(token) = self.tokens.peek().cloned() {
                     exec_trace!("Checking token for parameter: {:?}", token.token);
-                    let param_name = if let Token::Identifier(id) = &token.token {
-                        exec_trace!("Found parameter: {}", id);
-                        self.tokens.next();
+                    let (param_name, param_line, param_column) =
+                        if let Token::Identifier(id) = &token.token {
+                            exec_trace!("Found parameter: {}", id);
+                            let line = token.line;
+                            let column = token.column;
+                            self.tokens.next();
 
-                        id.clone()
-                    } else {
-                        exec_trace!("Not an identifier, breaking parameter parsing");
-                        break;
-                    };
+                            (id.clone(), line, column)
+                        } else {
+                            exec_trace!("Not an identifier, breaking parameter parsing");
+                            break;
+                        };
 
                     let param_type = if let Some(token) = self.tokens.peek() {
                         if matches!(token.token, Token::KeywordAs) {
@@ -2346,6 +2874,8 @@ impl<'a> Parser<'a> {
                         name: param_name,
                         param_type,
                         default_value,
+                        line: param_line,
+                        column: param_column,
                     });
 
                     if let Some(token) = self.tokens.peek().cloned() {
@@ -3179,5 +3709,74 @@ impl<'a> Parser<'a> {
         };
 
         Ok(stmt)
+    }
+
+    fn parse_container_action_definition(&mut self) -> Result<Statement, ParseError> {
+        self.tokens.next(); // Consume "action"
+
+        let name = if let Some(token) = self.tokens.peek() {
+            if let Token::Identifier(id) = &token.token {
+                self.tokens.next();
+                id.clone()
+            } else {
+                return Err(ParseError::new(
+                    format!(
+                        "Expected identifier after 'action', found {:?}",
+                        token.token
+                    ),
+                    token.line,
+                    token.column,
+                ));
+            }
+        } else {
+            return Err(ParseError::new(
+                "Expected identifier after 'action'".to_string(),
+                0,
+                0,
+            ));
+        };
+
+        let mut parameters = Vec::new();
+
+        // Check for parameters
+        if let Some(token) = self.tokens.peek().cloned() {
+            if matches!(token.token, Token::KeywordNeeds) {
+                self.tokens.next(); // Consume "needs"
+                parameters = self.parse_parameter_list()?;
+            }
+        }
+
+        // For now, container actions don't support explicit return types
+        let return_type = None;
+
+        self.expect_token(Token::Colon, "Expected ':' after action declaration")?;
+
+        let mut body = Vec::new();
+
+        // Parse action body until 'end'
+        loop {
+            if let Some(token) = self.tokens.peek() {
+                if token.token == Token::KeywordEnd {
+                    self.tokens.next(); // Consume 'end'
+                    break;
+                }
+                body.push(self.parse_statement()?);
+            } else {
+                return Err(ParseError::new(
+                    "Unexpected end of input in action body".to_string(),
+                    0,
+                    0,
+                ));
+            }
+        }
+
+        Ok(Statement::ActionDefinition {
+            name,
+            parameters,
+            body,
+            return_type,
+            line: 0,
+            column: 0,
+        })
     }
 }
