@@ -16,6 +16,9 @@ pub enum Value {
     Function(Rc<FunctionValue>),
     NativeFunction(NativeFunction),
     Future(Rc<RefCell<FutureValue>>),
+    Date(Rc<chrono::NaiveDate>),
+    Time(Rc<chrono::NaiveTime>),
+    DateTime(Rc<chrono::NaiveDateTime>),
     Null,
 }
 
@@ -50,6 +53,9 @@ impl Value {
             Value::Function(_) => "Function",
             Value::NativeFunction(_) => "NativeFunction",
             Value::Future(_) => "Future",
+            Value::Date(_) => "Date",
+            Value::Time(_) => "Time",
+            Value::DateTime(_) => "DateTime",
             Value::Null => "Null",
         }
     }
@@ -64,6 +70,7 @@ impl Value {
             Value::Object(obj) => !obj.borrow().is_empty(),
             Value::Function(_) | Value::NativeFunction(_) => true,
             Value::Future(future) => future.borrow().completed,
+            Value::Date(_) | Value::Time(_) | Value::DateTime(_) => true,
         }
     }
 }
@@ -105,6 +112,9 @@ impl fmt::Debug for Value {
             }
             Value::NativeFunction(_) => write!(f, "NativeFunction"),
             Value::Future(_) => write!(f, "[Future]"),
+            Value::Date(d) => write!(f, "Date({})", d),
+            Value::Time(t) => write!(f, "Time({})", t),
+            Value::DateTime(dt) => write!(f, "DateTime({})", dt),
             Value::Null => write!(f, "null"),
         }
     }
@@ -127,6 +137,9 @@ impl fmt::Display for Value {
             }
             Value::NativeFunction(_) => write!(f, "[NativeFunction]"),
             Value::Future(_) => write!(f, "[Future]"),
+            Value::Date(d) => write!(f, "{}", d.format("%Y-%m-%d")),
+            Value::Time(t) => write!(f, "{}", t.format("%H:%M:%S")),
+            Value::DateTime(dt) => write!(f, "{}", dt.format("%Y-%m-%d %H:%M:%S")),
             Value::Null => write!(f, "nothing"),
         }
     }
@@ -138,6 +151,9 @@ impl PartialEq for Value {
             (Value::Number(a), Value::Number(b)) => a == b,
             (Value::Text(a), Value::Text(b)) => a == b,
             (Value::Bool(a), Value::Bool(b)) => a == b,
+            (Value::Date(a), Value::Date(b)) => a == b,
+            (Value::Time(a), Value::Time(b)) => a == b,
+            (Value::DateTime(a), Value::DateTime(b)) => a == b,
             (Value::Null, Value::Null) => true,
             _ => false,
         }
