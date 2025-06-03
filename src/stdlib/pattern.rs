@@ -791,15 +791,18 @@ pub fn native_pattern_split(args: Vec<Value>) -> Result<Value, RuntimeError> {
 pub fn register(env: &mut Environment) {
     env.define(
         "matches_pattern",
-        Value::NativeFunction(native_pattern_matches),
+        Value::NativeFunction("matches_pattern", native_pattern_matches),
     );
-    env.define("find_pattern", Value::NativeFunction(native_pattern_find));
+    env.define(
+        "find_pattern",
+        Value::NativeFunction("find_pattern", native_pattern_find),
+    );
     env.define(
         "replace_pattern",
-        Value::NativeFunction(native_pattern_replace),
+        Value::NativeFunction("replace_pattern", native_pattern_replace),
     );
     env.define(
         "split_by_pattern",
-        Value::NativeFunction(native_pattern_split),
+        Value::NativeFunction("split_by_pattern", native_pattern_split),
     );
 }

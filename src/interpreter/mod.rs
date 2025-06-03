@@ -322,7 +322,10 @@ impl Interpreter {
 
         {
             let mut env = global_env.borrow_mut();
-            env.define("display", Value::NativeFunction(Self::native_display));
+            env.define(
+                "display",
+                Value::NativeFunction("display", Self::native_display),
+            );
 
             stdlib::register_stdlib(&mut env);
         }
@@ -1874,7 +1877,7 @@ impl Interpreter {
                     Value::Function(func) => {
                         self.call_function(&func, arg_values, *line, *column).await
                     }
-                    Value::NativeFunction(native_fn) => {
+                    Value::NativeFunction(_, native_fn) => {
                         native_fn(arg_values.clone()).map_err(|e| {
                             RuntimeError::new(
                                 format!("Error in native function: {}", e),
